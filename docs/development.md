@@ -1,55 +1,55 @@
-# Guide de développement
+# Development guide
 
-## Organisation du code
+## Code organization
 
 ```
 src/
-├── config/              # configuration Django : réglages, URL, WSGI, Celery
-│   └── settings/        # base.py (commun), dev.py, test.py, prod.py
-└── core/                # briques transverses : sondes, middleware, logs, tâches
+├── config/              # Django configuration: settings, URLs, WSGI, Celery
+│   └── settings/        # base.py (shared), dev.py, test.py, prod.py
+└── core/                # cross-cutting building blocks: probes, middleware, logs, tasks
 ```
 
-Chaque application métier (à partir du lot L1) suivra la même découpe : `models.py`, `selectors.py` (lectures, toujours filtrées par `visible_to(user)`), `services.py` (écritures transactionnelles et audit), `policies.py` (décisions d'autorisation), `views.py`, `tasks.py`, `tests/`.
+Each business application (from work package L1) will follow the same layout: `models.py`, `selectors.py` (reads, always filtered by `visible_to(user)`), `services.py` (transactional writes and audit), `policies.py` (authorization decisions), `views.py`, `tasks.py`, `tests/`.
 
-## Réglages par environnement
+## Settings per environment
 
 | Module | Usage |
 |---|---|
-| `config.settings.dev` | Développement local (défaut de `manage.py`), logs lisibles, `DEBUG` |
-| `config.settings.test` | Tests : cache mémoire, stockage mémoire, Celery exécuté immédiatement |
-| `config.settings.prod` | Recette et production (défaut de l'image) : HTTPS, HSTS, cookies sécurisés ; refuse de démarrer sans `DJANGO_ALLOWED_HOSTS` |
+| `config.settings.dev` | Local development (default of `manage.py`), readable logs, `DEBUG` |
+| `config.settings.test` | Tests: in-memory cache, in-memory storage, Celery run eagerly |
+| `config.settings.prod` | Staging and production (image default): HTTPS, HSTS, secure cookies; refuses to start without `DJANGO_ALLOWED_HOSTS` |
 
-## Variables d'environnement
+## Environment variables
 
-| Variable | Rôle | Défaut | Secrète |
+| Variable | Purpose | Default | Secret |
 |---|---|---|---|
-| `DJANGO_SETTINGS_MODULE` | Module de réglages | `config.settings.dev` (`manage.py`), `config.settings.prod` (image) | non |
-| `DJANGO_SECRET_KEY` | Clé de signature Django | aucune (obligatoire) | **oui** |
-| `DJANGO_ALLOWED_HOSTS` | Noms d'hôte acceptés, séparés par des virgules | vide (refusé en prod) | non |
-| `DJANGO_DEBUG` | Mode debug | `false` | non |
-| `DATABASE_URL` | Connexion PostgreSQL | aucune (obligatoire) | **oui** (mot de passe) |
-| `DB_CONN_MAX_AGE` | Durée de vie des connexions (s) | `60` | non |
-| `REDIS_URL` | Cache, verrous, broker Celery | aucune (obligatoire) | **oui** si authentifié |
-| `S3_BUCKET` | Bucket des documents | aucune (obligatoire) | non |
-| `S3_ENDPOINT_URL` | Point d'accès S3-compatible | vide (AWS) | non |
-| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Identifiants du stockage | vide | **oui** |
-| `S3_REGION` | Région | vide | non |
-| `EMAIL_URL` | Serveur SMTP (format `smtp://user:pass@hôte:port`) | `consolemail://` | **oui** si identifiants |
-| `DEFAULT_FROM_EMAIL` | Expéditeur | `communautes@localhost` | non |
-| `METRICS_TOKEN` | Jeton d'accès à `/metrics` (vide = désactivé) | vide | **oui** |
-| `LOG_LEVEL` | Niveau de log | `INFO` | non |
-| `LOG_JSON` | Logs au format JSON | `true` (`false` en dev) | non |
+| `DJANGO_SETTINGS_MODULE` | Settings module | `config.settings.dev` (`manage.py`), `config.settings.prod` (image) | no |
+| `DJANGO_SECRET_KEY` | Django signing key | none (required) | **yes** |
+| `DJANGO_ALLOWED_HOSTS` | Accepted host names, comma-separated | empty (rejected in prod) | no |
+| `DJANGO_DEBUG` | Debug mode | `false` | no |
+| `DATABASE_URL` | PostgreSQL connection | none (required) | **yes** (password) |
+| `DB_CONN_MAX_AGE` | Connection lifetime (s) | `60` | no |
+| `REDIS_URL` | Cache, locks, Celery broker | none (required) | **yes** if authenticated |
+| `S3_BUCKET` | Documents bucket | none (required) | no |
+| `S3_ENDPOINT_URL` | S3-compatible endpoint | empty (AWS) | no |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Storage credentials | empty | **yes** |
+| `S3_REGION` | Region | empty | no |
+| `EMAIL_URL` | SMTP server (format `smtp://user:pass@host:port`) | `consolemail://` | **yes** if credentials |
+| `DEFAULT_FROM_EMAIL` | Sender | `communautes@localhost` | no |
+| `METRICS_TOKEN` | Access token for `/metrics` (empty = disabled) | empty | **yes** |
+| `LOG_LEVEL` | Log level | `INFO` | no |
+| `LOG_JSON` | Logs in JSON format | `true` (`false` in dev) | no |
 
-Les valeurs de `.env.example` sont réservées au développement local et ne doivent jamais être réutilisées ailleurs.
+The values in `.env.example` are reserved for local development and must never be reused elsewhere.
 
 ## Migrations
 
-Jamais appliquées automatiquement au démarrage. En développement : `docker compose run --rm migrate`. En CI : `make test` applique toutes les migrations sur une base vide et `make lint` échoue si une migration manque.
+Never applied automatically at startup. In development: `docker compose run --rm migrate`. In CI: `make test` applies all migrations on an empty database and `make lint` fails if a migration is missing.
 
 ## Tests
 
-- `make test` : tests unitaires et d'intégration Django sur PostgreSQL réel, couverture minimale 85 %.
-- `make test-integration` : vérifie que le bucket est privé (lecture anonyme refusée) contre un stockage S3-compatible réel. En local, avec Compose démarré :
+- `make test` : Django unit and integration tests on a real PostgreSQL, minimum coverage 85%.
+- `make test-integration` : checks that the bucket is private (anonymous read denied) against a real S3-compatible storage. Locally, with Compose started:
 
   ```bash
   S3_INTEGRATION_ENDPOINT=http://localhost:8333 S3_INTEGRATION_BUCKET=talan-documents \
@@ -57,30 +57,30 @@ Jamais appliquées automatiquement au démarrage. En développement : `docker co
     make test-integration
   ```
 
-## Observabilité
+## Observability
 
-- `GET /healthz` : le processus répond (aucun accès à la base).
-- `GET /readyz` : PostgreSQL et Redis répondent ; 503 sinon, avec le nom du composant en échec uniquement.
-- `GET /metrics` : métriques Prometheus, accessibles seulement avec `Authorization: Bearer <METRICS_TOKEN>` ; bloqué par Nginx côté public, à collecter sur le réseau interne.
-- Chaque requête porte un identifiant `X-Request-ID` (repris s'il est fourni et valide, sinon généré), renvoyé dans la réponse et présent dans chaque ligne de log JSON.
+- `GET /healthz` : the process responds (no database access).
+- `GET /readyz` : PostgreSQL and Redis respond; 503 otherwise, with only the name of the failing component.
+- `GET /metrics` : Prometheus metrics, accessible only with `Authorization: Bearer <METRICS_TOKEN>`; blocked by Nginx on the public side, to be scraped on the internal network.
+- Every request carries an `X-Request-ID` identifier (reused if supplied and valid, otherwise generated), returned in the response and present in every JSON log line.
 
-## Stockage de développement
+## Development storage
 
-MinIO n'étant plus distribué sur Docker Hub, l'environnement de développement utilise **SeaweedFS** comme stockage S3-compatible (`docker/seaweedfs/entrypoint.sh`). Aucune identité anonyme n'est déclarée : toute requête non signée est refusée. En production, le stockage managé de l'hébergeur retenu le remplace (décision D1 du cadrage).
+As MinIO is no longer distributed on Docker Hub, the development environment uses **SeaweedFS** as S3-compatible storage (`docker/seaweedfs/entrypoint.sh`). No anonymous identity is declared: any unsigned request is rejected. In production, the managed storage of the chosen host replaces it (decision D1 of the framing document).
 
-## Mise à jour des images et des actions épinglées
+## Updating pinned images and actions
 
-Les images tierces sont épinglées par digest et tirées via `mirror.gcr.io` (miroir Docker Hub de Google, sans limite de débit anonyme). Pour mettre à jour un digest :
+Third-party images are pinned by digest and pulled through `mirror.gcr.io` (Google's Docker Hub mirror, with no anonymous rate limit). To update a digest:
 
 ```bash
 docker pull mirror.gcr.io/library/postgres:16-alpine
 docker inspect --format '{{index .RepoDigests 0}}' mirror.gcr.io/library/postgres:16-alpine
 ```
 
-Les actions GitHub sont épinglées par SHA de commit :
+GitHub Actions are pinned by commit SHA:
 
 ```bash
 git ls-remote https://github.com/actions/checkout 'refs/tags/v4*'
 ```
 
-Reporter la nouvelle valeur dans `compose.yaml`, `Makefile`, `docker/Dockerfile` ou `.github/workflows/ci.yml`, puis lancer `make ci`.
+Copy the new value into `compose.yaml`, `Makefile`, `docker/Dockerfile` or `.github/workflows/ci.yml`, then run `make ci`.
