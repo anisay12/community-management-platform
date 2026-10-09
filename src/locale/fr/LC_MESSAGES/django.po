@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 15:40+0200\n"
+"POT-Creation-Date: 2026-10-09 15:47+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -449,6 +449,14 @@ msgstr "Votre copie n’a pas pu être préparée. Veuillez réessayer."
 
 msgid "Your previous copy has expired."
 msgstr "Votre copie précédente a expiré."
+
+msgid "No copy requested yet"
+msgstr "Aucune copie demandée pour le moment"
+
+msgid "Request a copy to download everything the platform holds about you."
+msgstr ""
+"Demandez une copie pour télécharger tout ce que la plateforme détient sur "
+"vous."
 
 msgid "Request a copy of my data"
 msgstr "Demander une copie de mes données"
@@ -965,6 +973,19 @@ msgstr "Se déconnecter"
 msgid "Hello, %(name)s."
 msgstr "Bonjour, %(name)s."
 
+msgid "No communities yet"
+msgstr "Aucune communauté pour le moment"
+
+msgid ""
+"Communities will appear here as soon as they exist. In the meantime, "
+"complete your profile so colleagues can find you."
+msgstr ""
+"Les communautés apparaîtront ici dès qu’elles existeront. En attendant, "
+"complétez votre profil pour que vos collègues puissent vous trouver."
+
+msgid "Go to my profile"
+msgstr "Aller à mon profil"
+
 msgid "Welcome to the Talan communities platform."
 msgstr "Bienvenue sur la plateforme des communautés Talan."
 
@@ -1017,9 +1038,6 @@ msgstr "Une erreur s’est produite."
 
 msgid "Your changes were saved."
 msgstr "Vos modifications ont été enregistrées."
-
-msgid "No communities yet"
-msgstr "Aucune communauté pour le moment"
 
 msgid "Create the first one to get started."
 msgstr "Créez la première pour commencer."
@@ -1089,6 +1107,18 @@ msgstr "Erreur serveur"
 
 msgid "Something went wrong on our side. Please try again later."
 msgstr "Une erreur est survenue de notre côté. Veuillez réessayer plus tard."
+
+msgid "Full name"
+msgstr "Nom complet"
+
+msgid "As it appears on your badge."
+msgstr "Tel qu’il figure sur votre badge."
+
+msgid "Role"
+msgstr "Rôle"
+
+msgid "I accept the code of conduct"
+msgstr "J’accepte le code de conduite"
 
 msgid "A second problem on the same field."
 msgstr "Un second problème sur le même champ."

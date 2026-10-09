@@ -275,7 +275,7 @@ def test_bio_too_long_shows_inline_error(client, owner):
     response = client.post(reverse("accounts:profile_edit"), edit_data(bio="x" * 2001))
     assert response.status_code == 200
     assert "bio" in response.context["form"].errors
-    assert 'class="field-error"' in response.content.decode()
+    assert 'class="invalid-feedback d-block"' in response.content.decode()
     assert UserProfile.objects.get(user=owner).bio == "Loves graph databases."
 
 

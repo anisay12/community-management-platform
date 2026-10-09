@@ -2,32 +2,34 @@
 {% load i18n accounts_tags %}
 {% block title %}{{ owner.get_full_name|default:owner.email }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <div class="profile-header">
-    <span class="avatar" aria-hidden="true">{{ owner|initials }}</span>
+  <div class="d-flex align-items-center gap-3 mb-4">
+    {% include "components/avatar.html" with initials=owner|initials size="lg" hidden=True %}
     <div>
-      <h1>{{ owner.get_full_name|default:owner.email }}</h1>
-      {% if profile.job_title %}<p class="profile-job-title">{{ profile.job_title }}</p>{% endif %}
+      <h1 class="h3 mb-1">{{ owner.get_full_name|default:owner.email }}</h1>
+      {% if profile.job_title %}<p class="text-body-secondary mb-1">{{ profile.job_title }}</p>{% endif %}
+      {% for role in roles %}{% include "components/role_badge.html" with role=role %} {% endfor %}
     </div>
   </div>
   {% if not is_active %}
-    <p class="message">{% blocktranslate with status=owner.get_status_display %}Account status: {{ status }}{% endblocktranslate %}</p>
+    {% blocktranslate with status=owner.get_status_display asvar status_text %}Account status: {{ status }}{% endblocktranslate %}
+    {% include "components/alert.html" with level="warning" text=status_text %}
   {% endif %}
-  <dl>
-    <dt>{% translate "Unit" %}</dt><dd>{{ owner.employment.unit.name|default:"—" }}</dd>
+  <dl class="row">
+    <dt class="col-sm-3">{% translate "Unit" %}</dt><dd class="col-sm-9">{{ owner.employment.unit.name|default:"—" }}</dd>
     {% if show_details %}
-      <dt>{% translate "Interests" %}</dt>
-      <dd>{% for tag in interests %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
-      <dt>{% translate "Last seen" %}</dt><dd>{{ owner.last_seen_at|default:"—" }}</dd>
+      <dt class="col-sm-3">{% translate "Interests" %}</dt>
+      <dd class="col-sm-9">{% for tag in interests %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
+      <dt class="col-sm-3">{% translate "Last seen" %}</dt><dd class="col-sm-9">{{ owner.last_seen_at|default:"—" }}</dd>
     {% endif %}
   </dl>
   {% if show_details and profile.bio %}
-    <h2>{% translate "About" %}</h2>
+    <h2 class="h4">{% translate "About" %}</h2>
     <div class="profile-bio">{{ profile.bio|linebreaks }}</div>
   {% endif %}
   {% if is_self %}
-    <div class="actions">
-      <a class="button" href="{% url 'accounts:profile_edit' %}">{% translate "Edit my profile" %}</a>
-      <a href="{% url 'accounts:preferences' %}">{% translate "Preferences" %}</a>
+    <div class="mt-4 d-flex gap-2 flex-wrap">
+      <a class="btn btn-primary" href="{% url 'accounts:profile_edit' %}">{% translate "Edit my profile" %}</a>
+      <a class="btn btn-outline-secondary" href="{% url 'accounts:preferences' %}">{% translate "Preferences" %}</a>
     </div>
   {% endif %}
 {% endblock %}

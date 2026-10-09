@@ -6,15 +6,18 @@ from django.core.paginator import Paginator
 from django.http import Http404
 from django.shortcuts import render
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 
 from accounts.roles import Role
 
 
 class SampleForm(forms.Form):
-    name = forms.CharField(label="Full name", help_text="As it appears on your badge.")
-    email = forms.EmailField(label="Email")
-    role = forms.ChoiceField(label="Role", choices=[(r.value, r.label) for r in Role])
-    agree = forms.BooleanField(label="I accept the code of conduct")
+    name = forms.CharField(
+        label=gettext_lazy("Full name"), help_text=gettext_lazy("As it appears on your badge.")
+    )
+    email = forms.EmailField(label=gettext_lazy("Email"))
+    role = forms.ChoiceField(label=gettext_lazy("Role"), choices=[(r.value, r.label) for r in Role])
+    agree = forms.BooleanField(label=gettext_lazy("I accept the code of conduct"))
 
 
 def styleguide(request):

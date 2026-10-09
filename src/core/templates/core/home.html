@@ -1,11 +1,16 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% block content %}
-  <h1>{% translate "Communities" %}</h1>
   {% if user.is_authenticated %}
-    <p>{% blocktranslate with name=user.get_short_name|default:user.get_username %}Hello, {{ name }}.{% endblocktranslate %}</p>
+    <h1 class="h3 mb-4">{% blocktranslate with name=user.get_short_name|default:user.get_username %}Hello, {{ name }}.{% endblocktranslate %}</h1>
+    {% translate "No communities yet" as empty_title %}
+    {% translate "Communities will appear here as soon as they exist. In the meantime, complete your profile so colleagues can find you." as empty_text %}
+    {% translate "Go to my profile" as empty_action %}
+    {% url 'accounts:profile_me' as profile_url %}
+    {% include "components/empty_state.html" with icon="people" title=empty_title text=empty_text action_url=profile_url action_label=empty_action %}
   {% else %}
+    <h1 class="h3 mb-3">{% translate "Communities" %}</h1>
     <p>{% translate "Welcome to the Talan communities platform." %}</p>
-    <p><a class="button" href="{% url 'accounts:login' %}">{% translate "Sign in" %}</a></p>
+    <p><a class="btn btn-primary" href="{% url 'accounts:login' %}">{% translate "Sign in" %}</a></p>
   {% endif %}
 {% endblock %}

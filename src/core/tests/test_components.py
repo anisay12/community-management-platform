@@ -22,9 +22,7 @@ def test_pagination_links_carry_querystring_and_current_page():
     assert 'href="?q=django&amp;sort=name&amp;page=4"' in html
     assert 'href="?q=django&amp;sort=name&amp;page=6"' in html
     assert html.count('aria-current="page"') == 1
-    assert re.search(r'aria-current="page"[^>]*>\s*5\b', html) or re.search(
-        r'aria-current="page">\s*5\s*<', html
-    )
+    assert re.search(r'<a [^>]*aria-current="page">5</a>', html)
 
 
 def test_pagination_without_querystring():
@@ -163,7 +161,7 @@ def test_toast_error_is_alert_and_other_is_status():
     assert 'role="status"' in ok and 'role="alert"' not in ok
 
 
-def test_messages_component_reuses_toast(rf):
+def test_messages_component_reuses_toast():
     from django.contrib.messages.storage.base import Message
 
     html = render_to_string(
