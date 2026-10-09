@@ -1,0 +1,18 @@
+{% load i18n %}{% comment %}
+  Header of the management pages. Context: community, manage_tabs, read_only, page_title.
+{% endcomment %}
+<nav aria-label="{% translate 'Breadcrumb' %}">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'communities:catalogue' %}">{% translate "Communities" %}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'communities:detail' community.slug %}">{{ community.name }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{% translate "Manage" %}</li>
+  </ol>
+</nav>
+<h1 class="h2">{% blocktranslate with name=community.name %}Manage {{ name }}{% endblocktranslate %}</h1>
+{% if community.status != "active" %}
+  <div class="alert alert-warning" role="status">
+    {% if read_only %}{% blocktranslate with status=community.get_status_display %}This community is {{ status }}: it is read-only.{% endblocktranslate %}{% else %}{% blocktranslate with status=community.get_status_display %}This community is {{ status }}. As a functional administrator you can still change it.{% endblocktranslate %}{% endif %}
+  </div>
+{% endif %}
+{% translate "Management sections" as tabs_label %}
+{% include "components/tabs.html" with items=manage_tabs label=tabs_label %}

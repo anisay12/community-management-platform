@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Settings" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_manage_tabs.html" %}
+  <h2 class="h4 mt-3">{% translate "Settings" %}</h2>
+  {% include "components/form_errors.html" with form=form %}
+  <form method="post" class="col-12 col-lg-8" novalidate>
+    {% csrf_token %}
+    <fieldset{% if read_only %} disabled{% endif %}>
+      <legend class="visually-hidden">{% translate "Community settings" %}</legend>
+      {% for field in form %}{% include "components/form_field.html" with field=field %}{% endfor %}
+      {% if not read_only %}<button type="submit" class="btn btn-primary">{% translate "Save" %}</button>{% endif %}
+    </fieldset>
+  </form>
+  {% if status_actions %}
+    <section class="mt-5 col-12 col-lg-8" aria-labelledby="status-heading">
+      <h2 class="h4" id="status-heading">{% translate "Status" %}</h2>
+      <p>{% blocktranslate with status=community.get_status_display %}Current status: {{ status }}.{% endblocktranslate %}</p>
+      <div class="d-flex flex-wrap gap-2">
+        {% for item in status_actions %}
+          <a class="btn btn-outline-danger" href="{% url 'communities:manage_status' community.slug %}?action={{ item.action }}" data-bs-toggle="modal" data-bs-target="#status-{{ item.action }}" role="button">{{ item.title }}</a>
+        {% endfor %}
+      </div>
+      {% url 'communities:manage_status' community.slug as status_url %}
+      {% translate "Cancel" as cancel_label %}
+      {% for item in status_actions %}
+        <div class="modal fade" id="status-{{ item.action }}" tabindex="-1" aria-labelledby="status-{{ item.action }}-title" aria-hidden="true">
+          <div class="modal-dialog">
+            <form class="modal-content" method="post" action="{{ status_url }}">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="{{ item.action }}">
+              <div class="modal-header">
+                <h2 class="modal-title h5" id="status-{{ item.action }}-title">{{ item.title }}</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ cancel_label }}"></button>
+              </div>
+              <div class="modal-body">{{ item.body }}</div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ cancel_label }}</button>
+                <button type="submit" class="btn btn-danger">{% translate "Confirm" %}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% endblock %}

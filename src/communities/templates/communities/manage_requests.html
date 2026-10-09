@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n component_tags %}
+{% block title %}{% translate "Requests" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_manage_tabs.html" %}
+  <h2 class="h4 mt-3">{% translate "Membership requests" %}</h2>
+  {% if requests %}
+    <ul class="list-group mb-3">
+      {% for item in requests %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between flex-wrap gap-2">
+            <strong>{{ item.user|member_name }}</strong>
+            <span class="badge text-bg-{% if item.status == 'pending' %}warning{% else %}secondary{% endif %}">{{ item.get_status_display }}</span>
+          </div>
+          {% if item.message %}<p class="mb-2">{{ item.message }}</p>{% endif %}
+          {% if item.decision_note %}<p class="small text-body-secondary mb-2">{% translate "Note:" %} {{ item.decision_note }}</p>{% endif %}
+          {% if item.status == "pending" and not read_only %}
+            <form method="post" action="{% url 'communities:manage_request_decide' community.slug item.public_id %}" class="row g-2 align-items-end">
+              {% csrf_token %}
+              <div class="col-12 col-md-6">
+                <label class="form-label small" for="note-{{ item.pk }}">{% translate "Note to the applicant (optional)" %}</label>
+                <input class="form-control form-control-sm" type="text" name="note" id="note-{{ item.pk }}" maxlength="500">
+              </div>
+              <div class="col-auto d-flex gap-2">
+                <button type="submit" name="decision" value="accept" class="btn btn-sm btn-primary">{% translate "Accept" %}</button>
+                <button type="submit" name="decision" value="reject" class="btn btn-sm btn-outline-danger">{% translate "Reject" %}</button>
+              </div>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% translate "No membership request" as empty_title %}
+    {% include "components/empty_state.html" with icon="inbox" title=empty_title %}
+  {% endif %}
+{% endblock %}
