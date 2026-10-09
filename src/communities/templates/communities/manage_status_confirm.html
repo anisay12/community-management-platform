@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{{ title }} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_manage_tabs.html" %}
+  <h2 class="h4 mt-3">{{ title }}</h2>
+  <p>{{ body }}</p>
+  <form method="post" action="{% url 'communities:manage_status' community.slug %}">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action }}">
+    <button type="submit" class="btn btn-danger">{% translate "Confirm" %}</button>
+    <a class="btn btn-link" href="{% url 'communities:manage_settings' community.slug %}">{% translate "Cancel" %}</a>
+  </form>
+{% endblock %}
