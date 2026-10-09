@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}
+  Cards of one feed page and the "Load more" link (also the HTMX response of that link).
+  Context: page (posts.selectors.FeedPage), filter_query, show_community.
+{% endcomment %}
+{% for post in page.items %}{% include "components/post_card.html" with post=post pinned=False %}{% endfor %}
+{% if page.next_cursor %}
+  <div id="feed-more" class="text-center my-3">
+    <a class="btn btn-outline-primary" href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}cursor={{ page.next_cursor|urlencode }}" hx-get="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}cursor={{ page.next_cursor|urlencode }}" hx-target="#feed-more" hx-swap="outerHTML">{% translate "Load more" %}</a>
+  </div>
+{% endif %}

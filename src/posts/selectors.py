@@ -1,7 +1,12 @@
 """Read-side queries on posts. Visibility is decided in SQL here and mirrored by
 ``policies.can_view_post`` (the visibility tests check that they agree)."""
 
-from django.db.models import Q
+import base64
+import binascii
+from dataclasses import dataclass, field
+from datetime import datetime
+
+from django.db.models import Exists, OuterRef, Prefetch, Q, prefetch_related_objects
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -10,7 +15,7 @@ from communities.models import AdminAccessGrant, Community, CommunityMembership
 from communities.policies import is_functional_admin
 from communities.roles import ROLE_RANK, CommunityRole
 
-from .models import Post
+from .models import Comment, Post
 
 MODERATOR_ROLES = [
     role for role, rank in ROLE_RANK.items() if rank >= ROLE_RANK[CommunityRole.MODERATOR]
@@ -65,3 +70,146 @@ def get_visible_post_or_404(user, community_slug, public_id) -> Post:
         community__slug=community_slug,
         public_id=public_id,
     )
+
+
+# Feeds -------------------------------------------------------------------------------------
+
+FEED_PAGE_SIZE = 20
+MAX_PINNED = 3
+_FEED_ORDER = ("-last_activity_at", "-pk")
+
+
+@dataclass
+class FeedPage:
+    """One page of a feed: ``pinned`` posts (first page of the unfiltered community feed
+    only), then ``items`` by last activity; ``next_cursor`` is ``None`` on the last page."""
+
+    items: list
+    next_cursor: str | None
+    pinned: list = field(default_factory=list)
+
+
+def encode_cursor(post) -> str:
+    """Opaque cursor positioned right after ``post`` (``last_activity_at|id``, base64)."""
+    raw = f"{post.last_activity_at.isoformat()}|{post.pk}"
+    return base64.urlsafe_b64encode(raw.encode()).decode()
+
+
+def decode_cursor(value) -> tuple[datetime, int] | None:
+    """``(last_activity_at, id)`` of a cursor, or ``None`` when it is missing or malformed."""
+    try:
+        moment, _, pk = base64.urlsafe_b64decode(str(value).encode()).decode().partition("|")
+        decoded = (datetime.fromisoformat(moment), int(pk))
+    except (ValueError, UnicodeError, binascii.Error):
+        return None
+    return decoded if decoded[0].tzinfo is not None else None
+
+
+def _feed_queryset(user):
+    return Post.objects.visible_to(user).select_related("community", "shared_from__community")
+
+
+def _is_first_page(cursor) -> bool:
+    return not cursor or decode_cursor(cursor) is None
+
+
+def _page(queryset, cursor) -> FeedPage:
+    position = decode_cursor(cursor) if cursor else None
+    if position is not None:
+        moment, pk = position
+        queryset = queryset.filter(
+            Q(last_activity_at__lt=moment) | Q(last_activity_at=moment, pk__lt=pk)
+        )
+    rows = list(queryset.order_by(*_FEED_ORDER)[: FEED_PAGE_SIZE + 1])
+    items = rows[:FEED_PAGE_SIZE]
+    next_cursor = encode_cursor(items[-1]) if len(rows) > FEED_PAGE_SIZE else None
+    return FeedPage(items=items, next_cursor=next_cursor)
+
+
+def community_feed(user, community, *, kind=None, unanswered=False, cursor=None) -> FeedPage:
+    """Posts of ``community`` that ``user`` may open, without drafts or archived posts.
+
+    Pending and hidden posts appear only for their author and the moderators (``visible_to``).
+    ``kind`` (an unknown value is ignored) and ``unanswered`` (questions without an accepted
+    answer nor any visible comment) filter the feed; the unfiltered feed puts up to three
+    pinned posts first on its first page and leaves them out of every page's ``items``.
+    """
+    queryset = (
+        _feed_queryset(user)
+        .filter(community=community)
+        .exclude(status__in=[Post.Status.DRAFT, Post.Status.ARCHIVED])
+    )
+    pinned = []
+    if unanswered:
+        visible_comments = Comment.objects.filter(
+            post=OuterRef("pk"), status=Comment.Status.VISIBLE
+        )
+        queryset = queryset.filter(kind=Post.Kind.QUESTION, accepted_answer__isnull=True).exclude(
+            Exists(visible_comments)
+        )
+    elif kind in Post.Kind.values:
+        queryset = queryset.filter(kind=kind)
+    else:
+        pinned = list(
+            queryset.filter(pinned_at__isnull=False).order_by("-pinned_at", "-pk")[:MAX_PINNED]
+        )
+        queryset = queryset.exclude(pk__in=[post.pk for post in pinned])
+    page = _page(queryset, cursor)
+    if _is_first_page(cursor):
+        page.pinned = pinned
+    # One tag query for the pinned posts and the page together.
+    prefetch_related_objects([*page.pinned, *page.items], "tags")
+    return page
+
+
+def home_feed(user, *, cursor=None) -> FeedPage:
+    """Published posts of the communities ``user`` is a member of, by last activity."""
+    if not getattr(user, "is_authenticated", False):
+        return FeedPage(items=[], next_cursor=None)
+    member_of = CommunityMembership.objects.filter(user=user).values("community_id")
+    queryset = _feed_queryset(user).filter(community__in=member_of, status=Post.Status.PUBLISHED)
+    page = _page(queryset, cursor)
+    prefetch_related_objects(page.items, "tags")
+    return page
+
+
+def mark_share_access(user, posts) -> None:
+    """Set ``share_original_visible`` on each post: whether ``user`` may open the post it
+    shares (one query for the whole list, rather than a policy check per card)."""
+    original_ids = {post.shared_from_id for post in posts if post.shared_from_id}
+    visible = (
+        set(Post.objects.visible_to(user).filter(pk__in=original_ids).values_list("pk", flat=True))
+        if original_ids
+        else set()
+    )
+    for post in posts:
+        post.share_original_visible = post.shared_from_id in visible
+
+
+# Comments ----------------------------------------------------------------------------------
+
+
+def comment_thread(user, post) -> list[Comment]:
+    """Top-level comments of ``post`` with their replies in ``prefetched_replies``.
+
+    Hidden comments stay in the thread (as a placeholder): ``body_visible`` is true only for
+    visible comments, or for hidden ones when ``user`` is their author or a moderator.
+    """
+    from .policies import is_content_moderator
+
+    moderator = is_content_moderator(user, post.community)
+    replies = Comment.objects.order_by("created_at", "pk")
+    thread = list(
+        Comment.objects.filter(post=post, parent__isnull=True)
+        .order_by("created_at", "pk")
+        .prefetch_related(Prefetch("replies", queryset=replies, to_attr="prefetched_replies"))
+    )
+    user_pk = getattr(user, "pk", None)
+    for comment in thread:
+        for item in (comment, *comment.prefetched_replies):
+            item.body_visible = (
+                item.status == Comment.Status.VISIBLE
+                or moderator
+                or (item.author_id is not None and item.author_id == user_pk)
+            )
+    return thread
