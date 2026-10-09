@@ -1,11 +1,12 @@
 from django.contrib.auth.views import LogoutView
-from django.urls import path
+from django.urls import include, path
 
-from . import views_auth, views_manage, views_mfa
+from . import views_auth, views_manage, views_mfa, views_profile
 
 app_name = "accounts"
 
-urlpatterns = [
+# Authentication pages, mounted under /accounts/.
+auth_patterns = [
     path("login/", views_auth.LoginView.as_view(), name="login"),
     path("logout/", LogoutView.as_view(), name="logout"),
     path("password-reset/", views_auth.PasswordResetView.as_view(), name="password_reset"),
@@ -27,6 +28,14 @@ urlpatterns = [
     path("mfa/setup/", views_mfa.mfa_setup, name="mfa_setup"),
     path("mfa/verify/", views_mfa.mfa_verify, name="mfa_verify"),
     path("activate/<uidb64>/<token>/", views_auth.activate, name="activate"),
+]
+
+urlpatterns = [
+    path("accounts/", include(auth_patterns)),
+    path("me/", views_profile.profile_me, name="profile_me"),
+    path("me/edit/", views_profile.profile_edit, name="profile_edit"),
+    path("me/preferences/", views_profile.preferences, name="preferences"),
+    path("people/<uuid:public_id>/", views_profile.profile_detail, name="profile_detail"),
 ]
 
 # Account administration, mounted at /manage/ under the "manage" namespace.

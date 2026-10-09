@@ -5,10 +5,12 @@ from collections.abc import Callable
 from datetime import timedelta
 
 import structlog
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
-from django.utils import timezone
+from django.utils import timezone, translation
 
 from .context import bind_request, clear_request, set_user_source
+from .views_i18n import SUPPORTED_LANGUAGES, set_language_cookie
 
 REQUEST_ID_HEADER = "X-Request-ID"
 _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
@@ -51,7 +53,7 @@ ACTIVITY_INTERVAL = timedelta(minutes=5)
 
 
 class ActivityMiddleware:
-    """Track the user's last activity and activate their time zone.
+    """Track the user's last activity.
 
     ``last_seen_at`` is written at most once per ``ACTIVITY_INTERVAL``; the session is
     re-saved at the same moment, which slides its inactivity expiry.
@@ -69,13 +71,7 @@ class ActivityMiddleware:
                 user.last_seen_at = now
                 request.session.modified = True
                 self._track_session(request, user)
-            self._activate_timezone(user)
-        else:
-            timezone.deactivate()
-        try:
-            return self.get_response(request)
-        finally:
-            timezone.deactivate()
+        return self.get_response(request)
 
     @staticmethod
     def _track_session(request: HttpRequest, user) -> None:
@@ -87,10 +83,58 @@ class ActivityMiddleware:
 
             UserSession.objects.get_or_create(session_key=key, defaults={"user": user})
 
+
+class UserPreferencesMiddleware:
+    """Apply the logged-in user's saved language and time zone to the request.
+
+    Must come after ``AuthenticationMiddleware`` and ``LocaleMiddleware``: a saved
+    language overrides the cookie and ``Accept-Language`` negotiation. The language
+    cookie is aligned with the saved preference so that it survives logout.
+    """
+
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        profile = self._profile(request)
+        if profile is not None:
+            language = self._language(profile)
+            if language:
+                translation.activate(language)
+                request.LANGUAGE_CODE = language
+            self._activate_timezone(profile)
+        else:
+            timezone.deactivate()
+        try:
+            response = self.get_response(request)
+        finally:
+            timezone.deactivate()
+        if profile is not None:
+            # Re-read: the view may just have changed the preference (same instance).
+            language = self._language(profile)
+            if (
+                language
+                and settings.LANGUAGE_COOKIE_NAME not in response.cookies
+                and request.COOKIES.get(settings.LANGUAGE_COOKIE_NAME) != language
+            ):
+                set_language_cookie(response, language)
+        return response
+
     @staticmethod
-    def _activate_timezone(user) -> None:
-        profile = getattr(user, "profile", None)
+    def _profile(request: HttpRequest):
+        user = getattr(request, "user", None)
+        if user is None or not user.is_authenticated:
+            return None
+        return getattr(user, "profile", None)
+
+    @staticmethod
+    def _language(profile) -> str:
+        language = profile.language
+        return language if language in SUPPORTED_LANGUAGES else ""
+
+    @staticmethod
+    def _activate_timezone(profile) -> None:
         try:
             timezone.activate(zoneinfo.ZoneInfo(profile.timezone))
-        except (AttributeError, ValueError, zoneinfo.ZoneInfoNotFoundError):
+        except (ValueError, zoneinfo.ZoneInfoNotFoundError):
             timezone.deactivate()

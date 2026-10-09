@@ -41,3 +41,38 @@ def hierarchy_allows(actor, target) -> bool:
 def can_administer_user(actor, target) -> bool:
     """Whether ``actor`` may change the status or the roles of ``target``."""
     return can_manage_users(actor) and hierarchy_allows(actor, target)
+
+
+def shares_community(viewer, owner) -> bool:
+    """Whether ``viewer`` and ``owner`` are members of a common community.
+
+    Communities arrive in lot L3, which replaces this placeholder; until then no two
+    users share a community, so ``communities`` visibility behaves like ``private`` for
+    everyone but the owner and administrators.
+    """
+    return False
+
+
+def can_view_profile(viewer, owner) -> bool:
+    """Whether ``viewer`` may see ``owner``'s profile page at all (otherwise 404).
+
+    Only active accounts are visible to everyone; a pending, suspended or deactivated
+    owner is visible to themself and to user administrators only.
+    """
+    if not getattr(viewer, "is_authenticated", False) or not viewer.is_active:
+        return False
+    return viewer.pk == owner.pk or owner.status == owner.Status.ACTIVE or can_manage_users(viewer)
+
+
+def can_view_profile_details(viewer, owner) -> bool:
+    """Whether ``viewer`` may see ``owner``'s bio and interests."""
+    if not can_view_profile(viewer, owner):
+        return False
+    if viewer.pk == owner.pk or can_manage_users(viewer):
+        return True
+    visibility = owner.profile.profile_visibility
+    if visibility == owner.profile.Visibility.COMPANY:
+        return True
+    if visibility == owner.profile.Visibility.COMMUNITIES:
+        return shares_community(viewer, owner)
+    return False

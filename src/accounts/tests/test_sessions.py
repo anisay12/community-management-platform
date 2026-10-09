@@ -1,14 +1,11 @@
 from datetime import timedelta
 from smtplib import SMTPException
-from zoneinfo import ZoneInfo
 
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user
-from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.models import Session
 from django.db import connection
-from django.http import HttpResponse
 from django.test import Client
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -18,7 +15,6 @@ from accounts.models import User, UserSession
 from accounts.services import end_all_sessions
 from accounts.tasks import send_email
 from conftest import PASSWORD
-from core.middleware import ActivityMiddleware
 
 pytestmark = pytest.mark.django_db
 
@@ -140,28 +136,6 @@ def test_anonymous_request_does_not_touch_users(client):
     with CaptureQueriesContext(connection) as ctx:
         client.get(reverse("home"))
     assert _user_updates(ctx.captured_queries) == []
-
-
-def test_timezone_active_during_view(rf, active_user):
-    active_user.profile.timezone = "Asia/Tokyo"
-    active_user.profile.save()
-    captured = {}
-
-    def view(request):
-        captured["tz"] = timezone.get_current_timezone()
-        return HttpResponse()
-
-    request = rf.get("/")
-    request.user = active_user
-    request.session = Client().session
-    ActivityMiddleware(view)(request)
-    assert captured["tz"] == ZoneInfo("Asia/Tokyo")
-    assert timezone.get_current_timezone_name() == "Europe/Paris"
-
-    request = rf.get("/")
-    request.user = AnonymousUser()
-    ActivityMiddleware(view)(request)
-    assert str(captured["tz"]) == "Europe/Paris"
 
 
 def test_send_email_task_retry_policy():

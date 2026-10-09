@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Preferences" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "Preferences" %}</h1>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "manage/_fields.html" %}
+    <div class="actions">
+      <button type="submit">{% translate "Save" %}</button>
+    </div>
+  </form>
+{% endblock %}

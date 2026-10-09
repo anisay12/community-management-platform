@@ -1,3 +1,6 @@
+import re
+import zoneinfo
+from functools import cache
 from typing import ClassVar
 
 from django import forms
@@ -13,9 +16,10 @@ from django.views.decorators.debug import sensitive_variables
 
 from audit.services import record
 from organizations.models import OrganizationUnit
+from taxonomy.services import get_or_create_tag
 
 from .backends import local_password_login_allowed
-from .models import User
+from .models import User, UserProfile
 from .roles import Role
 from .services import (
     EMAIL_MAX_LENGTH,
@@ -226,3 +230,103 @@ class UserImportForm(forms.Form):
             "email,first_name,last_name,unit_code,manager_email"
         ),
     )
+
+
+# Profile and preferences -------------------------------------------------------
+
+MAX_INTERESTS = 10
+INTEREST_MAX_LENGTH = 64
+
+
+def parse_interests(value: str) -> list[str]:
+    """Split comma-separated tag names, collapse spaces and drop case-insensitive duplicates."""
+    names: list[str] = []
+    seen: set[str] = set()
+    for raw in value.split(","):
+        name = re.sub(r"\s+", " ", raw).strip()
+        if name and name.casefold() not in seen:
+            seen.add(name.casefold())
+            names.append(name)
+    return names
+
+
+class InterestsField(forms.CharField):
+    def __init__(self, **kwargs):
+        kwargs.setdefault("label", _("Interests"))
+        kwargs.setdefault(
+            "help_text", _("Separate interests with commas: at most 10, each up to 64 characters.")
+        )
+        super().__init__(required=False, **kwargs)
+
+    def to_python(self, value) -> list[str]:
+        return parse_interests(super().to_python(value))
+
+    def validate(self, value) -> None:
+        if len(value) > MAX_INTERESTS:
+            raise ValidationError(
+                _("Choose at most %(count)d interests."),
+                code="too_many",
+                params={"count": MAX_INTERESTS},
+            )
+        for name in value:
+            if len(name) > INTEREST_MAX_LENGTH:
+                raise ValidationError(
+                    _("“%(name)s…” is too long: an interest has at most %(length)d characters."),
+                    code="too_long",
+                    params={"name": name[:20], "length": INTEREST_MAX_LENGTH},
+                )
+
+    def prepare_value(self, value):
+        if isinstance(value, list | tuple):
+            return ", ".join(str(item) for item in value)
+        return value
+
+
+class ProfileForm(forms.ModelForm):
+    """The owner's editable profile; interests are typed as comma-separated tag names."""
+
+    interests = InterestsField()
+    field_order: ClassVar[list] = ["job_title", "bio", "interests"]
+
+    class Meta:
+        model = UserProfile
+        fields = ("job_title", "bio", "profile_visibility", "is_discoverable")
+        widgets: ClassVar[dict] = {
+            "bio": forms.Textarea(attrs={"rows": 6, "maxlength": 2000}),
+            "profile_visibility": forms.RadioSelect,
+        }
+        help_texts: ClassVar[dict] = {
+            "profile_visibility": _("Who can see your bio and your interests."),
+            "is_discoverable": _("Let colleagues find you in the people directory."),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk and not self.is_bound:
+            self.initial["interests"] = [tag.name for tag in self.instance.interests.all()]
+
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        if commit:
+            profile.save()
+            profile.interests.set(
+                [get_or_create_tag(name) for name in self.cleaned_data["interests"]]
+            )
+        return profile
+
+
+@cache
+def timezone_choices() -> list[tuple[str, str]]:
+    names = sorted(name for name in zoneinfo.available_timezones() if "/" in name or name == "UTC")
+    return [(name, name.replace("_", " ")) for name in names]
+
+
+class PreferencesForm(forms.ModelForm):
+    timezone = forms.ChoiceField(label=_("Time zone"), choices=timezone_choices)
+
+    class Meta:
+        model = UserProfile
+        fields = ("language", "timezone")
+        help_texts: ClassVar[dict] = {
+            "language": _("“Automatic” follows your browser settings."),
+        }

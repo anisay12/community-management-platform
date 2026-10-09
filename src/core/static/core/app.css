@@ -27,3 +27,7 @@ select { padding: 0 0.5rem; }
 .inline-form { display: inline; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
+.profile-header { display: flex; align-items: center; gap: 1rem; }
+.profile-header h1 { margin: 0; }
+.profile-job-title { margin: 0; color: var(--muted); }
+.avatar { display: inline-flex; align-items: center; justify-content: center; width: 4rem; height: 4rem; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 1.5rem; flex-shrink: 0; }

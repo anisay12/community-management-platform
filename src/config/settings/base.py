@@ -49,6 +49,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
     "core.middleware.RequestUserContextMiddleware",
+    # Saved language and time zone; needs AuthenticationMiddleware and LocaleMiddleware.
+    "core.middleware.UserPreferencesMiddleware",
     "core.middleware.ActivityMiddleware",
     # Needs OTPMiddleware (user.is_verified) above it.
     "accounts.middleware.MFARequiredMiddleware",
