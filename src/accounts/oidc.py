@@ -80,6 +80,7 @@ class TalanOIDCBackend(OIDCAuthenticationBackend):
 
     def get_or_create_user(self, access_token, id_token, payload):
         self._check_audience(payload)
+        self._check_issuer(payload)
         claims = self._merge_claims(self.get_userinfo(access_token, id_token, payload), payload)
         if not self.verify_claims(claims):
             raise SuspiciousOperation("Claims verification failed")
@@ -96,6 +97,19 @@ class TalanOIDCBackend(OIDCAuthenticationBackend):
         audiences = audience if isinstance(audience, list) else [audience]
         if self.OIDC_RP_CLIENT_ID not in audiences:
             raise SuspiciousOperation("ID token audience does not match this client")
+
+    @staticmethod
+    def _check_issuer(payload: dict) -> None:
+        """Pin the issuer (and optionally the tenant) whose email claims are trusted.
+
+        Accounts are linked by email on first sign-in: a token from another tenant of a
+        multi-tenant provider must never reach that step ("nOAuth" takeover).
+        """
+        if payload.get("iss") != settings.OIDC_OP_ISSUER:
+            raise SuspiciousOperation("ID token issuer is not the configured provider")
+        tenant = getattr(settings, "OIDC_ALLOWED_TENANT_ID", "")
+        if tenant and payload.get("tid") != tenant:
+            raise SuspiciousOperation("ID token tenant is not the allowed tenant")
 
     @staticmethod
     def _merge_claims(userinfo: dict, payload: dict) -> dict:
@@ -136,6 +150,9 @@ class TalanOIDCBackend(OIDCAuthenticationBackend):
                 changes={"provider": self.provider},
             )
         elif identity.subject != subject:
+            # Only reachable through a race: filter_users_by_claims returned this user by
+            # email because it had no identity yet, and a concurrent sign-in linked another
+            # subject before our row lock was granted. The re-read identity is authoritative.
             logger.warning("sso_identity_conflict", provider=self.provider)
             return None
         identity.last_login_at = timezone.now()

@@ -7,7 +7,7 @@ from axes.models import AccessAttempt
 from django.contrib.auth import authenticate
 from django.contrib.sessions.backends.db import SessionStore
 from django.core.exceptions import SuspiciousOperation
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.test import RequestFactory
 
 from accounts.models import ExternalIdentity, User
@@ -17,6 +17,8 @@ from audit.models import AuditEvent
 pytestmark = pytest.mark.django_db
 
 CLIENT_ID = "test-client-id"
+ISSUER = "https://idp.example.com/tenant/v2.0"
+TENANT = "11111111-2222-3333-4444-555555555555"
 
 
 @pytest.fixture
@@ -25,7 +27,7 @@ def backend(oidc_settings):
 
 
 def claims(sub="subject-1", email="alice@example.com", **extra):
-    return {"sub": sub, "email": email, "aud": CLIENT_ID, **extra}
+    return {"sub": sub, "email": email, "aud": CLIENT_ID, "iss": ISSUER, **extra}
 
 
 def sso_login(backend, user_claims, payload=None):
@@ -83,6 +85,31 @@ def test_id_token_audience_must_be_this_client(backend, active_user):
     assert sso_login(backend, claims(), payload=claims(aud=["x", CLIENT_ID])) == active_user
 
 
+@pytest.mark.parametrize(
+    "issuer",
+    [None, "https://login.microsoftonline.com/another-tenant/v2.0", ISSUER + "/"],
+)
+def test_id_token_issuer_must_be_the_configured_provider(backend, active_user, issuer):
+    payload = claims(iss=issuer)
+    with pytest.raises(SuspiciousOperation):
+        sso_login(backend, payload, payload=payload)
+    assert not ExternalIdentity.objects.exists()
+    assert not AuditEvent.objects.exists()
+
+
+def test_id_token_tenant_must_match_when_pinned(backend, active_user, settings):
+    settings.OIDC_ALLOWED_TENANT_ID = TENANT
+    for tenant in (None, "99999999-0000-0000-0000-000000000000"):
+        with pytest.raises(SuspiciousOperation):
+            sso_login(backend, claims(tid=tenant))
+    assert not ExternalIdentity.objects.exists()
+    assert sso_login(backend, claims(tid=TENANT)) == active_user
+
+
+def test_tenant_is_not_checked_when_not_pinned(backend, active_user):
+    assert sso_login(backend, claims(tid="any-tenant")) == active_user
+
+
 # Linking -----------------------------------------------------------------------------
 
 
@@ -107,6 +134,14 @@ def test_same_email_with_another_subject_does_not_get_the_linked_account(backend
     assert sso_login(backend, claims(sub="intruder")) is None
     assert not ExternalIdentity.objects.filter(subject="intruder").exists()
     assert User.objects.filter(email="alice@example.com").count() == 1
+
+
+def test_an_account_has_at_most_one_identity_per_provider(active_user):
+    ExternalIdentity.objects.create(user=active_user, provider="entra", subject="one")
+    with pytest.raises(IntegrityError), transaction.atomic():
+        ExternalIdentity.objects.create(user=active_user, provider="entra", subject="two")
+    ExternalIdentity.objects.create(user=active_user, provider="other-idp", subject="two")
+    assert ExternalIdentity.objects.filter(user=active_user).count() == 2
 
 
 def test_email_link_is_scoped_to_the_provider(backend, active_user):

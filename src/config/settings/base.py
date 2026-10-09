@@ -179,13 +179,35 @@ OIDC_REQUIRED_SETTINGS = (
     "OIDC_OP_TOKEN_ENDPOINT",
     "OIDC_OP_USER_ENDPOINT",
     "OIDC_OP_JWKS_ENDPOINT",
+    # Exact expected ``iss`` of ID tokens: pins the tenant whose email claims are trusted.
+    "OIDC_OP_ISSUER",
 )
+OIDC_OP_ENDPOINT_SETTINGS = (
+    "OIDC_OP_AUTHORIZATION_ENDPOINT",
+    "OIDC_OP_TOKEN_ENDPOINT",
+    "OIDC_OP_USER_ENDPOINT",
+    "OIDC_OP_JWKS_ENDPOINT",
+)
+# Optional: when set, the ID token's ``tid`` claim must match (Entra tenant ID).
+OIDC_ALLOWED_TENANT_ID = env("OIDC_ALLOWED_TENANT_ID", default="").strip()
 if AUTH_MODE != "local":
     _oidc = {name: env(name, default="").strip() for name in OIDC_REQUIRED_SETTINGS}
     _missing = [name for name, value in _oidc.items() if not value]
     if _missing:
         raise ImproperlyConfigured(
             f"AUTH_MODE={AUTH_MODE} requires these settings: {', '.join(_missing)}."
+        )
+    # Multi-tenant endpoints accept tokens from any tenant; accounts are linked by email,
+    # so a foreign tenant could claim a local address unless the tenant is pinned.
+    _multi_tenant = [
+        name
+        for name in OIDC_OP_ENDPOINT_SETTINGS
+        if "/common/" in _oidc[name] or "/organizations/" in _oidc[name]
+    ]
+    if _multi_tenant and not OIDC_ALLOWED_TENANT_ID:
+        raise ImproperlyConfigured(
+            f"{', '.join(_multi_tenant)} use a multi-tenant endpoint: "
+            "set OIDC_ALLOWED_TENANT_ID or use the tenant-specific endpoints."
         )
     vars().update(_oidc)
     AUTHENTICATION_BACKENDS.append("accounts.oidc.TalanOIDCBackend")

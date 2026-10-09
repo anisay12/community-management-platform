@@ -173,6 +173,11 @@ class ExternalIdentity(models.Model):
                 fields=["provider", "subject"],
                 name="accounts_externalidentity_provider_subject_unique",
             ),
+            # One identity per provider per account: a second subject never links.
+            models.UniqueConstraint(
+                fields=["user", "provider"],
+                name="accounts_externalidentity_user_provider_unique",
+            ),
         ]
         verbose_name = _("external identity")
         verbose_name_plural = _("external identities")

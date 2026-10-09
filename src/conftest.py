@@ -56,6 +56,8 @@ OIDC_TEST_SETTINGS = {
     "OIDC_OP_TOKEN_ENDPOINT": "https://idp.example.com/token",
     "OIDC_OP_USER_ENDPOINT": "https://idp.example.com/userinfo",
     "OIDC_OP_JWKS_ENDPOINT": "https://idp.example.com/jwks",
+    "OIDC_OP_ISSUER": "https://idp.example.com/tenant/v2.0",
+    "OIDC_ALLOWED_TENANT_ID": "",
 }
 OIDC_BACKEND = "accounts.oidc.TalanOIDCBackend"
 

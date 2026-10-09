@@ -27,14 +27,17 @@ def alert_break_glass_login(user) -> None:
     """Audit, log and email the administrators: the emergency account was just used."""
     record(actor=user, action="auth.break_glass_login", target=user)
     logger.warning("break_glass_login", user=str(user.public_id), auth_mode=settings.AUTH_MODE)
-    # Plain-text operator alert in English; never blocks the emergency sign-in.
-    mail_admins(
-        "Break-glass account sign-in",
-        f"The break-glass account {user.email} signed in with a password "
-        f"(AUTH_MODE={settings.AUTH_MODE}). If this was not expected, suspend it and "
-        "rotate its password.",
-        fail_silently=True,
-    )
+    # Plain-text operator alert in English; a mail failure is logged but never blocks
+    # the emergency sign-in.
+    try:
+        mail_admins(
+            "Break-glass account sign-in",
+            f"The break-glass account {user.email} signed in with a password "
+            f"(AUTH_MODE={settings.AUTH_MODE}). If this was not expected, suspend it and "
+            "rotate its password.",
+        )
+    except Exception as exc:  # any transport error; must not block the login
+        logger.error("break_glass_alert_failed", error_type=type(exc).__name__)
 
 
 def axes_username(request, credentials) -> str | None:

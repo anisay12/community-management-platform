@@ -1,6 +1,8 @@
 """AUTH_MODE: local, mixed and sso_only sign-in, break-glass account, password lockdown."""
 
 import logging
+from smtplib import SMTPException
+from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -141,11 +143,70 @@ def test_sso_only_allows_break_glass_with_audit_and_alert(
     assert BREAK_GLASS in mail.outbox[0].body
 
 
+def test_break_glass_login_succeeds_when_the_alert_email_fails(
+    client, use_auth_mode, break_glass, caplog
+):
+    use_auth_mode("sso_only")
+    with (
+        mock.patch("accounts.backends.mail_admins", side_effect=SMTPException("down")),
+        caplog.at_level(logging.ERROR, logger="accounts.backends"),
+    ):
+        response = post_login(client, BREAK_GLASS)
+    assert response.status_code == 302
+    assert get_user(client) == break_glass
+    assert AuditEvent.objects.filter(action="auth.break_glass_login").exists()
+    failures = [r for r in caplog.records if "break_glass_alert_failed" in str(r.msg)]
+    assert len(failures) == 1
+    assert failures[0].levelno == logging.ERROR
+    assert BREAK_GLASS not in str(failures[0].msg).lower()
+
+
+def test_suspended_break_glass_account_is_refused(client, use_auth_mode, break_glass):
+    use_auth_mode("sso_only")
+    break_glass.status = User.Status.SUSPENDED
+    break_glass.save()
+    response = post_login(client, BREAK_GLASS)
+    assert response.status_code == 200
+    assert "Your account is suspended." in response.content.decode()
+    assert not get_user(client).is_authenticated
+    assert not AuditEvent.objects.filter(action="auth.break_glass_login").exists()
+    assert mail.outbox == []
+
+
 def test_break_glass_wrong_password_sends_no_alert(client, use_auth_mode, break_glass):
     use_auth_mode("sso_only")
     assert post_login(client, BREAK_GLASS, "wrong-password").status_code == 200
     assert mail.outbox == []
     assert not AuditEvent.objects.filter(action="auth.break_glass_login").exists()
+
+
+# password reset --------------------------------------------------------------------
+
+RESET_URLS = [
+    reverse("accounts:password_reset"),
+    reverse("accounts:password_reset_done"),
+    reverse("accounts:password_reset_confirm", args=["MQ", "set-password"]),
+    reverse("accounts:password_reset_complete"),
+]
+
+
+@pytest.mark.parametrize("url", RESET_URLS)
+def test_password_reset_is_unavailable_in_sso_only(client, use_auth_mode, url):
+    use_auth_mode("sso_only")
+    assert client.get(url).status_code == 404
+
+
+def test_password_reset_post_is_refused_in_sso_only(client, use_auth_mode, break_glass):
+    use_auth_mode("sso_only")
+    response = client.post(reverse("accounts:password_reset"), {"email": BREAK_GLASS})
+    assert response.status_code == 404
+    assert mail.outbox == []
+
+
+@pytest.mark.parametrize("mode", ["local", "mixed"])
+def test_password_reset_is_available_with_local_passwords(client, use_auth_mode, mode):
+    use_auth_mode(mode)
+    assert client.get(reverse("accounts:password_reset")).status_code == 200
 
 
 # disable_local_passwords -------------------------------------------------------------
@@ -166,7 +227,10 @@ def test_disable_local_passwords_dry_run_changes_nothing(
     call_command("disable_local_passwords", "--dry-run")
     active_user.refresh_from_db()
     assert active_user.has_usable_password()
-    assert "1" in capsys.readouterr().out
+    assert capsys.readouterr().out.splitlines() == [
+        "Dry run: 1 account(s) would have their local password disabled "
+        "and their current sessions signed out."
+    ]
     assert not AuditEvent.objects.filter(action="auth.local_passwords_disabled").exists()
 
 
@@ -182,7 +246,23 @@ def test_disable_local_passwords_keeps_break_glass(settings, break_glass, make_u
     break_glass.refresh_from_db()
     assert break_glass.check_password(PASSWORD)
     out = capsys.readouterr().out
-    assert "Disabled local passwords for 2 account(s)" in out
+    assert "Disabled local passwords for 2 account(s); their current sessions are signed out." in (
+        out.splitlines()
+    )
     event = AuditEvent.objects.get(action="auth.local_passwords_disabled")
     assert event.changes == {"count": 2, "break_glass_kept": True}
     assert User.objects.filter(password__startswith="!").count() == 3
+
+
+def test_disable_local_passwords_signs_out_current_sessions(settings, client, active_user):
+    client.force_login(active_user)
+    assert get_user(client).is_authenticated
+    settings.AUTH_MODE = "sso_only"
+    call_command("disable_local_passwords")
+    assert not get_user(client).is_authenticated
+
+
+def test_disable_local_passwords_help_mentions_sessions():
+    from accounts.management.commands.disable_local_passwords import Command
+
+    assert "signs the affected users out" in Command.help

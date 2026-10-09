@@ -4,6 +4,7 @@ from django.contrib.auth import login
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.forms import SetPasswordForm
 from django.db import transaction
+from django.http import Http404
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -45,25 +46,38 @@ class LoginView(auth_views.LoginView):
         return context
 
 
-class PasswordResetView(auth_views.PasswordResetView):
+class LocalPasswordResetMixin:
+    """Password reset exists only while local passwords do (``local`` and ``mixed``).
+
+    In ``sso_only`` the views answer 404: other accounts have no password, and the
+    break-glass password is reset by a technical administrator, never by email.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        if settings.AUTH_MODE == "sso_only":
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
+
+
+class PasswordResetView(LocalPasswordResetMixin, auth_views.PasswordResetView):
     template_name = "accounts/password_reset_form.html"
     form_class = EmailPasswordResetForm
     token_generator = password_reset_token_generator
     success_url = reverse_lazy("accounts:password_reset_done")
 
 
-class PasswordResetDoneView(auth_views.PasswordResetDoneView):
+class PasswordResetDoneView(LocalPasswordResetMixin, auth_views.PasswordResetDoneView):
     template_name = "accounts/password_reset_done.html"
 
 
-class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+class PasswordResetConfirmView(LocalPasswordResetMixin, auth_views.PasswordResetConfirmView):
     template_name = "accounts/password_reset_confirm.html"
     form_class = AuditedSetPasswordForm
     token_generator = password_reset_token_generator
     success_url = reverse_lazy("accounts:password_reset_complete")
 
 
-class PasswordResetCompleteView(auth_views.PasswordResetCompleteView):
+class PasswordResetCompleteView(LocalPasswordResetMixin, auth_views.PasswordResetCompleteView):
     template_name = "accounts/password_reset_complete.html"
 
 
