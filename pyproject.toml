@@ -45,11 +45,11 @@ select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM", "RUF"]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 pythonpath = ["src"]
 addopts = "--strict-markers -ra"
-markers = ["integration: nécessite un service externe (stockage S3-compatible)"]
+markers = ["integration: requires an external service (S3-compatible storage)"]
 
 [tool.coverage.run]
 source = ["src"]
-# dev.py et prod.py sont chargés dans des sous-processus par config/tests/test_settings.py.
+# dev.py and prod.py are loaded in subprocesses by config/tests/test_settings.py.
 omit = [
     "*/migrations/*",
     "*/tests/*",

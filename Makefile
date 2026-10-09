@@ -1,20 +1,32 @@
-# Images tierces épinglées par digest (miroir Docker Hub de Google).
+# Third-party images pinned by digest (Google's Docker Hub mirror).
 GITLEAKS_IMAGE ?= mirror.gcr.io/zricethezav/gitleaks:latest@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
 TRIVY_IMAGE ?= mirror.gcr.io/aquasec/trivy:latest@sha256:af6acf9a6b85dfe389a1941505c0ce9efef52a4719635e1a962f022a3d855daa
 NGINX_IMAGE ?= mirror.gcr.io/library/nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
-# Options de build supplémentaires (ex. proxy d'entreprise : --secret id=extra_ca,src=ca.pem).
+# Extra build options (e.g. corporate proxy: --secret id=extra_ca,src=ca.pem).
 DOCKER_BUILD_OPTS ?=
-# Options supplémentaires pour le scan Trivy (ex. proxy : --network host -e HTTPS_PROXY -e SSL_CERT_FILE=...).
+# Extra options for the Trivy scan (e.g. proxy: --network host -e HTTPS_PROXY -e SSL_CERT_FILE=...).
 TRIVY_RUN_OPTS ?=
 
-.PHONY: lint test test-integration security image ci
+.PHONY: lint test test-integration security image ci messages i18n-check
 
 lint:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run python manage.py makemigrations --check --dry-run --settings=config.settings.test
 
+messages:
+	cd src && uv run python ../manage.py makemessages -l fr --no-location --no-obsolete --ignore=.venv --settings=config.settings.test
+	cd src && uv run python ../manage.py compilemessages --settings=config.settings.test
+
+# Fails if the French catalogue has untranslated or fuzzy entries, or is out of date.
+i18n-check:
+	@cd src && uv run python ../manage.py makemessages -l fr --no-location --no-obsolete --ignore=.venv --settings=config.settings.test
+	@git diff --exit-code src/locale
+	@test -z "$$(msgattrib --untranslated src/locale/fr/LC_MESSAGES/django.po)" || { echo 'Untranslated entries in the fr catalogue'; exit 1; }
+	@test -z "$$(msgattrib --only-fuzzy src/locale/fr/LC_MESSAGES/django.po)" || { echo 'Fuzzy entries in the fr catalogue'; exit 1; }
+
 test:
+	cd src && uv run python ../manage.py compilemessages --settings=config.settings.test
 	uv run python manage.py migrate --noinput --settings=config.settings.test
 	uv run pytest --cov --cov-report=term-missing --cov-fail-under=85
 
@@ -32,4 +44,4 @@ image:
 	docker run --rm $(TRIVY_RUN_OPTS) -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) image --exit-code 1 --severity CRITICAL --ignore-unfixed talan-communities:ci
 	docker run --rm --add-host web:127.0.0.1 -v "$(CURDIR)/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro" $(NGINX_IMAGE) nginx -t
 
-ci: lint test security image
+ci: lint i18n-check test security image

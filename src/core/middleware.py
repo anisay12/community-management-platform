@@ -10,7 +10,7 @@ _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
 
 
 class RequestIDMiddleware:
-    """Associe un identifiant de corrélation à chaque requête, aux logs et à la réponse."""
+    """Attach a correlation identifier to each request, to the logs and to the response."""
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response

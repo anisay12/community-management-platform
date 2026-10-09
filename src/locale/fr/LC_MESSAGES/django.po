@@ -1,0 +1,70 @@
+# French translation of the Talan Communities platform.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Talan Communities\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-09 12:21+0200\n"
+"PO-Revision-Date: 2026-10-09 12:00+0000\n"
+"Last-Translator: Talan Communities\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Communities"
+msgstr "Communautés"
+
+msgid "Skip to main content"
+msgstr "Aller au contenu principal"
+
+msgid "Language"
+msgstr "Langue"
+
+msgid "Change"
+msgstr "Changer"
+
+#, python-format
+msgid "Hello, %(name)s."
+msgstr "Bonjour, %(name)s."
+
+msgid "Welcome to the Talan communities platform."
+msgstr "Bienvenue sur la plateforme des communautés Talan."
+
+msgid "Sign in"
+msgstr "Se connecter"
+
+msgid "Access denied"
+msgstr "Accès refusé"
+
+msgid "You do not have permission to view this page."
+msgstr "Vous n'avez pas l'autorisation de consulter cette page."
+
+msgid "Back to the home page"
+msgstr "Retour à l'accueil"
+
+msgid "Page not found"
+msgstr "Page introuvable"
+
+msgid "The page you are looking for does not exist."
+msgstr "La page que vous recherchez n'existe pas."
+
+msgid "Too many requests"
+msgstr "Trop de requêtes"
+
+msgid "Too many attempts. Please wait a moment and try again."
+msgstr "Trop de tentatives. Veuillez patienter un instant puis réessayer."
+
+msgid "Reference"
+msgstr "Référence"
+
+msgid "en"
+msgstr "fr"
+
+msgid "Server error"
+msgstr "Erreur serveur"
+
+msgid "Something went wrong on our side. Please try again later."
+msgstr "Une erreur est survenue de notre côté. Veuillez réessayer plus tard."

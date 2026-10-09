@@ -52,6 +52,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "django.template.context_processors.i18n",
             ],
         },
     },
@@ -71,8 +72,8 @@ CACHES = {
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
-LANGUAGE_CODE = "fr"
-LANGUAGES = [("fr", "Français")]
+LANGUAGE_CODE = "en"
+LANGUAGES = [("en", "English"), ("fr", "Français")]
 LOCALE_PATHS = [SRC_DIR / "locale"]
 TIME_ZONE = "Europe/Paris"
 USE_I18N = True
@@ -99,6 +100,8 @@ STORAGES = {
         "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
     },
 }
+
+LOGIN_URL = "/accounts/login/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

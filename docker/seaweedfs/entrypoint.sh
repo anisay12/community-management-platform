@@ -1,7 +1,7 @@
 #!/bin/sh
-# Stockage S3-compatible de développement (SeaweedFS).
-# Les identifiants viennent de l'environnement ; aucune identité anonyme n'est déclarée,
-# donc toute requête non signée est refusée.
+# S3-compatible development storage (SeaweedFS).
+# Credentials come from the environment; no anonymous identity is declared,
+# so any unsigned request is rejected.
 set -eu
 : "${S3_ACCESS_KEY:?S3_ACCESS_KEY manquant}"
 : "${S3_SECRET_KEY:?S3_SECRET_KEY manquant}"

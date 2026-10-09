@@ -1,0 +1,19 @@
+:root { --fg: #1a1a1a; --bg: #fff; --accent: #0b5cad; --muted: #5a5a5a; --border: #d0d0d0; }
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.5; color: var(--fg); background: var(--bg); }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible, main:focus-visible { outline: 3px solid #ff9f1c; outline-offset: 2px; }
+main { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1rem; }
+.skip-link { position: absolute; left: 0.5rem; top: -4rem; padding: 0.75rem 1rem; background: var(--bg); border: 2px solid var(--accent); z-index: 10; }
+.skip-link:focus { top: 0.5rem; }
+.site-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+.site-name { font-weight: 700; font-size: 1.25rem; text-decoration: none; }
+.site-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.language-switcher { display: flex; align-items: center; gap: 0.5rem; }
+button, .button, select, input { min-height: 44px; font: inherit; }
+button, .button { display: inline-flex; align-items: center; padding: 0 1rem; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent); color: #fff; cursor: pointer; text-decoration: none; }
+select { padding: 0 0.5rem; }
+.messages { max-width: 60rem; margin: 0 auto; padding: 0 1rem; }
+.message { padding: 0.75rem 1rem; border-left: 4px solid var(--accent); background: #eef4fb; }
+.message-error { border-color: #b00020; background: #fdecee; }
+.message-success { border-color: #1b7f3b; background: #eaf6ee; }

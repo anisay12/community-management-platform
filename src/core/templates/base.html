@@ -1,0 +1,28 @@
+{% load i18n static %}<!doctype html>
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% translate "Communities" %}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'core/app.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <a class="skip-link" href="#main">{% translate "Skip to main content" %}</a>
+  <header class="site-header">
+    <a class="site-name" href="{% url 'home' %}">{% translate "Communities" %}</a>
+    <div class="site-tools">
+      {% block usernav %}{% endblock %}
+      {% include "components/language_switcher.html" %}
+    </div>
+  </header>
+  <div role="status" class="messages">
+    {% for message in messages %}
+      <p class="message message-{{ message.level_tag }}">{{ message }}</p>
+    {% endfor %}
+  </div>
+  <main id="main" tabindex="-1">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
