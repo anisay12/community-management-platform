@@ -2,7 +2,7 @@
 
 Internal platform for professional communities: communities, content, documents, lessons learned, events, then training and skills.
 
-**Status: work package L0 delivered (technical foundation).** No business feature is available yet. The application starts, can be monitored and passes its continuous integration pipeline; accounts, communities and content arrive in the following work packages (see the specification).
+**Status: work packages L0 (technical foundation) and L1 (accounts, roles, audit) delivered.** The application provides bilingual (English/French) accounts with roles, e-mail/password and Microsoft Entra single sign-on, mandatory TOTP for administrators, user administration with CSV import, profiles, personal data export and anonymization, and an append-only audit log. Communities and content arrive in the following work packages (see the specification).
 
 ## Prerequisites
 
@@ -34,6 +34,9 @@ docker compose up -d --no-build --wait
 |---|---|
 | `make lint` | Ruff (lint + format) and detection of missing migrations |
 | `make test` | Migrations on an empty database, tests and coverage (85% threshold) |
+| `make i18n-check` | Fails if the French catalogue is incomplete or out of date |
+| `make messages` | Extracts and compiles translations |
+| `make dev-admin` | Creates a development administrator (`EMAIL=you@example.com`) |
 | `make test-integration` | Private S3 storage test (`S3_INTEGRATION_*` variables required) |
 | `make security` | Dependency audit, Bandit, secret scanning (gitleaks) |
 | `make image` | Image build, Trivy scan, Nginx configuration validation |

@@ -7,7 +7,7 @@ DOCKER_BUILD_OPTS ?=
 # Extra options for the Trivy scan (e.g. proxy: --network host -e HTTPS_PROXY -e SSL_CERT_FILE=...).
 TRIVY_RUN_OPTS ?=
 
-.PHONY: lint test test-integration security image ci messages i18n-check
+.PHONY: lint test test-integration security image ci messages i18n-check dev-admin
 
 lint:
 	uv run ruff check .
@@ -43,5 +43,10 @@ image:
 	docker build $(DOCKER_BUILD_OPTS) -f docker/Dockerfile --target runtime -t talan-communities:ci .
 	docker run --rm $(TRIVY_RUN_OPTS) -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) image --exit-code 1 --severity CRITICAL --ignore-unfixed talan-communities:ci
 	docker run --rm --add-host web:127.0.0.1 -v "$(CURDIR)/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro" $(NGINX_IMAGE) nginx -t
+
+# Development only: creates a superuser (EMAIL=you@example.com make dev-admin) in the running web container.
+dev-admin:
+	@test -n "$(EMAIL)" || { echo 'Usage: EMAIL=you@example.com make dev-admin'; exit 1; }
+	docker compose exec web python manage.py create_dev_admin --email "$(EMAIL)"
 
 ci: lint i18n-check test security image
