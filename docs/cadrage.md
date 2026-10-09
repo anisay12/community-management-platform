@@ -32,7 +32,7 @@ Hypothèses prises par défaut pour avancer ; chacune est réversible sauf menti
 | H3 | Un collaborateur appartient à **une unité organisationnelle** et a **au plus un manager direct** (relation hiérarchique simple, importée plus tard depuis l'annuaire). | Suffisant pour les droits manager ; matrices complexes plus tard. | Oui |
 | H4 | Trois **modes d'accès** de communauté : *ouverte* (adhésion libre), *sur demande* (validation), *sur invitation* (privée, invisible des non-membres sauf titre si configuré). | Couvre le § 4.1. | Oui |
 | H5 | Le **contenu publié** (post, REX, document) appartient à une communauté ; il hérite de sa visibilité, sauf restriction plus forte au niveau de l'objet. | Modèle d'autorisation lisible et testable. | Coûteux à changer |
-| H6 | Les fichiers sont dans un **stockage objet privé** (MinIO en dev, S3-compatible managé en prod). Aucune URL publique ; téléchargement via l'application qui vérifie le droit puis délègue l'envoi à Nginx (**X-Accel-Redirect**, emplacement interne) : aucune URL de stockage n'est exposée. | Exigence § 5. | Oui |
+| H6 | Les fichiers sont dans un **stockage objet privé** (SeaweedFS en dev, S3-compatible managé en prod). Aucune URL publique ; téléchargement via l'application qui vérifie le droit puis délègue l'envoi à Nginx (**X-Accel-Redirect**, emplacement interne) : aucune URL de stockage n'est exposée. | Exigence § 5. | Oui |
 | H7 | Les **résultats détaillés** de quiz et l'autoévaluation sont **privés par défaut** ; le manager voit les données **agrégées** de son équipe et, individuellement, uniquement ce que le collaborateur a choisi de partager (compétences déclarées, objectifs, formations suivies). | Exigence § 3.3 + RGPD (minimisation). | Oui (D6) |
 | H8 | **Pas de temps réel (WebSocket)** au MVP : notifications in-app rafraîchies par HTMX (polling léger 60 s) + e-mails asynchrones. Django Channels seulement si un besoin réel apparaît. | § 15 « temps réel uniquement si justifié ». | Oui |
 | H9 | Le **mentorat**, l'IA, l'intégration Teams et la synchronisation annuaire sont **hors MVP**. | Valeur à confirmer (§ 23). | Oui |
@@ -136,7 +136,7 @@ Membre < Contributeur < Expert < Modérateur < Animateur < Responsable (chaque r
 | Pool de connexions | **PgBouncer** (mode transaction) en prod | Contrôle des connexions avec plusieurs instances Gunicorn + Celery | — |
 | Cache / broker | **Redis 7** | Cache, verrous, limitation de débit, broker Celery | RabbitMQ : un composant de plus sans gain au MVP |
 | Tâches asynchrones | **Celery 5** + Celery Beat | E-mails, scan antivirus, prévisualisations, rappels, agrégats analytiques | — |
-| Stockage fichiers | **django-storages (S3)** ; **MinIO** en dev | Abstraction compatible S3 / Azure Blob (via backend dédié) | Fichiers en base : exclu |
+| Stockage fichiers | **django-storages (S3)** ; **SeaweedFS** en dev (MinIO n'est plus distribué sur Docker Hub) | Abstraction compatible S3 / Azure Blob (via backend dédié) | Fichiers en base : exclu |
 | Antivirus | **ClamAV** (`clamd`) appelé par Celery ; fichier en *quarantaine* tant que non analysé | § 5 « détection de fichiers malveillants » | Service SaaS : envoie des fichiers internes à l'extérieur |
 | Serveur | **Gunicorn** (WSGI) derrière **Nginx** | Éprouvé ; pas d'ASGI tant qu'il n'y a pas de temps réel | Uvicorn/ASGI : seulement si Channels |
 | SSO | `mozilla-django-oidc` (prêt, activé quand l'IdP est disponible) | OIDC standard, compatible Entra ID | SAML : seulement si imposé |
@@ -173,7 +173,7 @@ flowchart LR
     C --> PGB
     C --> AV[ClamAV clamd]
     C --> SMTP[Relais SMTP entreprise]
-    W1 & W2 -->|contrôle d'accès puis X-Accel-Redirect via Nginx| S3[(Stockage objet privé<br/>MinIO / S3 / Blob)]
+    W1 & W2 -->|contrôle d'accès puis X-Accel-Redirect via Nginx| S3[(Stockage objet privé<br/>SeaweedFS / S3 / Blob)]
     C --> S3
     W1 & W2 -.->|OIDC, plus tard| IDP[IdP entreprise<br/>Entra ID ?]
     W1 & W2 & C -.-> OBS[Prometheus / Grafana<br/>GlitchTip / logs JSON]
@@ -266,7 +266,7 @@ talan-communities/
 │   ├── Dockerfile               # multi-stage, utilisateur non root
 │   ├── nginx/                   # conf reverse proxy
 │   └── entrypoint.sh
-├── compose.yaml                 # dev : web, worker, beat, postgres, redis, minio, clamav, mailpit
+├── compose.yaml                 # dev : web, worker, beat, postgres, redis, s3 (SeaweedFS), clamav, mailpit
 ├── compose.test.yaml
 ├── src/
 │   ├── config/                  # settings/{base,dev,test,prod}.py, urls, wsgi, celery
@@ -302,7 +302,7 @@ talan-communities/
 
 | Lot | Contenu | Critères d'acceptation (extraits) | Dépend de | Risques |
 |---|---|---|---|---|
-| **L0 Socle** | Dépôt, Django 5.2, settings par environnement, Docker Compose (Postgres, Redis, MinIO, ClamAV, Mailpit), CI (Ruff, tests, pip-audit, build image), logs JSON + ID de corrélation, `/healthz` | `docker compose up` démarre tout ; CI verte ; aucune variable secrète dans le dépôt | — | Choix d'hébergement (D1) |
+| **L0 Socle** | Dépôt, Django 5.2, settings par environnement, Docker Compose (Postgres, Redis, SeaweedFS, ClamAV, Mailpit), CI (Ruff, tests, pip-audit, build image), logs JSON + ID de corrélation, `/healthz` | `docker compose up` démarre tout ; CI verte ; aucune variable secrète dans le dépôt | — | Choix d'hébergement (D1) |
 | **L1 Comptes & rôles** | User personnalisé (e-mail), login/logout, réinitialisation de mot de passe, anti force brute, profil, rôles globaux, couche `policies`, audit, MFA pour admins, pages 403/404/429/500 | Un compte en attente ne voit rien ; un collaborateur ne peut pas accéder à `/admin` (testé en HTTP, pas seulement dans l'UI) | L0 | — |
 | **L2 Design system** | Gabarit de base, navigation adaptée au rôle, composants (cartes, états vides, toasts, formulaires accessibles), tokens de marque | Navigation clavier complète ; contraste AA vérifié (axe-core en CI) | L1 | Charte absente (D4) |
 | **L3 Communautés** | Catégories administrables, catalogue filtrable, création/configuration, 3 modes d'accès, adhésion / demande / invitation / départ, rôles internes, page d'accueil communauté | Matrice § 4.4 testée ; une communauté privée n'apparaît jamais dans un résultat pour un non-membre | L1, L2 | — |

@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: mirror.gcr.io/library/postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: talan_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+      redis:
+        image: mirror.gcr.io/library/redis:7-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/talan_test
+      REDIS_URL: redis://localhost:6379/15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Démarrer le stockage S3-compatible (SeaweedFS)
+        run: |
+          docker run -d --name s3 -p 8333:8333 \
+            -e S3_ACCESS_KEY=ci-s3 -e S3_SECRET_KEY=ci-s3-secret \
+            -v "$PWD/docker/seaweedfs/entrypoint.sh:/entrypoint.sh:ro" \
+            --entrypoint /bin/sh \
+            mirror.gcr.io/chrislusf/seaweedfs:latest@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d \
+            /entrypoint.sh
+          for i in $(seq 1 60); do curl -fs http://localhost:8333/healthz && break; sleep 1; done
+      - run: make lint
+      - run: make test
+      - name: Test d'intégration stockage
+        env:
+          S3_INTEGRATION_ENDPOINT: http://localhost:8333
+          S3_INTEGRATION_BUCKET: ci-bucket
+          S3_INTEGRATION_ACCESS_KEY: ci-s3
+          S3_INTEGRATION_SECRET_KEY: ci-s3-secret
+        run: make test-integration
+      - run: make security
+      - run: make image
