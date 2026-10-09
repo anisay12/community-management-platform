@@ -1,3 +1,5 @@
-{% comment %}
-  Stub created by L4 Task 1; owned and filled by Task 7 (link to the moderation queue).
-{% endcomment %}
+{% load i18n moderation_tags %}{% comment %}
+  Link to the moderation queue (moderators+ and functional admins with content access), with
+  the number of open items (reported posts and comments, posts awaiting review).
+  Context: community.
+{% endcomment %}{% moderation_queue_link community as queue %}{% if queue %}<a class="btn btn-outline-secondary" href="{{ queue.url }}"><i class="bi bi-shield-check me-1" aria-hidden="true"></i>{% translate "Moderation" %}{% if queue.count %} <span class="badge text-bg-danger" aria-hidden="true">{{ queue.count }}</span><span class="visually-hidden"> ({% blocktranslate count counter=queue.count %}{{ counter }} open item{% plural %}{{ counter }} open items{% endblocktranslate %})</span>{% endif %}</a>{% endif %}
