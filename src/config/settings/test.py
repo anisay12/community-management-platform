@@ -13,3 +13,5 @@ STORAGES["default"] = {"BACKEND": "django.core.files.storage.InMemoryStorage"}
 STORAGES["staticfiles"] = {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 METRICS_TOKEN = "test-metrics-token"
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
