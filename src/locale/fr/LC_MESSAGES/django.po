@@ -1565,3 +1565,104 @@ msgstr "affectations"
 
 msgid "tag"
 msgstr "tag"
+
+msgid "Message to the facilitators"
+msgstr "Message aux animateurs"
+
+msgid "Tagline"
+msgstr "Accroche"
+
+msgid "Markdown is supported."
+msgstr "Le Markdown est pris en charge."
+
+msgid "Show in the catalogue even when invitation-only"
+msgstr "Afficher dans le catalogue même sur invitation"
+
+msgid "Tags"
+msgstr "Étiquettes"
+
+msgid "Justification"
+msgstr "Justification"
+
+msgid "Explain the purpose of the community and who would take part."
+msgstr "Expliquez l’objet de la communauté et qui y participerait."
+
+msgid "Leave"
+msgstr "Quitter"
+
+msgid "Accept the invitation"
+msgstr "Accepter l’invitation"
+
+msgid "Decline"
+msgstr "Décliner"
+
+msgid "Request pending"
+msgstr "Demande en attente"
+
+msgid "Cancel my request"
+msgstr "Annuler ma demande"
+
+msgid "Message to the facilitators (optional)"
+msgstr "Message aux animateurs (facultatif)"
+
+msgid "Request to join"
+msgstr "Demander à rejoindre"
+
+msgid "Join"
+msgstr "Rejoindre"
+
+msgid "You will become the lead of the new community."
+msgstr "Vous deviendrez responsable de la nouvelle communauté."
+
+msgid "Create"
+msgstr "Créer"
+
+msgid "Request a new community"
+msgstr "Demander une nouvelle communauté"
+
+msgid ""
+"An administrator will review your request. If approved, you will become the "
+"lead of the community."
+msgstr ""
+"Un administrateur examinera votre demande. Si elle est approuvée, vous "
+"deviendrez responsable de la communauté."
+
+msgid "Send the request"
+msgstr "Envoyer la demande"
+
+msgid "My invitations"
+msgstr "Mes invitations"
+
+#, python-format
+msgid "Invited by %(inviter)s as %(role)s, until %(date)s"
+msgstr "Invitation de %(inviter)s en tant que %(role)s, jusqu’au %(date)s"
+
+msgid "Accept"
+msgstr "Accepter"
+
+msgid "You have no pending invitations."
+msgstr "Vous n’avez aucune invitation en attente."
+
+msgid "Your message is too long (500 characters at most)."
+msgstr "Votre message est trop long (500 caractères au maximum)."
+
+msgid "Your request to join has been sent."
+msgstr "Votre demande d’adhésion a été envoyée."
+
+msgid "Welcome! You are now a member."
+msgstr "Bienvenue ! Vous êtes désormais membre."
+
+msgid "You have left the community."
+msgstr "Vous avez quitté la communauté."
+
+msgid "You have no pending request for this community."
+msgstr "Vous n’avez aucune demande en attente pour cette communauté."
+
+msgid "Your request has been cancelled."
+msgstr "Votre demande a été annulée."
+
+msgid "Invitation declined."
+msgstr "Invitation déclinée."
+
+msgid "Your request has been sent to the administrators for review."
+msgstr "Votre demande a été transmise aux administrateurs pour examen."
