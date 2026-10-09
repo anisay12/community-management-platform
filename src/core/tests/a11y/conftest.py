@@ -5,6 +5,7 @@ administrator and the auditor) against the live server's database, then the sess
 copied into the Playwright context. Chromium comes from ``PLAYWRIGHT_BROWSERS_PATH`` when set.
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -46,16 +47,27 @@ def pytest_runtest_teardown(item):
             _ensure_role_groups()
 
 
-@pytest.fixture(autouse=True, scope="session")
-def _allow_async_unsafe():
-    """pytest-playwright's sync API keeps an event loop running in the test thread, which trips
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_protocol(item):
+    """Set ``DJANGO_ALLOW_ASYNC_UNSAFE`` for the whole life of an a11y test, and only then.
+
+    pytest-playwright's sync API keeps an event loop running in the test thread, which trips
     Django's async-unsafe guard on ORM calls (also during the table flush after each test).
-    Session-scoped so it outlives the database teardown; only active when an a11y test runs,
-    because a deployment check rejects the variable."""
-    mp = pytest.MonkeyPatch()
-    mp.setenv("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
-    yield
-    mp.undo()
+    Wrapping the full protocol covers fixture teardown; the previous value is restored
+    afterwards so the variable never reaches non-a11y tests, whatever markers are selected.
+    """
+    if not item.get_closest_marker("a11y"):
+        yield
+        return
+    previous = os.environ.get("DJANGO_ALLOW_ASYNC_UNSAFE")
+    os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop("DJANGO_ALLOW_ASYNC_UNSAFE", None)
+        else:
+            os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = previous
 
 
 @pytest.fixture(scope="session")

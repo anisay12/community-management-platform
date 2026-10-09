@@ -160,3 +160,10 @@ def test_base_minimal_has_no_navigation(client):
     assert "data-nav-key" not in html
     assert '<main id="main"' in html
     assert 'href="#main"' in html
+
+
+def test_async_unsafe_flag_is_unset_outside_a11y_tests():
+    """The a11y conftest sets the flag per a11y test only; it must not leak into other tests."""
+    import os
+
+    assert "DJANGO_ALLOW_ASYNC_UNSAFE" not in os.environ

@@ -1,7 +1,10 @@
 """Keyboard behaviour of the navigation and touch target sizes (mobile viewport)."""
 
+import re
+
 import pytest
 from django.urls import reverse
+from playwright.sync_api import expect
 
 pytestmark = pytest.mark.a11y
 
@@ -13,7 +16,7 @@ HELPERS_JS = """(selector) => {
     return [s.outlineStyle, s.outlineWidth, s.outlineColor, s.boxShadow].join("|");
   };
   const visible = [...document.querySelectorAll(selector)].filter(
-    (el) => el.offsetParent !== null,
+    (el) => el.offsetParent !== null && el.checkVisibility({ visibilityProperty: true }),
   );
   visible.forEach((el, i) => { el.dataset.probe = i; });
   return Object.fromEntries(visible.map((el, i) => [i, window.focusStyle(el)]));
@@ -23,6 +26,15 @@ HELPERS_JS = """(selector) => {
 @pytest.fixture
 def mobile(world, open_page):
     return open_page(reverse("home"), role="employee", viewport="mobile")
+
+
+def _open_offcanvas(page):
+    """Open the mobile menu and wait until its slide-in transition has finished."""
+    page.locator("button.navbar-toggler").click()
+    menu = page.locator("#main-menu")
+    expect(menu).to_be_visible()
+    expect(menu).to_have_class(re.compile(r"\bshow\b"))
+    expect(menu).not_to_have_class(re.compile(r"showing"))
 
 
 def _active_id(page):
@@ -41,20 +53,18 @@ def test_offcanvas_opens_closes_and_restores_focus(mobile):
     toggler.focus()
     mobile.keyboard.press("Enter")
     menu = mobile.locator("#main-menu")
-    menu.wait_for(state="visible")
-    mobile.wait_for_function("document.querySelector('#main-menu').classList.contains('show')")
-    mobile.wait_for_timeout(500)
+    expect(menu).to_be_visible()
+    expect(menu).to_have_class(re.compile(r"\bshow\b"))
+    expect(menu).not_to_have_class(re.compile(r"showing|hiding"))
     assert mobile.evaluate("document.querySelector('#main-menu').contains(document.activeElement)")
     mobile.keyboard.press("Escape")
-    mobile.wait_for_function("!document.querySelector('#main-menu').classList.contains('show')")
-    mobile.wait_for_timeout(500)
+    expect(menu).to_be_hidden()
     assert mobile.evaluate("document.activeElement.classList.contains('navbar-toggler')")
 
 
 @pytest.mark.parametrize("key", ["Enter", "Space"])
 def test_user_menu_opens_and_items_reachable_with_arrows(mobile, key):
-    mobile.locator("button.navbar-toggler").click()
-    mobile.wait_for_timeout(500)
+    _open_offcanvas(mobile)
     toggle = mobile.locator("#user-menu > button")
     toggle.focus()
     mobile.keyboard.press(key)
@@ -63,15 +73,18 @@ def test_user_menu_opens_and_items_reachable_with_arrows(mobile, key):
     seen = []
     for _ in range(items.count()):
         mobile.keyboard.press("ArrowDown")
+        assert mobile.evaluate("document.activeElement.matches('#user-menu .dropdown-item')"), (
+            "ArrowDown moved focus outside the user menu items"
+        )
         seen.append(mobile.evaluate("document.activeElement.textContent.trim()"))
     assert len(set(seen)) == items.count()
     mobile.keyboard.press("Escape")
     assert toggle.get_attribute("aria-expanded") == "false"
 
 
-def _focus_styles_by_tabbing(page):
+def _focus_styles_by_tabbing(page, controls):
     """Style of each visible navbar control when unfocused and when reached with Tab."""
-    unfocused = page.evaluate(HELPERS_JS, CONTROLS)
+    unfocused = page.evaluate(HELPERS_JS, controls)
     focused = {}
     for _ in range(len(unfocused) + 3):
         page.keyboard.press("Tab")
@@ -88,11 +101,15 @@ def _focus_styles_by_tabbing(page):
 
 def test_navbar_controls_show_a_focus_indicator(mobile):
     for open_menu in (False, True):
+        controls = CONTROLS
         if open_menu:
-            mobile.locator("button.navbar-toggler").click()
-            mobile.wait_for_timeout(500)
-        unfocused, focused = _focus_styles_by_tabbing(mobile)
-        assert focused, "Tab never reached the navigation"
+            _open_offcanvas(mobile)
+            # The open offcanvas traps focus: only its own controls are reachable.
+            controls = "#main-menu a, #main-menu button, #main-menu select"
+        unfocused, focused = _focus_styles_by_tabbing(mobile, controls)
+        assert set(focused) == set(unfocused), (
+            f"Tab never reached controls {sorted(set(unfocused) - set(focused))}"
+        )
         for probe, style in focused.items():
             assert style != unfocused[probe], f"no visible focus indicator on control {probe}"
 
@@ -111,9 +128,9 @@ def _assert_touch_targets(page, selector):
 
 
 def test_navigation_touch_targets(mobile):
-    mobile.locator("button.navbar-toggler").click()
-    mobile.wait_for_timeout(500)
+    _open_offcanvas(mobile)
     mobile.locator("#user-menu > button").click()
+    expect(mobile.locator("#user-menu .dropdown-menu")).to_have_class(re.compile(r"\bshow\b"))
     _assert_touch_targets(mobile, "header nav a, header nav button:not(.btn-close)")
     _assert_touch_targets(mobile, "header nav .btn-close")
 
