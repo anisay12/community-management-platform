@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 18:09+0200\n"
+"POT-Creation-Date: 2026-10-09 18:55+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -1830,6 +1830,220 @@ msgstr "affectation"
 
 msgid "employments"
 msgstr "affectations"
+
+msgid "Feed"
+msgstr "Fil"
+
+msgid "Bookmarks"
+msgstr "Favoris"
+
+msgid "Give a reason for hiding this content."
+msgstr "Indiquez la raison du masquage de ce contenu."
+
+msgid "Discussion"
+msgstr "Discussion"
+
+msgid "Question"
+msgstr "Question"
+
+msgid "Announcement"
+msgstr "Annonce"
+
+msgid "Article"
+msgstr "Article"
+
+msgid "Draft"
+msgstr "Brouillon"
+
+msgid "Pending review"
+msgstr "En attente de validation"
+
+msgid "Published"
+msgstr "Publié"
+
+msgid "Hidden"
+msgstr "Masqué"
+
+msgid "author"
+msgstr "auteur"
+
+msgid "author name"
+msgstr "nom de l’auteur"
+
+msgid "kind"
+msgstr "type"
+
+msgid "title"
+msgstr "titre"
+
+msgid "body"
+msgstr "contenu"
+
+msgid "rendered body"
+msgstr "contenu affiché"
+
+msgid "published at"
+msgstr "publié le"
+
+msgid "pinned at"
+msgstr "épinglé le"
+
+msgid "pinned by"
+msgstr "épinglé par"
+
+msgid "accepted answer"
+msgstr "réponse acceptée"
+
+msgid "shared from"
+msgstr "partagé depuis"
+
+msgid "comment count"
+msgstr "nombre de commentaires"
+
+msgid "reaction counts"
+msgstr "compteurs de réactions"
+
+msgid "version"
+msgstr "version"
+
+msgid "hidden at"
+msgstr "masqué le"
+
+msgid "hidden by"
+msgstr "masqué par"
+
+msgid "reason for hiding"
+msgstr "raison du masquage"
+
+msgid "status before hiding"
+msgstr "statut avant masquage"
+
+msgid "review note"
+msgstr "note de validation"
+
+msgid "post"
+msgstr "publication"
+
+msgid "posts"
+msgstr "publications"
+
+msgid "editor"
+msgstr "auteur de la modification"
+
+msgid "post revision"
+msgstr "révision de publication"
+
+msgid "post revisions"
+msgstr "révisions de publication"
+
+msgid "Visible"
+msgstr "Visible"
+
+msgid "parent"
+msgstr "parent"
+
+msgid "expert answer"
+msgstr "réponse d’expert"
+
+msgid "comment"
+msgstr "commentaire"
+
+msgid "comments"
+msgstr "commentaires"
+
+msgid "Useful"
+msgstr "Utile"
+
+msgid "Thanks"
+msgstr "Merci"
+
+msgid "Insightful"
+msgstr "Éclairant"
+
+msgid "reaction"
+msgstr "réaction"
+
+msgid "reactions"
+msgstr "réactions"
+
+msgid "mentioned user"
+msgstr "utilisateur mentionné"
+
+msgid "mention"
+msgstr "mention"
+
+msgid "mentions"
+msgstr "mentions"
+
+msgid "bookmark collection"
+msgstr "collection de favoris"
+
+msgid "bookmark collections"
+msgstr "collections de favoris"
+
+msgid "collection"
+msgstr "collection"
+
+msgid "bookmark"
+msgstr "favori"
+
+msgid "bookmarks"
+msgstr "favoris"
+
+msgid "Inappropriate content"
+msgstr "Contenu inapproprié"
+
+msgid "Confidential information"
+msgstr "Information confidentielle"
+
+msgid "Outdated information"
+msgstr "Information obsolète"
+
+msgid "Spam"
+msgstr "Spam"
+
+msgid "Other"
+msgstr "Autre"
+
+msgid "Resolved"
+msgstr "Traité"
+
+msgid "Dismissed"
+msgstr "Rejeté"
+
+msgid "reporter"
+msgstr "auteur du signalement"
+
+msgid "details"
+msgstr "détails"
+
+msgid "handled by"
+msgstr "traité par"
+
+msgid "handled at"
+msgstr "traité le"
+
+msgid "resolution note"
+msgstr "note de traitement"
+
+msgid "content report"
+msgstr "signalement de contenu"
+
+msgid "content reports"
+msgstr "signalements de contenu"
+
+msgid "You are doing this too often. Please try again later."
+msgstr ""
+"Vous effectuez cette action trop souvent. Veuillez réessayer plus tard."
+
+msgid "Edit conflict"
+msgstr "Conflit de modification"
+
+msgid "Reload the latest version"
+msgstr "Recharger la dernière version"
+
+msgid "key"
+msgstr "clé"
 
 msgid "tag"
 msgstr "tag"
