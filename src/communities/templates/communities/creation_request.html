@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Request a new community" %}{% endblock %}
+{% block content %}
+  <nav aria-label="{% translate 'Breadcrumb' %}">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'communities:catalogue' %}">{% translate "Communities" %}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{% translate "Request a new community" %}</li>
+    </ol>
+  </nav>
+  <h1 class="h2">{% translate "Request a new community" %}</h1>
+  <p class="text-body-secondary">{% translate "An administrator will review your request. If approved, you will become the lead of the community." %}</p>
+  <form method="post" class="col-12 col-lg-8" novalidate>{% csrf_token %}
+    {% include "components/form_errors.html" %}
+    {% for field in form %}{% include "components/form_field.html" %}{% endfor %}
+    <button type="submit" class="btn btn-primary">{% translate "Send the request" %}</button>
+    <a class="btn btn-link" href="{% url 'communities:catalogue' %}">{% translate "Cancel" %}</a>
+  </form>
+{% endblock %}

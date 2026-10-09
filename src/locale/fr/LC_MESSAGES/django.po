@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 17:17+0200\n"
+"POT-Creation-Date: 2026-10-09 17:25+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -954,6 +954,30 @@ msgstr "Motif"
 msgid "Recorded in the audit log. Access lasts one hour."
 msgstr "Consigné dans le journal d'audit. L'accès dure une heure."
 
+msgid "Message to the facilitators"
+msgstr "Message aux animateurs"
+
+msgid "Tagline"
+msgstr "Accroche"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Markdown is supported."
+msgstr "Le Markdown est pris en charge."
+
+msgid "Show in the catalogue even when invitation-only"
+msgstr "Afficher dans le catalogue même sur invitation"
+
+msgid "Tags"
+msgstr "Étiquettes"
+
+msgid "Justification"
+msgstr "Justification"
+
+msgid "Explain the purpose of the community and who would take part."
+msgstr "Expliquez l’objet de la communauté et qui y participerait."
+
 msgid "name"
 msgstr "nom"
 
@@ -1201,6 +1225,30 @@ msgstr "Indiquez un motif d’au moins %(count)d caractères."
 msgid "A category with this name already exists."
 msgstr "Une catégorie portant ce nom existe déjà."
 
+msgid "Leave"
+msgstr "Quitter"
+
+msgid "Accept the invitation"
+msgstr "Accepter l’invitation"
+
+msgid "Decline"
+msgstr "Décliner"
+
+msgid "Request pending"
+msgstr "Demande en attente"
+
+msgid "Cancel my request"
+msgstr "Annuler ma demande"
+
+msgid "Message to the facilitators (optional)"
+msgstr "Message aux animateurs (facultatif)"
+
+msgid "Request to join"
+msgstr "Demander à rejoindre"
+
+msgid "Join"
+msgstr "Rejoindre"
+
 msgid "Breadcrumb"
 msgstr "Fil d’Ariane"
 
@@ -1242,8 +1290,27 @@ msgstr[1] "%(counter)s communautés"
 msgid "No community matches these filters."
 msgstr "Aucune communauté ne correspond à ces filtres."
 
-msgid "Description"
-msgstr "Description"
+msgid "Create a community"
+msgstr "Créer une communauté"
+
+msgid "You will become the lead of the new community."
+msgstr "Vous deviendrez responsable de la nouvelle communauté."
+
+msgid "Create"
+msgstr "Créer"
+
+msgid "Request a new community"
+msgstr "Demander une nouvelle communauté"
+
+msgid ""
+"An administrator will review your request. If approved, you will become the "
+"lead of the community."
+msgstr ""
+"Un administrateur examinera votre demande. Si elle est approuvée, vous "
+"deviendrez responsable de la communauté."
+
+msgid "Send the request"
+msgstr "Envoyer la demande"
 
 msgid "No description yet."
 msgstr "Pas encore de description."
@@ -1253,6 +1320,46 @@ msgstr "Objectifs"
 
 msgid "Rules"
 msgstr "Règles"
+
+msgid "My invitations"
+msgstr "Mes invitations"
+
+#, python-format
+msgid "Invited by %(inviter)s as %(role)s, until %(date)s"
+msgstr "Invitation de %(inviter)s en tant que %(role)s, jusqu’au %(date)s"
+
+msgid "Accept"
+msgstr "Accepter"
+
+msgid "You have no pending invitations."
+msgstr "Vous n’avez aucune invitation en attente."
+
+msgid "Your message is too long (500 characters at most)."
+msgstr "Votre message est trop long (500 caractères au maximum)."
+
+msgid "Your request to join has been sent."
+msgstr "Votre demande d’adhésion a été envoyée."
+
+msgid "Welcome! You are now a member."
+msgstr "Bienvenue ! Vous êtes désormais membre."
+
+msgid "You have left the community."
+msgstr "Vous avez quitté la communauté."
+
+msgid "You have no pending request for this community."
+msgstr "Vous n’avez aucune demande en attente pour cette communauté."
+
+msgid "Your request has been cancelled."
+msgstr "Votre demande a été annulée."
+
+msgid "Invitation declined."
+msgstr "Invitation déclinée."
+
+msgid "The community has been created."
+msgstr "La communauté a été créée."
+
+msgid "Your request has been sent to the administrators for review."
+msgstr "Votre demande a été transmise aux administrateurs pour examen."
 
 msgid "Home"
 msgstr "Accueil"
@@ -1368,9 +1475,6 @@ msgstr "Vos modifications ont été enregistrées."
 
 msgid "Create the first one to get started."
 msgstr "Créez la première pour commencer."
-
-msgid "Create a community"
-msgstr "Créer une communauté"
 
 msgid "Badges and avatars"
 msgstr "Badges et avatars"
