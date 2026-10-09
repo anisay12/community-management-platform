@@ -5,7 +5,6 @@ administrator and the auditor) against the live server's database, then the sess
 copied into the Playwright context. Chromium comes from ``PLAYWRIGHT_BROWSERS_PATH`` when set.
 """
 
-import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -18,10 +17,6 @@ from pytest_django.plugin import blocking_manager_key
 
 from accounts.roles import Role
 from audit.models import AuditEvent
-
-# pytest-playwright's sync API runs an event loop in the test thread, which trips Django's
-# async-unsafe guard on ORM calls made from the same thread.
-os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 
 AXE_PATH = Path(__file__).resolve().parents[4] / "node_modules" / "axe-core" / "axe.min.js"
 AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
@@ -49,6 +44,14 @@ def pytest_runtest_teardown(item):
     if item.get_closest_marker("a11y"):
         with item.config.stash[blocking_manager_key].unblock():
             _ensure_role_groups()
+
+
+@pytest.fixture(autouse=True)
+def _allow_async_unsafe(monkeypatch):
+    """pytest-playwright's sync API runs an event loop in the test thread, which trips Django's
+    async-unsafe guard on ORM calls made from it (scoped to these tests: a deployment check
+    rejects the variable)."""
+    monkeypatch.setenv("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 
 
 @pytest.fixture(scope="session")
