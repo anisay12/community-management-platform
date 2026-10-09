@@ -1,3 +1,28 @@
-{% comment %}
-  Stub created by L4 Task 1; owned and filled by Task 6 (comment and reply form).
+{% load i18n post_interaction_tags %}{% comment %}
+  New top-level comment (L4 Task 6), or the join prompt for a reader who is not a member.
+  Context: post. With HTMX the response replaces this block with the new comment followed by
+  a fresh form.
 {% endcomment %}
+{% post_interactions post as ix %}
+{% if ix.can_participate %}
+  <div id="comment-form" class="mt-4">
+    {% url 'posts:comment_create' post.community.slug post.public_id as comment_url %}
+    <form method="post" action="{{ comment_url }}" hx-post="{{ comment_url }}" hx-target="#comment-form" hx-swap="outerHTML" hx-disabled-elt="find button">
+      {% csrf_token %}
+      <label class="form-label" for="comment-body">{% translate "Your comment" %}</label>
+      <textarea class="form-control" id="comment-body" name="body" rows="4" maxlength="10000" required aria-describedby="comment-body-help"></textarea>
+      <div class="form-text" id="comment-body-help">{% translate "Markdown is supported. Mention a member with @first.last." %}</div>
+      <button type="submit" class="btn btn-primary mt-2">{% translate "Publish the comment" %}</button>
+    </form>
+  </div>
+{% elif ix.join_prompt %}
+  <div class="alert alert-info mt-4 d-flex flex-wrap align-items-center gap-2" role="status">
+    <span>{% translate "Join this community to comment and react." %}</span>
+    {% if ix.can_join %}
+      <form method="post" action="{% url 'communities:join' post.community.slug %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-sm">{% if ix.asks_to_join %}{% translate "Request to join" %}{% else %}{% translate "Join" %}{% endif %}</button>
+      </form>
+    {% endif %}
+  </div>
+{% endif %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Report content" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
+{% block content %}
+  <h1 class="h2">{% translate "Report content" %}</h1>
+  <p class="text-body-secondary">
+    {% if target_type == "comment" %}
+      {% blocktranslate with author=target.author_display title=post.title trimmed %}Comment by {{ author }} on “{{ title }}”{% endblocktranslate %}
+    {% else %}
+      {% blocktranslate with author=target.author_display title=post.title trimmed %}Post “{{ title }}” by {{ author }}{% endblocktranslate %}
+    {% endif %}
+  </p>
+  <p>{% translate "Moderators of the community will review your report. Your name is not shown to the author." %}</p>
+  <div id="report-form" class="col-12 col-lg-8">
+    <form method="post" hx-post="{{ request.path }}" hx-target="#report-form" hx-swap="innerHTML">{% csrf_token %}
+      {% include "components/form_errors.html" %}
+      {% for field in form %}{% include "components/form_field.html" %}{% endfor %}
+      <button type="submit" class="btn btn-primary">{% translate "Send the report" %}</button>
+      <a class="btn btn-link" href="{{ back_url }}">{% translate "Cancel" %}</a>
+    </form>
+  </div>
+{% endblock %}

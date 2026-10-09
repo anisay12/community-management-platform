@@ -1,0 +1,6 @@
+{% comment %}
+  HTMX response to a new top-level comment (L4 Task 6): the comment, then a fresh form.
+  Context: comment, post.
+{% endcomment %}
+{% include "posts/_comment.html" with comment=comment reply=False %}
+{% include "posts/_comment_form.html" %}
