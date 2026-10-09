@@ -11,7 +11,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_http_methods
 
 from audit.services import record
-from core.views_i18n import set_language_cookie
+from core.i18n import delete_language_cookie, set_language_cookie
 
 from .forms import PreferencesForm, ProfileForm
 from .models import User
@@ -41,6 +41,7 @@ def profile_detail(request, public_id):
         "owner": owner,
         "profile": owner.profile,
         "is_self": owner.pk == request.user.pk,
+        "is_active": owner.status == User.Status.ACTIVE,
         "show_details": show_details,
         "interests": list(owner.profile.interests.all()) if show_details else [],
     }
@@ -53,14 +54,15 @@ def profile_edit(request):
     profile = request.user.profile
     form = ProfileForm(request.POST if request.method == "POST" else None, instance=profile)
     if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            form.save()
-            record(
-                actor=request.user,
-                action="profile.updated",
-                target=request.user,
-                changes={"fields": sorted(form.changed_data)},
-            )
+        if form.changed_data:
+            with transaction.atomic():
+                form.save()
+                record(
+                    actor=request.user,
+                    action="profile.updated",
+                    target=request.user,
+                    changes={"fields": sorted(form.changed_data)},
+                )
         messages.success(request, _("Your profile has been updated."))
         return redirect(_own_profile_url(request.user))
     return render(request, "accounts/profile_edit.html", {"form": form})
@@ -81,5 +83,7 @@ def preferences(request):
         response = redirect("accounts:preferences")
         if language:
             set_language_cookie(response, language)
+        else:
+            delete_language_cookie(response)
         return response
     return render(request, "accounts/preferences.html", {"form": form})

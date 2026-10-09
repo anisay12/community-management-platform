@@ -94,6 +94,7 @@ def test_set_language_anonymous_still_works(client):
 
 def test_middleware_activates_timezone_only_during_request(rf, active_user):
     active_user.profile.timezone = "Asia/Tokyo"
+    active_user.profile.language = "fr"
     active_user.profile.save()
     captured = {}
 
@@ -106,6 +107,7 @@ def test_middleware_activates_timezone_only_during_request(rf, active_user):
     request.user = active_user
     UserPreferencesMiddleware(view)(request)
     assert captured["tz"] == ZoneInfo("Asia/Tokyo")
+    assert captured["lang"] == "fr"
     assert timezone.get_current_timezone_name() == "Europe/Paris"
 
     request = rf.get("/")
@@ -123,3 +125,28 @@ def test_middleware_ignores_unsupported_saved_language(rf, active_user):
         response = UserPreferencesMiddleware(lambda r: HttpResponse())(request)
         assert translation.get_language() == "en"
     assert "django_language" not in response.cookies
+
+
+def test_automatic_after_french_follows_accept_language(client, active_user):
+    set_language(active_user, "fr")
+    client.force_login(active_user)
+    client.get(reverse("home"), HTTP_ACCEPT_LANGUAGE="en")
+    assert client.cookies["django_language"].value == "fr"
+    response = client.post(
+        reverse("accounts:preferences"), {"language": "", "timezone": "Europe/Paris"}
+    )
+    assert response.status_code == 302
+    assert response.cookies["django_language"].value == ""
+    assert response.cookies["django_language"]["max-age"] == 0
+    response = client.get(reverse("home"), HTTP_ACCEPT_LANGUAGE="en")
+    assert b'<html lang="en"' in response.content
+    assert "django_language" not in response.cookies
+    assert UserProfile.objects.get(user=active_user).language == ""
+
+
+def test_set_language_without_profile_does_not_crash(client, active_user):
+    UserProfile.objects.filter(user=active_user).delete()
+    client.force_login(active_user)
+    response = client.post(reverse("set_language"), {"language": "fr", "next": "/"})
+    assert response.status_code == 302
+    assert response.cookies["django_language"].value == "fr"

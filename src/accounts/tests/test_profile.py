@@ -215,6 +215,55 @@ def test_edit_own_profile(client, owner):
     }
 
 
+def test_edit_without_changes_skips_save_and_audit(client, owner):
+    client.force_login(owner)
+    profile = owner.profile
+    before = UserProfile.objects.get(user=owner).updated_at
+    data = edit_data(
+        job_title=profile.job_title,
+        bio=profile.bio,
+        interests="Kayak",
+        profile_visibility=profile.profile_visibility,
+        is_discoverable="on" if profile.is_discoverable else "",
+    )
+    response = client.post(reverse("accounts:profile_edit"), data)
+    assert response.status_code == 302
+    assert response["Location"] == detail_url(owner)
+    assert not AuditEvent.objects.filter(action="profile.updated").exists()
+    assert UserProfile.objects.get(user=owner).updated_at == before
+
+
+def test_form_save_commit_false_defers_interests(owner):
+    from accounts.forms import ProfileForm
+
+    form = ProfileForm(
+        edit_data(interests="Python, Kayak"), instance=UserProfile.objects.get(user=owner)
+    )
+    assert form.is_valid(), form.errors
+    profile = form.save(commit=False)
+    assert profile.job_title == "Architect"
+    assert UserProfile.objects.get(user=owner).job_title == "Data engineer"
+    assert sorted(profile.interests.values_list("name", flat=True)) == ["Kayak"]
+    profile.save()
+    form.save_m2m()
+    assert sorted(profile.interests.values_list("name", flat=True)) == ["Kayak", "Python"]
+
+
+def test_interests_help_text_uses_limits_and_is_translated():
+    from django.utils import translation
+
+    from accounts.forms import INTEREST_MAX_LENGTH, MAX_INTERESTS, ProfileForm
+
+    help_text = str(ProfileForm().fields["interests"].help_text)
+    assert str(MAX_INTERESTS) in help_text
+    assert str(INTEREST_MAX_LENGTH) in help_text
+    with translation.override("fr"):
+        french = str(ProfileForm().fields["interests"].help_text)
+    assert "Séparez" in french
+    assert str(MAX_INTERESTS) in french
+    assert str(INTEREST_MAX_LENGTH) in french
+
+
 def test_edit_form_shows_current_interests(client, owner):
     client.force_login(owner)
     content = client.get(reverse("accounts:profile_edit")).content.decode()

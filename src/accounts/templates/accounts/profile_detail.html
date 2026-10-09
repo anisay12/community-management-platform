@@ -9,7 +9,7 @@
       {% if profile.job_title %}<p class="profile-job-title">{{ profile.job_title }}</p>{% endif %}
     </div>
   </div>
-  {% if owner.status != "active" %}
+  {% if not is_active %}
     <p class="message">{% blocktranslate with status=owner.get_status_display %}Account status: {{ status }}{% endblocktranslate %}</p>
   {% endif %}
   <dl>

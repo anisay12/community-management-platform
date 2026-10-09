@@ -9,8 +9,9 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.urls import reverse
 from django.utils.encoding import force_bytes
+from django.utils.functional import lazy
 from django.utils.http import urlsafe_base64_encode
-from django.utils.translation import get_language
+from django.utils.translation import get_language, gettext
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.debug import sensitive_variables
 
@@ -250,12 +251,20 @@ def parse_interests(value: str) -> list[str]:
     return names
 
 
+def _format_interests_help_text() -> str:
+    return gettext(
+        "Separate interests with commas: at most %(max_interests)d, "
+        "each up to %(max_length)d characters."
+    ) % {"max_interests": MAX_INTERESTS, "max_length": INTEREST_MAX_LENGTH}
+
+
+_interests_help_text = lazy(_format_interests_help_text, str)
+
+
 class InterestsField(forms.CharField):
     def __init__(self, **kwargs):
         kwargs.setdefault("label", _("Interests"))
-        kwargs.setdefault(
-            "help_text", _("Separate interests with commas: at most 10, each up to 64 characters.")
-        )
+        kwargs.setdefault("help_text", _interests_help_text())
         super().__init__(required=False, **kwargs)
 
     def to_python(self, value) -> list[str]:
@@ -275,6 +284,12 @@ class InterestsField(forms.CharField):
                     code="too_long",
                     params={"name": name[:20], "length": INTEREST_MAX_LENGTH},
                 )
+
+    def has_changed(self, initial, data) -> bool:
+        current = (
+            list(initial) if isinstance(initial, list | tuple) else parse_interests(initial or "")
+        )
+        return current != parse_interests(data or "")
 
     def prepare_value(self, value):
         if isinstance(value, list | tuple):
@@ -302,16 +317,23 @@ class ProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance.pk and not self.is_bound:
+        if self.instance.pk:
             self.initial["interests"] = [tag.name for tag in self.instance.interests.all()]
 
     def save(self, commit=True):
         profile = super().save(commit=False)
-        if commit:
-            profile.save()
+
+        def save_interests() -> None:
             profile.interests.set(
                 [get_or_create_tag(name) for name in self.cleaned_data["interests"]]
             )
+
+        if commit:
+            profile.save()
+            save_interests()
+        else:
+            # Like ModelForm: the caller saves the profile, then calls save_m2m().
+            self.save_m2m = save_interests
         return profile
 
 

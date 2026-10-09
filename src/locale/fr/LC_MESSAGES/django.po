@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 13:49+0200\n"
+"POT-Creation-Date: 2026-10-09 13:55+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -88,13 +88,16 @@ msgstr ""
 "UTF-8, séparateur virgule ou point-virgule, 5000 lignes et 2 Mo au maximum. "
 "Première ligne : email,first_name,last_name,unit_code,manager_email"
 
+#, python-format
+msgid ""
+"Separate interests with commas: at most %(max_interests)d, each up to "
+"%(max_length)d characters."
+msgstr ""
+"Séparez les centres d’intérêt par des virgules : %(max_interests)d au "
+"maximum, %(max_length)d caractères chacun au plus."
+
 msgid "Interests"
 msgstr "Centres d’intérêt"
-
-msgid "Separate interests with commas: at most 10, each up to 64 characters."
-msgstr ""
-"Séparez les centres d’intérêt par des virgules : 10 au maximum, 64 "
-"caractères chacun au plus."
 
 #, python-format
 msgid "Choose at most %(count)d interests."

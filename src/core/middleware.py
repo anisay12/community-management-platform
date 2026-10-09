@@ -10,7 +10,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils import timezone, translation
 
 from .context import bind_request, clear_request, set_user_source
-from .views_i18n import SUPPORTED_LANGUAGES, set_language_cookie
+from .i18n import set_language_cookie, supported_languages
 
 REQUEST_ID_HEADER = "X-Request-ID"
 _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
@@ -130,7 +130,7 @@ class UserPreferencesMiddleware:
     @staticmethod
     def _language(profile) -> str:
         language = profile.language
-        return language if language in SUPPORTED_LANGUAGES else ""
+        return language if language in supported_languages() else ""
 
     @staticmethod
     def _activate_timezone(profile) -> None:
