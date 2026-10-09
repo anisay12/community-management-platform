@@ -44,7 +44,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         SUSPENDED = "suspended", _("Suspended")
         DEACTIVATED = "deactivated", _("Deactivated")
 
-    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    public_id = models.UUIDField(_("public ID"), default=uuid.uuid4, unique=True, editable=False)
     email = models.EmailField(_("email address"), max_length=254)
     first_name = models.CharField(_("first name"), max_length=150, blank=True)
     last_name = models.CharField(_("last name"), max_length=150, blank=True)
@@ -57,6 +57,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     is_staff = models.BooleanField(_("staff status"), default=False)
     is_active = models.GeneratedField(
+        verbose_name=_("active"),
         expression=models.Case(
             models.When(status="active", then=models.Value(True)),
             default=models.Value(False),

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 12:36+0200\n"
+"POT-Creation-Date: 2026-10-09 12:40+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -41,6 +41,9 @@ msgstr "Suspendu"
 msgid "Deactivated"
 msgstr "Désactivé"
 
+msgid "public ID"
+msgstr "identifiant public"
+
 msgid "email address"
 msgstr "adresse e-mail"
 
@@ -55,6 +58,9 @@ msgstr "statut"
 
 msgid "staff status"
 msgstr "accès à l'administration"
+
+msgid "active"
+msgstr "actif"
 
 msgid "last seen at"
 msgstr "dernière activité le"
