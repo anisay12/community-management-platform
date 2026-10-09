@@ -2,7 +2,6 @@ from typing import ClassVar
 
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, SetPasswordForm
-from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.urls import reverse
@@ -17,6 +16,7 @@ from audit.services import record
 from .backends import local_password_login_allowed
 from .models import User
 from .services import enqueue_email, site_url, user_language
+from .tokens import password_reset_token_generator
 
 
 class LoginForm(AuthenticationForm):
@@ -68,7 +68,7 @@ class EmailPasswordResetForm(PasswordResetForm):
     def get_users(self, email):
         return (user for user in super().get_users(email) if local_password_login_allowed(user))
 
-    def save(self, *, token_generator=default_token_generator, **kwargs):
+    def save(self, *, token_generator=password_reset_token_generator, **kwargs):
         for user in self.get_users(self.cleaned_data["email"]):
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = token_generator.make_token(user)

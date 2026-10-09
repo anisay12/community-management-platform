@@ -3,13 +3,15 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
-from django.contrib.auth.tokens import PasswordResetTokenGenerator, default_token_generator
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core import mail
+from django.test import Client
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 
 from accounts.models import User
+from accounts.tokens import password_reset_token_generator
 from audit.models import AuditEvent
 
 pytestmark = pytest.mark.django_db
@@ -87,14 +89,24 @@ def test_full_reset_flow(client, active_user, django_capture_on_commit_callbacks
 
 
 def test_reset_token_expires_after_one_hour(client, active_user):
-    token = default_token_generator.make_token(active_user)
+    token = password_reset_token_generator.make_token(active_user)
     uid = urlsafe_base64_encode(force_bytes(active_user.pk))
     url = reverse("accounts:password_reset_confirm", args=[uid, token])
-    issued = default_token_generator._now()
+    issued = password_reset_token_generator._now()
     later = issued + timedelta(seconds=3601)
     with mock.patch.object(PasswordResetTokenGenerator, "_now", return_value=later):
         response = client.get(url, follow=True)
     assert response.status_code == 200
+    assert response.context["validlink"] is False
+
+
+def test_reset_token_invalid_once_user_is_suspended(client, active_user):
+    token = password_reset_token_generator.make_token(active_user)
+    uid = urlsafe_base64_encode(force_bytes(active_user.pk))
+    url = reverse("accounts:password_reset_confirm", args=[uid, token])
+    assert client.get(url, follow=True).context["validlink"] is True
+    User.objects.filter(pk=active_user.pk).update(status=User.Status.SUSPENDED)
+    response = Client().get(url, follow=True)
     assert response.context["validlink"] is False
 
 

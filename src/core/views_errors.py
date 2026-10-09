@@ -23,6 +23,13 @@ def too_many_requests(request: HttpRequest, exception: Exception | None = None) 
     return render(request, "errors/429.html", status=429)
 
 
+def axes_lockout(
+    request: HttpRequest, original_response: HttpResponse | None = None, credentials=None
+) -> HttpResponse:
+    """django-axes lockout callable: called as ``(request, original_response, credentials)``."""
+    return too_many_requests(request)
+
+
 def server_error(request: HttpRequest) -> HttpResponse:
     """Render the 500 page from a static document: no template engine, no database access."""
     request_id = getattr(request, "request_id", "")

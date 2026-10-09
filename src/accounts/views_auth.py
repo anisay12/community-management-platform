@@ -18,7 +18,7 @@ from audit.services import record
 from .backends import local_password_login_allowed
 from .forms import AuditedSetPasswordForm, EmailPasswordResetForm, LoginForm
 from .models import User
-from .tokens import activation_token_generator
+from .tokens import activation_token_generator, password_reset_token_generator
 
 LOCAL_BACKEND = "accounts.backends.EmailBackend"
 
@@ -32,6 +32,7 @@ class LoginView(auth_views.LoginView):
 class PasswordResetView(auth_views.PasswordResetView):
     template_name = "accounts/password_reset_form.html"
     form_class = EmailPasswordResetForm
+    token_generator = password_reset_token_generator
     success_url = reverse_lazy("accounts:password_reset_done")
 
 
@@ -42,6 +43,7 @@ class PasswordResetDoneView(auth_views.PasswordResetDoneView):
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     template_name = "accounts/password_reset_confirm.html"
     form_class = AuditedSetPasswordForm
+    token_generator = password_reset_token_generator
     success_url = reverse_lazy("accounts:password_reset_complete")
 
 

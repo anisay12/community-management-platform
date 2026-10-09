@@ -68,6 +68,7 @@ class ActivityMiddleware:
                 user._meta.model._default_manager.filter(pk=user.pk).update(last_seen_at=now)
                 user.last_seen_at = now
                 request.session.modified = True
+                self._track_session(request, user)
             self._activate_timezone(user)
         else:
             timezone.deactivate()
@@ -75,6 +76,16 @@ class ActivityMiddleware:
             return self.get_response(request)
         finally:
             timezone.deactivate()
+
+    @staticmethod
+    def _track_session(request: HttpRequest, user) -> None:
+        # The session key may have been rotated (cycle_key) since login: make sure the
+        # current key is tracked so that end_all_sessions can reach it.
+        key = request.session.session_key
+        if key:
+            from accounts.models import UserSession
+
+            UserSession.objects.get_or_create(session_key=key, defaults={"user": user})
 
     @staticmethod
     def _activate_timezone(user) -> None:

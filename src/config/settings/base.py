@@ -122,7 +122,7 @@ STORAGES = {
 NUM_PROXIES = env.int("NUM_PROXIES", default=0)
 
 # Authentication ----------------------------------------------------------------
-AUTH_MODES = ("local", "mixed", "oidc")
+AUTH_MODES = ("local", "mixed", "sso_only")
 AUTH_MODE = env("AUTH_MODE", default="local")
 if AUTH_MODE not in AUTH_MODES:
     raise ImproperlyConfigured(f"AUTH_MODE must be one of {', '.join(AUTH_MODES)}.")
@@ -170,7 +170,7 @@ AXES_USERNAME_FORM_FIELD = "username"
 # Lowercases the email so case variants share one failure counter.
 AXES_USERNAME_CALLABLE = "accounts.backends.axes_username"
 AXES_RESET_ON_SUCCESS = True
-AXES_LOCKOUT_CALLABLE = "core.views_errors.too_many_requests"
+AXES_LOCKOUT_CALLABLE = "core.views_errors.axes_lockout"
 # Same proxy-aware client IP as the audit log; takes precedence over the ipware settings.
 AXES_CLIENT_IP_CALLABLE = "core.context.client_ip"
 AXES_IPWARE_PROXY_COUNT = NUM_PROXIES

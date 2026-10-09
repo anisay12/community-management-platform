@@ -40,3 +40,18 @@ class ActivationTokenGenerator(PasswordResetTokenGenerator):
 
 
 activation_token_generator = ActivationTokenGenerator()
+
+
+class PasswordResetTokenGeneratorWithStatus(PasswordResetTokenGenerator):
+    """Password reset token that also stops working when the account status changes.
+
+    A link issued before a suspension (or deactivation) must not survive it.
+    """
+
+    key_salt = "accounts.tokens.PasswordResetTokenGeneratorWithStatus"
+
+    def _make_hash_value(self, user, timestamp):
+        return f"{super()._make_hash_value(user, timestamp)}{user.status}"
+
+
+password_reset_token_generator = PasswordResetTokenGeneratorWithStatus()

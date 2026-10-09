@@ -3,8 +3,10 @@ from smtplib import SMTPException
 from zoneinfo import ZoneInfo
 
 import pytest
+from django.conf import settings
 from django.contrib.auth import get_user
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.sessions.models import Session
 from django.db import connection
 from django.http import HttpResponse
 from django.test import Client
@@ -90,14 +92,49 @@ def test_last_seen_refreshed_after_five_minutes(client, active_user):
     assert active_user.last_seen_at > stale
 
 
-def test_activity_refreshes_session_expiry(client, active_user, settings):
-    client.force_login(active_user)
-    first_expiry = client.session.get_expiry_date()
+def _expire_date(key):
+    return Session.objects.get(pk=key).expire_date
+
+
+def test_activity_refreshes_session_expiry(client, active_user):
+    key = login(client)
+    # Pretend the stored session is close to expiry, then make a request after the throttle.
+    soon = timezone.now() + timedelta(hours=1)
+    Session.objects.filter(pk=key).update(expire_date=soon)
     User.objects.filter(pk=active_user.pk).update(
         last_seen_at=timezone.now() - timedelta(minutes=10)
     )
     client.get(reverse("home"))
-    assert client.session.get_expiry_date() >= first_expiry
+    assert _expire_date(key) > soon + timedelta(hours=6)
+
+
+def test_session_expiry_not_refreshed_within_throttle_window(client, active_user):
+    key = login(client)
+    soon = timezone.now() + timedelta(hours=1)
+    Session.objects.filter(pk=key).update(expire_date=soon)
+    User.objects.filter(pk=active_user.pk).update(
+        last_seen_at=timezone.now() - timedelta(minutes=1)
+    )
+    client.get(reverse("home"))
+    assert _expire_date(key) == soon
+
+
+def test_rotated_session_key_is_tracked_and_ended(client, active_user):
+    old_key = login(client)
+    session = client.session
+    session.cycle_key()
+    session.save()
+    new_key = session.session_key
+    assert new_key != old_key
+    client.cookies[settings.SESSION_COOKIE_NAME] = new_key
+    User.objects.filter(pk=active_user.pk).update(
+        last_seen_at=timezone.now() - timedelta(minutes=10)
+    )
+    client.get(reverse("home"))
+    assert UserSession.objects.filter(session_key=new_key, user=active_user).exists()
+    assert end_all_sessions(active_user) >= 1
+    assert not Session.objects.filter(pk=new_key).exists()
+    assert not client.get(reverse("home")).wsgi_request.user.is_authenticated
 
 
 def test_anonymous_request_does_not_touch_users(client):

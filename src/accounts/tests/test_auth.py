@@ -1,9 +1,11 @@
+from datetime import timedelta
 from unittest import mock
 
 import pytest
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import Argon2PasswordHasher
+from django.http import HttpResponse
 from django.test import RequestFactory
 from django.urls import reverse
 
@@ -41,7 +43,12 @@ def test_settings_interfaces():
     assert settings.SESSION_COOKIE_HTTPONLY is True
     assert settings.SESSION_COOKIE_SAMESITE == "Lax"
     assert settings.AXES_FAILURE_LIMIT == 5
+    assert timedelta(minutes=15) == settings.AXES_COOLOFF_TIME
+    assert settings.AXES_RESET_ON_SUCCESS is True
+    assert settings.AXES_LOCKOUT_CALLABLE == "core.views_errors.axes_lockout"
+    assert settings.AXES_ENABLE_ADMIN is False
     assert settings.AXES_LOCKOUT_PARAMETERS == [["username", "ip_address"]]
+    assert "axes" in settings.INSTALLED_APPS
     assert settings.MIDDLEWARE[-1] == "axes.middleware.AxesMiddleware"
     validators = [v["NAME"].rsplit(".", 1)[-1] for v in settings.AUTH_PASSWORD_VALIDATORS]
     assert validators == [
@@ -137,6 +144,7 @@ def test_deactivated_user_with_correct_password_gets_neutral_message(client, mak
 
 
 def test_lockout_after_five_failures_for_same_email_and_ip(client, active_user):
+    """Axes locks on the 5th failure itself (native behaviour: "5 failures -> locked")."""
     for _ in range(4):
         assert post_login(client, "alice@example.com", "wrong-password-123").status_code == 200
     # Axes answers the 5th failure itself with the lockout page.
@@ -244,20 +252,20 @@ def test_local_login_allowed_in_local_and_mixed_modes(settings, active_user, mod
     assert authenticate(_request(), username="alice@example.com", password=PASSWORD)
 
 
-def test_local_login_refused_in_oidc_mode(settings, active_user):
-    settings.AUTH_MODE = "oidc"
+def test_local_login_refused_in_sso_only_mode(settings, active_user):
+    settings.AUTH_MODE = "sso_only"
     settings.BREAK_GLASS_EMAIL = ""
     assert authenticate(_request(), username="alice@example.com", password=PASSWORD) is None
 
 
-def test_break_glass_account_can_log_in_in_oidc_mode(settings, client, active_user):
-    settings.AUTH_MODE = "oidc"
+def test_break_glass_account_can_log_in_in_sso_only_mode(settings, client, active_user):
+    settings.AUTH_MODE = "sso_only"
     settings.BREAK_GLASS_EMAIL = "Alice@Example.com"
     assert post_login(client, "alice@example.com").status_code == 302
 
 
 def test_status_hint_hidden_when_local_login_disabled(settings, client, make_user):
-    settings.AUTH_MODE = "oidc"
+    settings.AUTH_MODE = "sso_only"
     settings.BREAK_GLASS_EMAIL = ""
     make_user(status=User.Status.SUSPENDED)
     response = post_login(client, "alice@example.com")
@@ -282,7 +290,23 @@ def test_lockout_uses_proxy_aware_client_ip(client, active_user, settings):
             ip=proxy,
             HTTP_X_FORWARDED_FOR="198.51.100.9",
         )
+    # The attacking forwarded IP itself is locked.
+    attacker = post_login(
+        client,
+        "alice@example.com",
+        ip=proxy,
+        HTTP_X_FORWARDED_FOR="198.51.100.9",
+    )
+    assert attacker.status_code == 429
     other_client = post_login(
         client, "alice@example.com", ip=proxy, HTTP_X_FORWARDED_FOR="203.0.113.4"
     )
     assert other_client.status_code == 302
+
+
+def test_axes_lockout_callable_accepts_axes_signature(rf):
+    from core.views_errors import axes_lockout
+
+    response = axes_lockout(rf.post("/"), HttpResponse(status=403), {"username": "a@b.c"})
+    assert response.status_code == 429
+    assert axes_lockout(rf.post("/")).status_code == 429

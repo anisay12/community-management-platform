@@ -159,7 +159,7 @@ def test_send_activation_email_in_user_language(
 
 
 def test_activation_does_not_sign_in_when_local_login_is_disabled(client, pending_user, settings):
-    settings.AUTH_MODE = "oidc"
+    settings.AUTH_MODE = "sso_only"
     settings.BREAK_GLASS_EMAIL = ""
     response = post_password(client, activation_url(pending_user))
     assert response.status_code == 302
