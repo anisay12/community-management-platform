@@ -46,12 +46,16 @@ def pytest_runtest_teardown(item):
             _ensure_role_groups()
 
 
-@pytest.fixture(autouse=True)
-def _allow_async_unsafe(monkeypatch):
-    """pytest-playwright's sync API runs an event loop in the test thread, which trips Django's
-    async-unsafe guard on ORM calls made from it (scoped to these tests: a deployment check
-    rejects the variable)."""
-    monkeypatch.setenv("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
+@pytest.fixture(autouse=True, scope="session")
+def _allow_async_unsafe():
+    """pytest-playwright's sync API keeps an event loop running in the test thread, which trips
+    Django's async-unsafe guard on ORM calls (also during the table flush after each test).
+    Session-scoped so it outlives the database teardown; only active when an a11y test runs,
+    because a deployment check rejects the variable."""
+    mp = pytest.MonkeyPatch()
+    mp.setenv("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
+    yield
+    mp.undo()
 
 
 @pytest.fixture(scope="session")
