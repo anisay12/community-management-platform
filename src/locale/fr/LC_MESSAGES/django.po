@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 17:37+0200\n"
+"POT-Creation-Date: 2026-10-09 18:09+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -1400,6 +1400,9 @@ msgstr ""
 
 msgid "Send the request"
 msgstr "Envoyer la demande"
+
+msgid "Membership is by invitation only."
+msgstr "L’adhésion se fait uniquement sur invitation."
 
 msgid "No description yet."
 msgstr "Pas encore de description."

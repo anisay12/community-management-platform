@@ -33,6 +33,25 @@ def clear_membership_cache(user) -> None:
         setattr(user, MEMBERSHIP_CACHE_ATTR, None)
 
 
+def prime_membership_cache(user, communities) -> None:
+    """Load the memberships of ``user`` in ``communities`` in one query (avoids N+1 on lists)."""
+    if not _is_active_user(user):
+        return
+    communities = [community for community in communities if community.pk is not None]
+    cache = getattr(user, MEMBERSHIP_CACHE_ATTR, None)
+    if cache is None:
+        cache = {}
+        setattr(user, MEMBERSHIP_CACHE_ATTR, cache)
+    found = {
+        membership.community_id: membership
+        for membership in CommunityMembership.objects.filter(
+            user=user, community__in=[community.pk for community in communities]
+        )
+    }
+    for community in communities:
+        cache[community.pk] = found.get(community.pk)
+
+
 def membership_of(user, community) -> CommunityMembership | None:
     """The membership of ``user`` in ``community``, or ``None`` (memoised per user instance)."""
     if not _is_active_user(user) or community is None or community.pk is None:
@@ -70,6 +89,20 @@ def can_view_metadata(user, community) -> bool:
     if community.access_mode == Community.AccessMode.INVITE:
         return community.listed
     return True
+
+
+def can_view_full_metadata(user, community) -> bool:
+    """Whether ``user`` may see more than the title: tagline, description, objectives, rules,
+    leads and member count.
+
+    Spec section 6: a non-member of an invite-only community sees only its title (when it is
+    listed). Functional administrators and members see everything ``can_view_metadata`` allows.
+    """
+    if not can_view_metadata(user, community):
+        return False
+    if community.access_mode != Community.AccessMode.INVITE:
+        return True
+    return is_functional_admin(user) or membership_of(user, community) is not None
 
 
 def can_view_content(user, community) -> bool:

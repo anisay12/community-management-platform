@@ -19,7 +19,7 @@ from core.errors import DomainError
 
 from . import policies, tabs
 from .forms import SORT_ORDERING, AdminAccessForm, CatalogueFilterForm
-from .models import CommunityMembership
+from .models import Community, CommunityMembership
 from .roles import CommunityRole
 from .selectors import visible_communities
 
@@ -32,7 +32,11 @@ CARD_ACCESS_STYLE = {"open": "open", "request": "restricted", "invite": "private
 def _filter_catalogue(user, communities, data):
     if data.get("q"):
         query = SearchQuery(data["q"], search_type="websearch", config="simple")
-        communities = communities.filter(Q(search_vector=query) | Q(name__icontains=data["q"]))
+        # Only the title of a community whose full metadata is hidden may match (spec section 6).
+        full = Community.objects.full_metadata_q(user)
+        communities = communities.filter(
+            (Q(search_vector=query) & full) | Q(name__icontains=data["q"])
+        )
     if data.get("category"):
         communities = communities.filter(category=data["category"])
     if data.get("access_mode"):
@@ -51,8 +55,10 @@ def catalogue(request):
     data = form.cleaned_data if form.is_valid() else {}
     communities = _filter_catalogue(request.user, visible_communities(request.user), data)
     page_obj = Paginator(communities, CATALOGUE_PAGE_SIZE).get_page(request.GET.get("page"))
+    policies.prime_membership_cache(request.user, page_obj.object_list)
     for community in page_obj:
         community.card_access_style = CARD_ACCESS_STYLE[community.access_mode]
+        community.full_metadata = policies.can_view_full_metadata(request.user, community)
     querystring = urlencode(
         {
             key: getattr(value, "slug", value)
@@ -87,6 +93,7 @@ def _community_page(request, slug, tab):
         "community": community,
         "membership": policies.membership_of(user, community),
         "content_visible": content_visible,
+        "full_metadata": policies.can_view_full_metadata(user, community),
         "show_admin_access": policies.is_functional_admin(user) and not content_visible,
         "tabs": tabs.tabs_for(user, community, tab),
     }

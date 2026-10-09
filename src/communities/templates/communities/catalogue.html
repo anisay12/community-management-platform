@@ -29,7 +29,11 @@
       {% for community in page_obj %}
         <div class="col">
           {% url 'communities:detail' community.slug as community_url %}
-          {% include "components/community_card.html" with name=community.name url=community_url tagline=community.tagline category=community.category.name member_count=community.member_count access_mode=community.card_access_style access_mode_label=community.get_access_mode_display %}
+          {% if community.full_metadata %}
+            {% include "components/community_card.html" with name=community.name url=community_url tagline=community.tagline category=community.category.name member_count=community.member_count access_mode=community.card_access_style access_mode_label=community.get_access_mode_display %}
+          {% else %}
+            {% include "components/community_card.html" with name=community.name url=community_url category=community.category.name access_mode=community.card_access_style access_mode_label=community.get_access_mode_display %}
+          {% endif %}
         </div>
       {% endfor %}
     </div>

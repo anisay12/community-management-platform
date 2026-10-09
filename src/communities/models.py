@@ -53,6 +53,16 @@ class CommunityCategory(TimestampedModel):
 
 
 class CommunityQuerySet(models.QuerySet):
+    def full_metadata_q(self, user):
+        """A ``Q`` of the communities whose full metadata ``user`` may see, among those
+        ``visible_to`` returns (see ``policies.can_view_full_metadata``)."""
+        from .policies import is_functional_admin
+
+        if is_functional_admin(user):
+            return models.Q()
+        member_ids = CommunityMembership.objects.filter(user=user).values("community_id")
+        return ~models.Q(access_mode=Community.AccessMode.INVITE) | models.Q(pk__in=member_ids)
+
     def visible_to(self, user):
         """Communities whose metadata ``user`` may see (see ``policies.can_view_metadata``)."""
         from .policies import is_functional_admin

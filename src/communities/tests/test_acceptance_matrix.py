@@ -21,6 +21,7 @@ OPEN, REQUEST, INVITE = Community.AccessMode
 ROLES = [role.value for role in CommunityRole]  # member … owner
 OUTSIDERS = ["non_member", "manager", "functional_admin", "technical_admin", "auditor"]
 VIEWERS = [*ROLES, *OUTSIDERS, "functional_admin_grant"]
+DESCRIPTION = "Shibboleth description"
 PRIVILEGED = {
     "functional_admin": Role.FUNCTIONAL_ADMIN,
     "functional_admin_grant": Role.FUNCTIONAL_ADMIN,
@@ -35,11 +36,14 @@ def _allowed(*viewers):
 
 @pytest.fixture
 def matrix(make_user, make_community, add_member, verified_login):
-    """Three communities (open, on request, unlisted invite) and a signed-in client per viewer."""
+    """Four communities (open, on request, unlisted and listed invite) and a client per viewer."""
     communities = {
-        "open": make_community("Open guild", access_mode=OPEN),
-        "private": make_community("Private guild", access_mode=REQUEST),
+        "open": make_community("Open guild", access_mode=OPEN, description=DESCRIPTION),
+        "private": make_community("Private guild", access_mode=REQUEST, description=DESCRIPTION),
         "secret": make_community("Secret guild", access_mode=INVITE),
+        "listed": make_community(
+            "Listed guild", access_mode=INVITE, listed=True, description=DESCRIPTION
+        ),
     }
     users, clients = {}, {}
     for viewer in VIEWERS:
@@ -109,6 +113,32 @@ def test_secret_community_metadata_is_hidden_from_non_members(matrix):
     statuses = _statuses(matrix, reverse("communities:detail", args=[slug]))
     hidden = {"non_member", "manager", "technical_admin", "auditor"}
     assert statuses == {viewer: 404 if viewer in hidden else 200 for viewer in VIEWERS}
+
+
+@pytest.mark.parametrize("kind", ["open", "private"])
+def test_employees_including_technical_admin_and_auditor_see_public_metadata(matrix, kind):
+    """Technical admins and auditors are employees: they see open and on-request metadata
+    (description included) like anyone, but never the content unless they are members."""
+    slug = matrix["communities"][kind].slug
+    for viewer in VIEWERS:
+        response = matrix["clients"][viewer].get(reverse("communities:detail", args=[slug]))
+        assert response.status_code == 200
+        assert DESCRIPTION in response.content.decode(), viewer
+    statuses = _statuses(matrix, reverse("communities:members", args=[slug]))
+    assert statuses["technical_admin"] == statuses["auditor"] == 403
+
+
+def test_listed_invite_community_shows_only_its_title_to_non_members(matrix):
+    slug = matrix["communities"]["listed"].slug
+    full = {*ROLES, "functional_admin", "functional_admin_grant"}
+    for viewer in VIEWERS:
+        response = matrix["clients"][viewer].get(reverse("communities:detail", args=[slug]))
+        assert response.status_code == 200
+        html = response.content.decode()
+        assert "Listed guild" in html
+        assert (DESCRIPTION in html) == (viewer in full), viewer
+    statuses = _statuses(matrix, reverse("communities:members", args=[slug]))
+    _expect(statuses, _allowed(*ROLES, "functional_admin_grant"))
 
 
 # --- Join / request membership ---------------------------------------------------------------
