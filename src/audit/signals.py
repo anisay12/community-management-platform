@@ -3,7 +3,7 @@ from django.contrib.auth.models import Group
 from django.db.models.signals import m2m_changed
 from django.dispatch import receiver
 
-from core.context import get_request_context
+from core.context import get_request_context, m2m_audit_suppressed
 
 from .services import record
 
@@ -36,6 +36,8 @@ def _snapshot_removal(instance, reverse, pk_set):
 @receiver(m2m_changed, sender=User.groups.through, dispatch_uid="audit_user_roles_changed")
 def user_roles_changed(sender, instance, action, reverse, model, pk_set, **kwargs):
     """Audit role changes made through ``user.groups`` or ``group.user_set``."""
+    if m2m_audit_suppressed():
+        return
     if action == "pre_clear":
         # The related set is gone by post_clear: remember it.
         if reverse:

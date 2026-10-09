@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load i18n accounts_tags %}
+{% block title %}{{ account.get_full_name|default:account.email }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "manage/_nav.html" %}
+  <h1>{{ account.get_full_name|default:account.email }}</h1>
+  <dl>
+    <dt>{% translate "Email" %}</dt><dd>{{ account.email }}</dd>
+    <dt>{% translate "Status" %}</dt><dd>{{ account.get_status_display }}</dd>
+    <dt>{% translate "Unit" %}</dt><dd>{{ account.employment.unit|default:"—" }}</dd>
+    <dt>{% translate "Manager" %}</dt><dd>{{ account.employment.manager.get_full_name|default:"—" }}</dd>
+    <dt>{% translate "Roles" %}</dt><dd>{{ account|role_labels|join:", "|default:"—" }}</dd>
+    <dt>{% translate "Created" %}</dt><dd>{{ account.created_at }}</dd>
+    <dt>{% translate "Last seen" %}</dt><dd>{{ account.last_seen_at|default:"—" }}</dd>
+  </dl>
+
+  <h2>{% translate "Status" %}</h2>
+  <div class="actions">
+    {% if account.status == "active" %}
+      {% include "manage/_status_button.html" with action="suspend" label=_("Suspend") %}
+    {% elif account.status == "suspended" %}
+      {% include "manage/_status_button.html" with action="reactivate" label=_("Reactivate") %}
+    {% elif account.status == "pending" %}
+      {% include "manage/_status_button.html" with action="resend_activation" label=_("Resend activation email") %}
+    {% endif %}
+    {% if account.status != "deactivated" %}
+      {% include "manage/_status_button.html" with action="deactivate" label=_("Deactivate") %}
+    {% endif %}
+  </div>
+
+  <h2>{% translate "Roles" %}</h2>
+  <form method="post" action="{% url 'manage:user_roles' account.public_id %}">
+    {% csrf_token %}
+    {% include "manage/_fields.html" with form=roles_form %}
+    <button type="submit">{% translate "Save roles" %}</button>
+  </form>
+{% endblock %}

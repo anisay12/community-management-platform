@@ -12,9 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from django.views.decorators.debug import sensitive_variables
 
 from audit.services import record
+from organizations.models import OrganizationUnit
 
 from .backends import local_password_login_allowed
 from .models import User
+from .roles import Role
 from .services import enqueue_email, site_url, user_language
 from .tokens import password_reset_token_generator
 
@@ -118,3 +120,77 @@ class OTPTokenForm(forms.Form):
 
     def reject(self) -> None:
         self.add_error("otp_token", self.INVALID)
+
+
+# Account administration ---------------------------------------------------------
+
+
+class RolesField(forms.MultipleChoiceField):
+    widget = forms.CheckboxSelectMultiple
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("label", _("Roles"))
+        super().__init__(choices=Role.choices, **kwargs)
+
+
+class UserCreateForm(forms.Form):
+    email = forms.EmailField(label=_("Email"), max_length=254)
+    first_name = forms.CharField(label=_("First name"), max_length=150)
+    last_name = forms.CharField(label=_("Last name"), max_length=150)
+    unit = forms.ModelChoiceField(
+        label=_("Unit"), queryset=OrganizationUnit.objects.all(), required=False
+    )
+    manager_email = forms.EmailField(
+        label=_("Manager's email"),
+        required=False,
+        help_text=_("Requires a unit. The manager must already have an account."),
+    )
+    roles = RolesField(initial=[Role.EMPLOYEE.value])
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].lower()
+        if User.objects.filter(email__iexact=email).exists():
+            raise ValidationError(
+                _("An account already exists with this email address."), code="email_taken"
+            )
+        return email
+
+    def clean_manager_email(self):
+        email = self.cleaned_data["manager_email"].lower()
+        if not email:
+            return None
+        manager = User.objects.filter(email__iexact=email).first()
+        if manager is None:
+            raise ValidationError(_("No account uses this email address."), code="unknown")
+        return manager
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("manager_email") and not cleaned.get("unit"):
+            self.add_error("unit", _("A manager can only be set with a unit."))
+        return cleaned
+
+
+class UserRolesForm(forms.Form):
+    roles = RolesField(required=False)
+
+
+class UserStatusForm(forms.Form):
+    action = forms.ChoiceField(
+        choices=[
+            ("suspend", _("Suspend")),
+            ("reactivate", _("Reactivate")),
+            ("deactivate", _("Deactivate")),
+            ("resend_activation", _("Resend activation email")),
+        ]
+    )
+
+
+class UserImportForm(forms.Form):
+    file = forms.FileField(
+        label=_("CSV file"),
+        help_text=_(
+            "UTF-8, comma or semicolon separated, at most 5000 rows and 2 MB. First line: "
+            "email,first_name,last_name,unit_code,manager_email"
+        ),
+    )

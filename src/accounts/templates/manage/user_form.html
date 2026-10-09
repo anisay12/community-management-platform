@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Create a user" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "manage/_nav.html" %}
+  <h1>{% translate "Create a user" %}</h1>
+  {% include "manage/_error_summary.html" %}
+  <form method="post" action="{% url 'manage:user_create' %}" novalidate>
+    {% csrf_token %}
+    {% include "manage/_fields.html" %}
+    <button type="submit">{% translate "Create and send the activation email" %}</button>
+  </form>
+{% endblock %}

@@ -17,3 +17,13 @@ select { padding: 0 0.5rem; }
 .message { padding: 0.75rem 1rem; border-left: 4px solid var(--accent); background: #eef4fb; }
 .message-error { border-color: #b00020; background: #fdecee; }
 .message-success { border-color: #1b7f3b; background: #eaf6ee; }
+.error-summary { padding: 1rem; margin-bottom: 1rem; border: 3px solid #b00020; }
+.error-summary h2 { margin-top: 0; font-size: 1.25rem; }
+.field { margin-bottom: 1rem; }
+.field label, .field legend { display: block; font-weight: 600; }
+.field-has-error { border-left: 4px solid #b00020; padding-left: 0.75rem; }
+.field-error { display: block; color: #b00020; }
+.subnav, .filters, .actions, .pagination { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
+.inline-form { display: inline; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }

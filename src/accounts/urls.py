@@ -1,7 +1,7 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views_auth, views_mfa
+from . import views_auth, views_manage, views_mfa
 
 app_name = "accounts"
 
@@ -28,3 +28,16 @@ urlpatterns = [
     path("mfa/verify/", views_mfa.mfa_verify, name="mfa_verify"),
     path("activate/<uidb64>/<token>/", views_auth.activate, name="activate"),
 ]
+
+# Account administration, mounted at /manage/ under the "manage" namespace.
+manage_patterns = (
+    [
+        path("users/", views_manage.user_list, name="user_list"),
+        path("users/new/", views_manage.user_create, name="user_create"),
+        path("users/import/", views_manage.user_import, name="user_import"),
+        path("users/<uuid:public_id>/", views_manage.user_detail, name="user_detail"),
+        path("users/<uuid:public_id>/status/", views_manage.user_status, name="user_status"),
+        path("users/<uuid:public_id>/roles/", views_manage.user_roles_update, name="user_roles"),
+    ],
+    "manage",
+)

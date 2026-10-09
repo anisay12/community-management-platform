@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Import users" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "manage/_nav.html" %}
+  <h1>{% translate "Import users" %}</h1>
+  <p>{% translate "Every line is checked first: if any line is invalid, no account is created." %}</p>
+  {% include "manage/_error_summary.html" %}
+  <form method="post" action="{% url 'manage:user_import' %}" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% include "manage/_fields.html" %}
+    <button type="submit">{% translate "Import" %}</button>
+  </form>
+{% endblock %}

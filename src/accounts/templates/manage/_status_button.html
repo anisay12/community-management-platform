@@ -1,0 +1,5 @@
+<form method="post" action="{% url 'manage:user_status' account.public_id %}" class="inline-form">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="{{ action }}">
+  <button type="submit">{{ label }}</button>
+</form>

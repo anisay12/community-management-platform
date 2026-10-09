@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n accounts_tags %}
+{% block title %}{% translate "Users" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "manage/_nav.html" %}
+  <h1>{% translate "Users" %}</h1>
+  <form method="get" action="{% url 'manage:user_list' %}" role="search" class="filters">
+    <label for="id_q">{% translate "Search" %}</label>
+    <input type="search" id="id_q" name="q" value="{{ query }}">
+    <label for="id_status">{% translate "Status" %}</label>
+    <select id="id_status" name="status">
+      <option value="">{% translate "All statuses" %}</option>
+      {% for value, label in statuses %}
+        <option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">{% translate "Filter" %}</button>
+  </form>
+  <p>{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} user{% plural %}{{ counter }} users{% endblocktranslate %}</p>
+  {% if page_obj.object_list %}
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Name" %}</th>
+          <th scope="col">{% translate "Email" %}</th>
+          <th scope="col">{% translate "Unit" %}</th>
+          <th scope="col">{% translate "Roles" %}</th>
+          <th scope="col">{% translate "Status" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for account in page_obj %}
+          <tr>
+            <td><a href="{% url 'manage:user_detail' account.public_id %}">{{ account.get_full_name|default:account.email }}</a></td>
+            <td>{{ account.email }}</td>
+            <td>{{ account.employment.unit.name|default:"" }}</td>
+            <td>{{ account|role_labels|join:", " }}</td>
+            <td>{{ account.get_status_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+  {% if page_obj.paginator.num_pages > 1 %}
+    <nav aria-label="{% translate 'Pagination' %}" class="pagination">
+      {% if page_obj.has_previous %}
+        <a href="?q={{ query|urlencode }}&amp;status={{ status|urlencode }}&amp;page={{ page_obj.previous_page_number }}">{% translate "Previous" %}</a>
+      {% endif %}
+      <span>{% blocktranslate with number=page_obj.number total=page_obj.paginator.num_pages %}Page {{ number }} of {{ total }}{% endblocktranslate %}</span>
+      {% if page_obj.has_next %}
+        <a href="?q={{ query|urlencode }}&amp;status={{ status|urlencode }}&amp;page={{ page_obj.next_page_number }}">{% translate "Next" %}</a>
+      {% endif %}
+    </nav>
+  {% endif %}
+{% endblock %}

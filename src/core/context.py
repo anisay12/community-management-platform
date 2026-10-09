@@ -1,7 +1,8 @@
 """Per-request context (request id, client IP, current user) usable outside views."""
 
 import ipaddress
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from typing import Any
@@ -67,3 +68,20 @@ def set_user_source(source: Callable[[], Any]) -> None:
 
 def clear_request() -> None:
     _context.set(RequestContext())
+
+
+_m2m_audit_suppressed: ContextVar[bool] = ContextVar("m2m_audit_suppressed", default=False)
+
+
+@contextmanager
+def suppress_m2m_audit() -> Iterator[None]:
+    """Silence the generic role-change audit signal while a service records its own event."""
+    token = _m2m_audit_suppressed.set(True)
+    try:
+        yield
+    finally:
+        _m2m_audit_suppressed.reset(token)
+
+
+def m2m_audit_suppressed() -> bool:
+    return _m2m_audit_suppressed.get()

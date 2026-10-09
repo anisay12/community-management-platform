@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 13:10+0200\n"
+"POT-Creation-Date: 2026-10-09 13:32+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -50,6 +50,55 @@ msgstr "Code invalide. Veuillez réessayer."
 
 msgid "Verification code"
 msgstr "Code de vérification"
+
+msgid "Roles"
+msgstr "Rôles"
+
+msgid "First name"
+msgstr "Prénom"
+
+msgid "Last name"
+msgstr "Nom"
+
+msgid "Unit"
+msgstr "Unité"
+
+msgid "Manager's email"
+msgstr "E-mail du manager"
+
+msgid "Requires a unit. The manager must already have an account."
+msgstr "Nécessite une unité. Le manager doit déjà avoir un compte."
+
+msgid "An account already exists with this email address."
+msgstr "Un compte existe déjà avec cette adresse e-mail."
+
+msgid "No account uses this email address."
+msgstr "Aucun compte n’utilise cette adresse e-mail."
+
+msgid "A manager can only be set with a unit."
+msgstr "Un manager ne peut être indiqué qu’avec une unité."
+
+msgid "Suspend"
+msgstr "Suspendre"
+
+msgid "Reactivate"
+msgstr "Réactiver"
+
+msgid "Deactivate"
+msgstr "Désactiver"
+
+msgid "Resend activation email"
+msgstr "Renvoyer l’e-mail d’activation"
+
+msgid "CSV file"
+msgstr "Fichier CSV"
+
+msgid ""
+"UTF-8, comma or semicolon separated, at most 5000 rows and 2 MB. First line: "
+"email,first_name,last_name,unit_code,manager_email"
+msgstr ""
+"UTF-8, séparateur virgule ou point-virgule, 5000 lignes et 2 Mo au maximum. "
+"Première ligne : email,first_name,last_name,unit_code,manager_email"
 
 msgid "Pending"
 msgstr "En attente"
@@ -194,6 +243,78 @@ msgstr "Administrateur technique"
 
 msgid "Auditor"
 msgstr "Auditeur"
+
+#, python-format
+msgid "Unknown role: %s."
+msgstr "Rôle inconnu : %s."
+
+msgid "Only a superuser can grant or revoke the technical administrator role."
+msgstr ""
+"Seul un superutilisateur peut attribuer ou retirer le rôle d’administrateur "
+"technique."
+
+msgid "You cannot do this to your own account."
+msgstr "Vous ne pouvez pas effectuer cette action sur votre propre compte."
+
+#, python-format
+msgid "This action is not possible for an account with status “%(status)s”."
+msgstr "Cette action est impossible pour un compte au statut « %(status)s »."
+
+msgid "The file is larger than 2 MB."
+msgstr "Le fichier dépasse 2 Mo."
+
+msgid "The file must be encoded in UTF-8."
+msgstr "Le fichier doit être encodé en UTF-8."
+
+msgid "The file is not a valid CSV file."
+msgstr "Le fichier n’est pas un fichier CSV valide."
+
+#, python-format
+msgid "The first line must be exactly: %s"
+msgstr "La première ligne doit être exactement : %s"
+
+#, python-format
+msgid "The file has more than %(max)d rows."
+msgstr "Le fichier contient plus de %(max)d lignes."
+
+#, python-format
+msgid "Expected %(count)d columns."
+msgstr "%(count)d colonnes sont attendues."
+
+msgid "The file contains no users."
+msgstr "Le fichier ne contient aucun utilisateur."
+
+#, python-format
+msgid "Invalid email address: “%s”."
+msgstr "Adresse e-mail invalide : « %s »."
+
+#, python-format
+msgid "%(email)s is already listed on line %(line)d."
+msgstr "%(email)s figure déjà à la ligne %(line)d."
+
+#, python-format
+msgid "An account already exists for %s."
+msgstr "Un compte existe déjà pour %s."
+
+msgid "The first name is required."
+msgstr "Le prénom est obligatoire."
+
+msgid "The last name is required."
+msgstr "Le nom est obligatoire."
+
+msgid "Names are limited to 150 characters."
+msgstr "Les noms sont limités à 150 caractères."
+
+#, python-format
+msgid "Unknown unit code: “%s”."
+msgstr "Code d’unité inconnu : « %s »."
+
+msgid "A user cannot be their own manager."
+msgstr "Un utilisateur ne peut pas être son propre manager."
+
+#, python-format
+msgid "Unknown manager: %s."
+msgstr "Manager inconnu : %s."
 
 msgid "Activate your account"
 msgstr "Activer votre compte"
@@ -350,11 +471,128 @@ msgstr ""
 "vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot "
 "de passe ne sera pas modifié."
 
+msgid "There is a problem"
+msgstr "Il y a un problème"
+
+msgid "Administration"
+msgstr "Administration"
+
+msgid "Users"
+msgstr "Utilisateurs"
+
+msgid "Create a user"
+msgstr "Créer un utilisateur"
+
+msgid "Import users"
+msgstr "Importer des utilisateurs"
+
+msgid "Manager"
+msgstr "Manager"
+
+msgid "Created"
+msgstr "Créé le"
+
+msgid "Last seen"
+msgstr "Dernière activité"
+
+msgid "Save roles"
+msgstr "Enregistrer les rôles"
+
+msgid "Create and send the activation email"
+msgstr "Créer et envoyer l’e-mail d’activation"
+
+msgid ""
+"Every line is checked first: if any line is invalid, no account is created."
+msgstr ""
+"Toutes les lignes sont d’abord vérifiées : si une seule est invalide, aucun "
+"compte n’est créé."
+
+msgid "Import"
+msgstr "Importer"
+
+msgid "Import result"
+msgstr "Résultat de l’import"
+
+msgid "The file was not imported"
+msgstr "Le fichier n’a pas été importé"
+
+msgid "No account was created. Fix the lines below and import the file again."
+msgstr ""
+"Aucun compte n’a été créé. Corrigez les lignes ci-dessous puis importez de "
+"nouveau le fichier."
+
+msgid "Line"
+msgstr "Ligne"
+
+msgid "Problem"
+msgstr "Problème"
+
+#, python-format
+msgid "%(counter)s account was created and invited by email."
+msgid_plural "%(counter)s accounts were created and invited by email."
+msgstr[0] "%(counter)s compte a été créé et invité par e-mail."
+msgstr[1] "%(counter)s comptes ont été créés et invités par e-mail."
+
+msgid "Import another file"
+msgstr "Importer un autre fichier"
+
+msgid "Search"
+msgstr "Rechercher"
+
+msgid "All statuses"
+msgstr "Tous les statuts"
+
+msgid "Filter"
+msgstr "Filtrer"
+
+#, python-format
+msgid "%(counter)s user"
+msgid_plural "%(counter)s users"
+msgstr[0] "%(counter)s utilisateur"
+msgstr[1] "%(counter)s utilisateurs"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Pagination"
+msgstr "Pagination"
+
+msgid "Previous"
+msgstr "Précédent"
+
+#, python-format
+msgid "Page %(number)s of %(total)s"
+msgstr "Page %(number)s sur %(total)s"
+
+msgid "Next"
+msgstr "Suivant"
+
 msgid "Your account is active. You can now sign in."
 msgstr "Votre compte est actif. Vous pouvez maintenant vous connecter."
 
 msgid "Your account is active. Welcome!"
 msgstr "Votre compte est actif. Bienvenue !"
+
+msgid "The account has been suspended."
+msgstr "Le compte a été suspendu."
+
+msgid "The account has been reactivated."
+msgstr "Le compte a été réactivé."
+
+msgid "The account has been deactivated."
+msgstr "Le compte a été désactivé."
+
+msgid "A new activation email has been sent."
+msgstr "Un nouvel e-mail d’activation a été envoyé."
+
+msgid "The account has been created and an activation email sent."
+msgstr "Le compte a été créé et un e-mail d’activation envoyé."
+
+msgid "Select valid roles."
+msgstr "Sélectionnez des rôles valides."
+
+msgid "The roles have been updated."
+msgstr "Les rôles ont été mis à jour."
 
 msgid "QR code"
 msgstr "Code QR"

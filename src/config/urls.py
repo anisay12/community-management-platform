@@ -4,6 +4,7 @@ from django.urls import include, path
 from django.views.generic import TemplateView
 from django.views.i18n import set_language
 
+from accounts.urls import manage_patterns
 from core import views
 
 handler403 = "core.views_errors.permission_denied"
@@ -17,6 +18,7 @@ urlpatterns = [
         name="home",
     ),
     path("accounts/", include("accounts.urls")),
+    path("manage/", include(manage_patterns)),
     path(settings.DJANGO_ADMIN_PATH, admin.site.urls),
     path("i18n/setlang/", set_language, name="set_language"),
     path("healthz", views.healthz, name="healthz"),
