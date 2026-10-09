@@ -41,6 +41,13 @@ class TalanOIDCBackend(OIDCAuthenticationBackend):
     def provider(self) -> str:
         return settings.OIDC_PROVIDER_NAME
 
+    def get_user(self, user_id):
+        """Only an active account keeps its single sign-on session (see EmailBackend)."""
+        user = super().get_user(user_id)
+        if user is None or user.status != User.Status.ACTIVE:
+            return None
+        return user
+
     def verify_claims(self, claims):
         if claims.get("email_verified") is False:
             return False

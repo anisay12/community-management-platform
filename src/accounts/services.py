@@ -8,7 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils import timezone
@@ -506,6 +506,20 @@ def import_users_csv(*, actor, file) -> ImportResult:
             )
     except DomainError as error:
         return ImportResult(errors=[ImportLineError(row.line if row else 0, error.message)])
+    except IntegrityError:
+        # A concurrent insert (e.g. the same email created meanwhile) hit a constraint.
+        return ImportResult(
+            errors=[
+                ImportLineError(
+                    row.line if row else 0,
+                    _(
+                        "%s could not be created because the data changed during the "
+                        "import. Import the file again."
+                    )
+                    % (row.email if row else ""),
+                )
+            ]
+        )
     return ImportResult(created=len(created))
 
 

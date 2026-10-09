@@ -12,6 +12,7 @@ from django.db.models.functions import Lower
 from accounts.models import User
 from accounts.roles import Role
 from audit.services import record
+from core.context import suppress_m2m_audit
 
 PASSWORD_ENV_VAR = "DEV_ADMIN_PASSWORD"  # noqa: S105  # variable name, not a secret
 
@@ -46,7 +47,8 @@ class Command(BaseCommand):
             user = User.objects.create_superuser(
                 email, password, first_name="Dev", last_name="Admin"
             )
-            user.groups.add(Group.objects.get(name=Role.FUNCTIONAL_ADMIN))
+            with suppress_m2m_audit():
+                user.groups.add(Group.objects.get(name=Role.FUNCTIONAL_ADMIN))
             record(
                 actor=None,
                 action="user.dev_admin_created",

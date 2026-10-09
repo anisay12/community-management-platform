@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError
 from django.urls import reverse
 
 from accounts import services
@@ -204,15 +205,16 @@ def test_oversized_field_is_rejected(functional_admin):
     assert imported_count() == 0
 
 
-def email_taken_on_second_row():
+def email_taken_on_second_row(error=None):
     """Let the first row through, then fail as if its email had been taken concurrently."""
     real = services.create_user
     calls = []
+    error = error or DomainError("email_taken", "An account already exists for b@example.com.")
 
     def fake(**kwargs):
         calls.append(kwargs["email"])
         if len(calls) == 2:
-            raise DomainError("email_taken", "An account already exists for b@example.com.")
+            raise error
         return real(**kwargs)
 
     return mock.patch.object(services, "create_user", side_effect=fake)
@@ -246,3 +248,21 @@ def test_concurrent_email_taken_is_shown_on_the_result_page(
         {"line": 3, "message": "An account already exists for b@example.com."}
     ]
     assert imported_count() == 0
+
+
+def test_concurrent_insert_integrity_error_is_a_line_error(
+    functional_admin, mailoutbox, django_capture_on_commit_callbacks
+):
+    text = f"{HEADER}\na@example.com,A,B,ENG,\nb@example.com,A,B,ENG,\n"
+    integrity = IntegrityError("duplicate key value violates unique constraint")
+    with (
+        email_taken_on_second_row(integrity),
+        django_capture_on_commit_callbacks(execute=True),
+    ):
+        result = run(functional_admin, text)
+    assert result.created == 0
+    assert [e.line for e in result.errors] == [3]
+    assert "b@example.com" in result.errors[0].message
+    assert imported_count() == 0
+    assert not AuditEvent.objects.filter(action__in=["user.imported", "users.csv_import"]).exists()
+    assert mailoutbox == []

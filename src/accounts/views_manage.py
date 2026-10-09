@@ -111,6 +111,8 @@ def user_detail(request, public_id):
 @require_POST
 def user_status(request, public_id):
     account = _account(public_id)
+    if not can_administer_user(request.user, account):
+        raise PermissionDenied
     form = UserStatusForm(request.POST)
     if not form.is_valid():
         return HttpResponseBadRequest()
@@ -128,6 +130,8 @@ def user_status(request, public_id):
 @require_POST
 def user_roles_update(request, public_id):
     account = _account(public_id)
+    if not can_administer_user(request.user, account):
+        raise PermissionDenied
     form = UserRolesForm(request.POST, actor=request.user)
     if not form.is_valid():
         messages.error(request, _("Select valid roles."))
@@ -142,6 +146,7 @@ def user_roles_update(request, public_id):
 
 
 @manage_required
+@require_http_methods(["GET", "POST"])
 def user_deactivate_confirm(request, public_id):
     """Deactivation cannot be undone in the application: confirm it on its own page."""
     account = _account(public_id)

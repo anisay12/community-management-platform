@@ -210,3 +210,32 @@ def test_refused_sso_attempts_do_not_lock_out_the_ip_address(use_auth_mode, acti
         assert _callback_authenticate(claims(sub=f"s{i}", email=f"new{i}@example.com")) is None
     assert not AccessAttempt.objects.exists()
     assert _callback_authenticate(claims()) == active_user
+
+
+# Session lookup ------------------------------------------------------------------------
+
+
+def test_get_user_returns_an_active_account(backend, active_user):
+    assert backend.get_user(active_user.pk) == active_user
+
+
+@pytest.mark.parametrize(
+    "status", [User.Status.PENDING, User.Status.SUSPENDED, User.Status.DEACTIVATED]
+)
+def test_get_user_drops_an_account_that_is_no_longer_active(backend, make_user, status):
+    user = make_user(status=status)
+    assert backend.get_user(user.pk) is None
+
+
+def test_get_user_of_unknown_id_is_none(backend):
+    assert backend.get_user(999999) is None
+
+
+def test_sso_session_ends_when_the_account_is_suspended_outside_the_app(
+    use_auth_mode, client, active_user
+):
+    use_auth_mode("mixed")
+    client.force_login(active_user, backend="accounts.oidc.TalanOIDCBackend")
+    assert client.get("/").wsgi_request.user.is_authenticated
+    User.objects.filter(pk=active_user.pk).update(status=User.Status.SUSPENDED)
+    assert not client.get("/").wsgi_request.user.is_authenticated

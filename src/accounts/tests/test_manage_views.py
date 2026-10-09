@@ -97,6 +97,20 @@ def test_unknown_user_is_404(admin_client):
     assert admin_client.get(reverse("manage:user_detail", args=[uuid.uuid4()])).status_code == 404
 
 
+@pytest.mark.parametrize("method", ["put", "delete", "patch"])
+def test_deactivate_confirmation_rejects_other_methods(admin_client, target, method):
+    url = reverse("manage:user_deactivate_confirm", args=[target.public_id])
+    assert getattr(admin_client, method)(url).status_code == 405
+    target.refresh_from_db()
+    assert target.status == User.Status.ACTIVE
+
+
+def test_deactivate_confirmation_other_methods_are_404_for_non_managers(client, target):
+    client.force_login(target)
+    url = reverse("manage:user_deactivate_confirm", args=[target.public_id])
+    assert client.put(url).status_code == 404
+
+
 def test_status_and_roles_reject_get(admin_client, target):
     assert (
         admin_client.get(reverse("manage:user_status", args=[target.public_id])).status_code == 405
@@ -407,13 +421,12 @@ def test_superuser_sees_controls_on_protected_account(client, make_user, verifie
 
 def test_functional_admin_cannot_suspend_protected_account(admin_client, protected):
     response = admin_client.post(
-        reverse("manage:user_status", args=[protected.public_id]),
-        {"action": "suspend"},
-        follow=True,
+        reverse("manage:user_status", args=[protected.public_id]), {"action": "suspend"}
     )
+    assert response.status_code == 403
     protected.refresh_from_db()
     assert protected.status == User.Status.ACTIVE
-    assert [m.level_tag for m in response.context["messages"]] == ["error"]
+    assert not AuditEvent.objects.filter(action="user.suspended").exists()
 
 
 def test_functional_admin_cannot_deactivate_protected_account(admin_client, protected):
@@ -429,10 +442,9 @@ def test_functional_admin_cannot_change_roles_of_protected_account(admin_client,
     response = admin_client.post(
         reverse("manage:user_roles", args=[protected.public_id]),
         {"roles": ["employee", "auditor"]},
-        follow=True,
     )
+    assert response.status_code == 403
     assert user_roles(User.objects.get(pk=protected.pk)) == before
-    assert [m.level_tag for m in response.context["messages"]] == ["error"]
 
 
 def test_superuser_can_suspend_and_change_roles_of_protected_account(

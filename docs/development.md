@@ -56,8 +56,9 @@ Each business application follows the same layout: `models.py`, `selectors.py` (
 | `AUDIT_IP_HASH_KEY` | Key of the HMAC applied to client IPs in the audit log | none (required) | **yes** |
 | `AUDIT_RETENTION_DAYS` | Retention of audit events | `365` | no |
 | `ACCOUNT_ANONYMIZE_AFTER_DAYS` | Deactivated accounts are anonymized after this delay | `1095` | no |
-| `DJANGO_READ_DOT_ENV` | Set to `false` to ignore the `.env` file (used by the image build) | `true` | no |
+| `DJANGO_READ_DOT_ENV` | Set to `false` to ignore the `.env` file (the settings tests use it so that a developer's `.env` cannot re-supply values) | `true` | no |
 | `DEV_ADMIN_PASSWORD` | Password read by `create_dev_admin --password-from-env` (development only) | none | **yes** |
+| any name, e.g. `BOOTSTRAP_ADMIN_PASSWORD` | Password read by `create_admin --password-from-env <VAR>` (first administrator); unset it afterwards | none | **yes** |
 | `LOG_LEVEL` | Log level | `INFO` | no |
 | `LOG_JSON` | Logs in JSON format | `true` (`false` in dev) | no |
 
@@ -78,7 +79,18 @@ DEV_ADMIN_PASSWORD='...' docker compose exec -e DEV_ADMIN_PASSWORD web \
 
 It creates an active superuser with the `functional_admin` role (password checked against the password validators, 12 characters minimum) and records an audit event.
 
-**Staging and production**: there is no development helper. Create the account with `python manage.py createsuperuser` (email + password), then assign the `functional_admin` or `technical_admin` role from the administration screen (`/manage/users/<id>/`) once signed in.
+**Staging and production**: use the audited bootstrap command (it does not depend on `DEBUG`); do not use `createsuperuser`, which writes no audit event:
+
+```bash
+python manage.py create_admin --email admin@example.com --first-name Ada --last-name Admin
+# or, non-interactively (the variable name is yours to choose):
+BOOTSTRAP_ADMIN_PASSWORD='...' python manage.py create_admin \
+  --email admin@example.com --password-from-env BOOTSTRAP_ADMIN_PASSWORD
+```
+
+It creates an active superuser with the `technical_admin` role, checks the password against the password validators and records a `user.admin_bootstrapped` audit event (no actor). It refuses to run when an active superuser already exists; `--force-additional` creates another one anyway, and the audit event records that the option was used. The command reminds you that MFA enrollment is required at the first sign-in. Functional administrators are then created and given their roles from the administration screen (the account page `/manage/users/<public_id>/`, opened from the list; `<public_id>` is the account's public UUID, not its database ID).
+
+In the Django admin, account status, the activation/deactivation/anonymization dates and the `is_staff`/`is_superuser` flags are read-only: status changes go through `/manage/` (audited, and they end the account's sessions), superusers through `create_admin`. Accounts added from the Django admin are created like those of `/manage/users/new/`: pending, `employee` role, audited and invited by e-mail.
 
 **MFA enrollment.** A second factor (TOTP, any authenticator app) is mandatory for staff and superusers, for holders of the `functional_admin` and `technical_admin` roles, and for the break-glass account. At the first sign-in such a user is redirected to `/accounts/mfa/setup/` (QR code, then confirmation of a first code); afterwards each session goes through `/accounts/mfa/verify/` (five failures within 15 minutes lock the form). Until the session is verified, every page redirects to the setup or verification form, and the Django admin answers 404. The Django admin lives at `DJANGO_ADMIN_PATH` and is reachable only by verified staff.
 
@@ -100,6 +112,8 @@ Local sign-in is protected by django-axes: five failures for an (e-mail, IP) pai
 2. Use the **tenant-specific** endpoints, not `/common/` or `/organizations/`: `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/authorize`, `.../token` and `.../discovery/v2.0/keys` for the JWKS, and `https://graph.microsoft.com/oidc/userinfo` for the user endpoint.
 3. Set `OIDC_OP_ISSUER=https://login.microsoftonline.com/<tenant-id>/v2.0` (the exact `iss` of ID tokens; startup fails without it) and, if you must keep a multi-tenant endpoint, `OIDC_ALLOWED_TENANT_ID=<tenant-id>` (startup fails when a multi-tenant endpoint is used without it).
 4. Configure the application so that tokens carry a **verified e-mail** claim: an account is linked to its identity provider subject on the first sign-in by matching the e-mail, so an unverified or foreign e-mail must never be accepted. The link is immutable afterwards (`ExternalIdentity`), and the account must be `active` at the provider and in the platform.
+
+   **Trust model of the first link.** The first sign-in trusts the provider's `email` claim to choose the account it binds to; the platform cannot verify it. This is safe only if: the endpoints are tenant-specific (never `/common/` or `/organizations/` without `OIDC_ALLOWED_TENANT_ID`); `OIDC_OP_ISSUER` is the exact issuer of that tenant, so tokens from other tenants are refused; and the `email` claim can only hold addresses of the organisation's **verified domains** (in Entra, emit the user principal name or a mail attribute restricted to verified domains, not an editable or guest-supplied address). Once linked, the account is reached only by its subject (`oid`/`sub`), whatever e-mail later arrives. A session opened by single sign-on ends as soon as the account stops being `active`, even if the change was made outside `/manage/`.
 5. Set `AUTH_MODE=mixed` first, check that people can sign in, then `sso_only`.
 
 **Break-glass account.** `BREAK_GLASS_EMAIL` designates one local account that can always sign in with a password (and must use MFA), whatever the mode; every such sign-in e-mails the `DJANGO_ADMINS` recipients. Its password is reset by a technical administrator with `manage.py changepassword`.

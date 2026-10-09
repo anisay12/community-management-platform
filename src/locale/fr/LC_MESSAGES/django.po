@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 14:24+0200\n"
+"POT-Creation-Date: 2026-10-09 14:52+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -384,6 +384,14 @@ msgstr "%(email)s figure déjà à la ligne %(line)d."
 #, python-format
 msgid "Unknown unit code: “%s”."
 msgstr "Code d’unité inconnu : « %s »."
+
+#, python-format
+msgid ""
+"%s could not be created because the data changed during the import. Import "
+"the file again."
+msgstr ""
+"%s n’a pas pu être créé, car les données ont changé pendant l’import. "
+"Importez de nouveau le fichier."
 
 msgid "Activate your account"
 msgstr "Activer votre compte"
