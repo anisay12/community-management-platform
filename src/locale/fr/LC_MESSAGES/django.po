@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 18:55+0200\n"
+"POT-Creation-Date: 2026-10-09 21:32+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -2035,6 +2035,38 @@ msgstr "signalements de contenu"
 msgid "You are doing this too often. Please try again later."
 msgstr ""
 "Vous effectuez cette action trop souvent. Veuillez réessayer plus tard."
+
+msgid "Join this community to take part."
+msgstr "Rejoignez cette communauté pour participer."
+
+msgid "You cannot do this on your own content."
+msgstr "Vous ne pouvez pas effectuer cette action sur votre propre contenu."
+
+msgid "Write something first."
+msgstr "Écrivez d’abord un texte."
+
+#, python-format
+msgid "This text is too long (%(max)s characters at most)."
+msgstr "Ce texte est trop long (%(max)s caractères au maximum)."
+
+msgid "This reply does not belong to this post."
+msgstr "Cette réponse n’appartient pas à cette publication."
+
+msgid "Give this collection a name."
+msgstr "Donnez un nom à cette collection."
+
+#, python-format
+msgid "This name is too long (%(max)s characters at most)."
+msgstr "Ce nom est trop long (%(max)s caractères au maximum)."
+
+msgid "You already have a collection with this name."
+msgstr "Vous avez déjà une collection portant ce nom."
+
+msgid "Choose a reason for your report."
+msgstr "Choisissez un motif pour votre signalement."
+
+msgid "You have already reported this content."
+msgstr "Vous avez déjà signalé ce contenu."
 
 msgid "Edit conflict"
 msgstr "Conflit de modification"
