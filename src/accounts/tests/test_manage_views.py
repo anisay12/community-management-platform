@@ -192,7 +192,7 @@ def test_create_user_shows_inline_errors_and_summary(admin_client, target):
     content = response.content.decode()
     assert 'href="#id_first_name"' in content
     assert 'href="#id_email"' in content
-    assert 'class="error-summary"' in content
+    assert "tl-error-summary" in content
     assert User.objects.filter(email="bob@example.com").count() == 1
 
 

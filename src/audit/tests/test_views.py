@@ -9,6 +9,7 @@ from accounts.roles import Role
 from audit.forms import AuditFilterForm
 from audit.models import AuditEvent
 from audit.templatetags.audit_tags import action_category, can_view_audit_log
+from core.tests.helpers import assert_single_h1
 
 pytestmark = pytest.mark.django_db
 
@@ -44,7 +45,7 @@ def events(make_user):
             actor=None,
             action="user.status_changed",
             target_type="user",
-            target_id="42",
+            target_id="user-42",
             changes={"note": "<script>alert(1)</script>"},
             ip_hash="abc123",
             request_id="req-1",
@@ -121,7 +122,7 @@ def test_filters_narrow_the_list(auditor_client, events):
     content = auditor_client.get(LIST_URL, {"actor": "martin"}).content.decode()
     assert "<td>auth.login</td>" in content
     assert "<td>user.status_changed</td>" not in content
-    content = auditor_client.get(LIST_URL, {"target": "42"}).content.decode()
+    content = auditor_client.get(LIST_URL, {"target": "user-42"}).content.decode()
     assert "<td>user.status_changed</td>" in content
     assert "<td>auth.login</td>" not in content
     today = timezone.localdate().isoformat()
@@ -244,3 +245,61 @@ def test_template_tags(auditor, make_user):
         assert action_category("user.updated") == "Functional"
     with translation.override("fr"):
         assert action_category("user.updated") == "Fonctionnel"
+
+
+def test_audit_pages_use_design_system_patterns(auditor_client, events):
+    response = auditor_client.get(LIST_URL)
+    assert_single_h1(response)
+    content = response.content.decode()
+    assert '<caption class="visually-hidden">' in content
+    assert "table-responsive" in content
+    assert 'class="card' in content
+    detail = auditor_client.get(_detail(events["user"]))
+    assert_single_h1(detail)
+    html = detail.content.decode()
+    assert 'aria-label="Breadcrumb"' in html
+    assert "<dl" in html and 'class="card' in html
+
+
+def test_empty_state_component(auditor_client, events):
+    content = auditor_client.get(LIST_URL, {"target": "nothing-here"}).content.decode()
+    assert "tl-empty-state" in content
+    assert "<table" not in content
+
+
+def test_pagination_component_keeps_filters(auditor_client):
+    AuditEvent.objects.bulk_create(
+        [AuditEvent(action="user.updated", target_type="user", target_id=str(i)) for i in range(60)]
+    )
+    content = auditor_client.get(LIST_URL, {"action": "user.updated"}).content.decode()
+    assert "page-link" in content
+    assert "action=user.updated&amp;page=2" in content
+
+
+def test_head_requests_return_200(auditor_client, events):
+    assert auditor_client.head(LIST_URL).status_code == 200
+    assert auditor_client.head(_detail(events["auth"])).status_code == 200
+
+
+def test_french_ip_hash_label_is_capitalised(auditor_client, events):
+    response = auditor_client.get(_detail(events["user"]), headers={"accept-language": "fr"})
+    assert "Empreinte de l'adresse IP" in response.content.decode()
+    with translation.override("fr"):
+        assert (
+            str(AuditEvent._meta.get_field("ip_hash").verbose_name) == "empreinte de l'adresse IP"
+        )
+
+
+def test_out_of_range_message_in_english(auditor_client, events):
+    content = auditor_client.get(LIST_URL, {"date_from": "1999-12-31"}).content.decode()
+    assert "Enter a date between 01/01/2000 and 12/31/2100." in content
+
+
+def test_out_of_range_message_in_french_uses_local_date_format(auditor_client, events):
+    response = auditor_client.get(
+        LIST_URL, {"date_from": "1999-12-31"}, headers={"accept-language": "fr"}
+    )
+    assert (
+        "Saisissez une date comprise entre le 01/01/2000 et le 31/12/2100."
+        in response.content.decode()
+    )

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 15:47+0200\n"
+"POT-Creation-Date: 2026-10-09 15:54+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -622,18 +622,6 @@ msgstr ""
 "vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot "
 "de passe ne sera pas modifié."
 
-msgid "There is a problem"
-msgstr "Il y a un problème"
-
-msgid "Users"
-msgstr "Utilisateurs"
-
-msgid "Create a user"
-msgstr "Créer un utilisateur"
-
-msgid "Import users"
-msgstr "Importer des utilisateurs"
-
 msgid "Anonymize the account"
 msgstr "Anonymiser le compte"
 
@@ -699,8 +687,14 @@ msgid "Only a superuser can change the status or the roles of this account."
 msgstr ""
 "Seul un superutilisateur peut modifier le statut ou les rôles de ce compte."
 
+msgid "Create a user"
+msgstr "Créer un utilisateur"
+
 msgid "Create and send the activation email"
 msgstr "Créer et envoyer l’e-mail d’activation"
+
+msgid "Import users"
+msgstr "Importer des utilisateurs"
 
 msgid ""
 "Every line is checked first: if any line is invalid, no account is created."
@@ -721,6 +715,9 @@ msgid "No account was created. Fix the lines below and import the file again."
 msgstr ""
 "Aucun compte n’a été créé. Corrigez les lignes ci-dessous puis importez de "
 "nouveau le fichier."
+
+msgid "Problems found in the file"
+msgstr "Problèmes détectés dans le fichier"
 
 msgid "Line"
 msgstr "Ligne"
@@ -743,6 +740,9 @@ msgstr[1] "%(counter)s comptes ont été créés et invités par e-mail."
 msgid "Import another file"
 msgstr "Importer un autre fichier"
 
+msgid "Users"
+msgstr "Utilisateurs"
+
 msgid "Search"
 msgstr "Rechercher"
 
@@ -761,18 +761,8 @@ msgstr[1] "%(counter)s utilisateurs"
 msgid "Name"
 msgstr "Nom"
 
-msgid "Pagination"
-msgstr "Pagination"
-
-msgid "Previous"
-msgstr "Précédent"
-
-#, python-format
-msgid "Page %(number)s of %(total)s"
-msgstr "Page %(number)s sur %(total)s"
-
-msgid "Next"
-msgstr "Suivant"
+msgid "No user matches these filters."
+msgstr "Aucun utilisateur ne correspond à ces filtres."
 
 msgid "Your account is active. You can now sign in."
 msgstr "Votre compte est actif. Vous pouvez maintenant vous connecter."
@@ -885,8 +875,11 @@ msgstr "événements d'audit"
 msgid "Audit event"
 msgstr "Événement d'audit"
 
-msgid "Back to the audit log"
-msgstr "Retour au journal d'audit"
+msgid "Event"
+msgstr "Événement"
+
+msgid "Breadcrumb"
+msgstr "Fil d’Ariane"
 
 msgid "Date"
 msgstr "Date"
@@ -908,6 +901,10 @@ msgstr "Identifiant de la communauté"
 
 msgid "Request identifier"
 msgstr "Identifiant de requête"
+
+msgctxt "audit detail label"
+msgid "IP hash"
+msgstr "Empreinte de l'adresse IP"
 
 msgid "Changes"
 msgstr "Modifications"
@@ -939,14 +936,14 @@ msgstr "Communautés — plateforme interne"
 msgid "Close"
 msgstr "Fermer"
 
-msgid "Breadcrumb"
-msgstr "Fil d’Ariane"
-
 #, python-format
 msgid "%(counter)s member"
 msgid_plural "%(counter)s members"
 msgstr[0] "%(counter)s membre"
 msgstr[1] "%(counter)s membres"
+
+msgid "There is a problem"
+msgstr "Il y a un problème"
 
 msgid "Language"
 msgstr "Langue"
@@ -959,6 +956,15 @@ msgstr "Navigation principale"
 
 msgid "Menu"
 msgstr "Menu"
+
+msgid "Pagination"
+msgstr "Pagination"
+
+msgid "Previous"
+msgstr "Précédent"
+
+msgid "Next"
+msgstr "Suivant"
 
 msgid "Sections"
 msgstr "Sections"

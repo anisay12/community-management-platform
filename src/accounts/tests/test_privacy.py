@@ -581,7 +581,7 @@ def test_anonymize_confirm_page_shows_notice_and_no_form_for_active_account(admi
     url = reverse("manage:user_anonymize", args=[owner.public_id])
     content = admin_client.get(url).content.decode()
     assert "Only a deactivated account can be anonymized." in content
-    assert 'class="inline-form"' not in content
+    assert f'action="{url}"' not in content
     assert "Anonymize the account</button>" not in content
     assert "Cancel" in content
 
@@ -592,7 +592,7 @@ def test_anonymize_confirm_page_shows_form_for_deactivated_account(
     _deactivated(owner, functional_admin)
     content = admin_client.get(reverse("manage:user_anonymize", args=[owner.public_id])).content
     content = content.decode()
-    assert 'class="inline-form"' in content
+    assert f'action="{reverse("manage:user_anonymize", args=[owner.public_id])}"' in content
     assert "Only a deactivated account can be anonymized." not in content
 
 

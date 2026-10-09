@@ -1,6 +1,7 @@
 from datetime import date
 
 from django import forms
+from django.utils.formats import date_format
 from django.utils.translation import gettext_lazy as _
 
 MIN_DATE = date(2000, 1, 1)
@@ -35,7 +36,10 @@ class AuditFilterForm(forms.Form):
         if value and not MIN_DATE <= value <= MAX_DATE:
             raise forms.ValidationError(
                 _("Enter a date between %(min)s and %(max)s."),
-                params={"min": MIN_DATE.isoformat(), "max": MAX_DATE.isoformat()},
+                params={
+                    "min": date_format(MIN_DATE, "SHORT_DATE_FORMAT"),
+                    "max": date_format(MAX_DATE, "SHORT_DATE_FORMAT"),
+                },
             )
         return value
 

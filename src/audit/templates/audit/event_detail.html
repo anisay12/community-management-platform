@@ -2,20 +2,36 @@
 {% load i18n audit_tags %}
 {% block title %}{% translate "Audit event" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <p><a href="{% url 'audit:event_list' %}">{% translate "Back to the audit log" %}</a></p>
-  <h1>{% translate "Audit event" %}</h1>
-  <dl>
-    <dt>{% translate "Date" %}</dt><dd>{{ event.created_at|date:"DATETIME_FORMAT" }} ({{ event.created_at|date:"T" }})</dd>
-    <dt>{% translate "Action" %}</dt><dd>{{ event.action }}</dd>
-    <dt>{% translate "Category" %}</dt><dd>{{ event.action|action_category }}</dd>
-    <dt>{% translate "Actor" %}</dt>
-    <dd>{% if event.actor %}{{ event.actor.get_full_name|default:"—" }}{% if not event.actor.anonymized_at %} ({{ event.actor.email }}){% endif %}{% else %}{% translate "System" %}{% endif %}</dd>
-    <dt>{% translate "Target type" %}</dt><dd>{{ event.target_type }}</dd>
-    <dt>{% translate "Target identifier" %}</dt><dd>{{ event.target_id }}</dd>
-    {% if event.community_id %}<dt>{% translate "Community identifier" %}</dt><dd>{{ event.community_id }}</dd>{% endif %}
-    <dt>{% translate "Request identifier" %}</dt><dd>{{ event.request_id|default:"—" }}</dd>
-    <dt>{% translate "IP hash" %}</dt><dd>{{ event.ip_hash|default:"—" }}</dd>
-  </dl>
-  <h2>{% translate "Changes" %}</h2>
-  <pre>{{ changes }}</pre>
+  {% url 'audit:event_list' as list_url %}
+  {% translate "Audit log" as list_label %}
+  {% translate "Event" as event_label %}
+  <nav aria-label="{% translate 'Breadcrumb' %}">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ list_url }}">{{ list_label }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{{ event_label }}</li>
+    </ol>
+  </nav>
+  <h1 class="h2">{% translate "Audit event" %}</h1>
+  <div class="card mb-3">
+    <div class="card-body">
+      <dl class="row mb-0">
+        <dt class="col-sm-3">{% translate "Date" %}</dt><dd class="col-sm-9">{{ event.created_at|date:"DATETIME_FORMAT" }} ({{ event.created_at|date:"T" }})</dd>
+        <dt class="col-sm-3">{% translate "Action" %}</dt><dd class="col-sm-9">{{ event.action }}</dd>
+        <dt class="col-sm-3">{% translate "Category" %}</dt><dd class="col-sm-9">{{ event.action|action_category }}</dd>
+        <dt class="col-sm-3">{% translate "Actor" %}</dt>
+        <dd class="col-sm-9">{% if event.actor %}{{ event.actor.get_full_name|default:"—" }}{% if not event.actor.anonymized_at %} ({{ event.actor.email }}){% endif %}{% else %}{% translate "System" %}{% endif %}</dd>
+        <dt class="col-sm-3">{% translate "Target type" %}</dt><dd class="col-sm-9">{{ event.target_type }}</dd>
+        <dt class="col-sm-3">{% translate "Target identifier" %}</dt><dd class="col-sm-9">{{ event.target_id }}</dd>
+        {% if event.community_id %}<dt class="col-sm-3">{% translate "Community identifier" %}</dt><dd class="col-sm-9">{{ event.community_id }}</dd>{% endif %}
+        <dt class="col-sm-3">{% translate "Request identifier" %}</dt><dd class="col-sm-9">{{ event.request_id|default:"—" }}</dd>
+        <dt class="col-sm-3">{% translate "IP hash" context "audit detail label" %}</dt><dd class="col-sm-9">{{ event.ip_hash|default:"—" }}</dd>
+      </dl>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5 card-title">{% translate "Changes" %}</h2>
+      <pre class="mb-0">{{ changes }}</pre>
+    </div>
+  </div>
 {% endblock %}

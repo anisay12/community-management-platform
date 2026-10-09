@@ -2,12 +2,15 @@
 {% load i18n %}
 {% block title %}{% translate "Create a user" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  {% include "manage/_nav.html" %}
-  <h1>{% translate "Create a user" %}</h1>
-  {% include "manage/_error_summary.html" %}
-  <form method="post" action="{% url 'manage:user_create' %}" novalidate>
-    {% csrf_token %}
-    {% include "manage/_fields.html" %}
-    <button type="submit">{% translate "Create and send the activation email" %}</button>
-  </form>
+  <h1 class="h2">{% translate "Create a user" %}</h1>
+  {% include "manage/_tabs.html" with active="create" %}
+  <div class="card mt-3">
+    <div class="card-body">
+      <form method="post" action="{% url 'manage:user_create' %}" novalidate>
+        {% csrf_token %}
+        {% include "accounts/_form_fields.html" %}
+        <button type="submit" class="btn btn-primary">{% translate "Create and send the activation email" %}</button>
+      </form>
+    </div>
+  </div>
 {% endblock %}

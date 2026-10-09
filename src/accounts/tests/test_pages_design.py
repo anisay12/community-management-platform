@@ -57,7 +57,7 @@ def test_activation_pages(client, make_user):
     uid, token = _uid_token(user, activation_token_generator)
     _assert_design_system_page(client.get(reverse("accounts:activate", args=[uid, token])))
     invalid = client.get(reverse("accounts:activate", args=[uid, "bad-token"]))
-    assert invalid.status_code in (200, 400)
+    assert invalid.status_code == 400
     assert_single_h1(invalid)
 
 
@@ -142,8 +142,8 @@ def test_other_profile_does_not_show_role_badge(client, make_user):
     owner.groups.add(Group.objects.get(name=Role.COMMUNITY_CREATOR))
     client.force_login(make_user("kim@example.com"))
     response = client.get(reverse("accounts:profile_detail", args=[owner.public_id]))
-    if response.status_code == 200:
-        assert "tl-role-badge" not in response.content.decode()
+    assert response.status_code == 200
+    assert "tl-role-badge" not in response.content.decode()
 
 
 def test_data_export_page_has_empty_state_when_no_export(client, make_user):
