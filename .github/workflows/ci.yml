@@ -53,6 +53,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gettext
       - run: make lint
       - run: make i18n-check
+      - name: Install front-end dependencies
+        run: npm ci --no-audit --no-fund
+      - run: make assets-check
       - run: make test
       - name: Storage integration test
         env:

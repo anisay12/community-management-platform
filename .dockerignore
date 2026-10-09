@@ -8,3 +8,4 @@
 staticfiles
 .internal
 docs
+node_modules/

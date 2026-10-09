@@ -1,0 +1,90 @@
+// Base layer on top of Bootstrap: focus ring, skip link, touch targets and small utilities.
+
+:root {
+  --bs-focus-ring-color: var(--tl-color-focus);
+  --bs-border-color: var(--tl-color-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bs-primary: var(--tl-color-primary);
+    --bs-primary-rgb: 125, 184, 242;
+    --bs-link-color-rgb: 125, 184, 242;
+    --bs-link-hover-color-rgb: 125, 184, 242;
+  }
+}
+
+// Primary buttons follow the primary / primary-contrast pair in both modes.
+.btn-primary {
+  --bs-btn-bg: var(--tl-color-primary);
+  --bs-btn-border-color: var(--tl-color-primary);
+  --bs-btn-color: var(--tl-color-primary-contrast);
+  --bs-btn-hover-bg: var(--tl-color-primary);
+  --bs-btn-hover-border-color: var(--tl-color-primary);
+  --bs-btn-hover-color: var(--tl-color-primary-contrast);
+  --bs-btn-active-bg: var(--tl-color-primary);
+  --bs-btn-active-border-color: var(--tl-color-primary);
+  --bs-btn-active-color: var(--tl-color-primary-contrast);
+  --bs-btn-focus-shadow-rgb: 0, 0, 0;
+}
+
+// Visible focus on every interactive element, never removed without replacement.
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible,
+main:focus-visible {
+  outline: var(--tl-focus-ring-width) solid var(--tl-color-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+// Skip link: first focusable element, revealed on focus.
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  z-index: 2000;
+  padding: 0.75rem 1rem;
+  background: var(--tl-color-bg);
+  color: var(--tl-color-text);
+  border: 2px solid var(--tl-color-primary);
+  border-radius: var(--tl-radius);
+
+  &:focus {
+    top: 0.5rem;
+  }
+}
+
+// Touch targets of at least 44x44 px.
+.btn,
+.form-control,
+.form-select,
+.nav-link,
+.dropdown-item,
+.page-link,
+.navbar-toggler {
+  min-height: var(--tl-touch-target);
+}
+
+.btn,
+.nav-link,
+.dropdown-item,
+.page-link,
+.navbar-toggler {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--tl-touch-target);
+}
+
+.form-check-input {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.text-muted-tl {
+  color: var(--tl-color-text-muted);
+}
+
+.surface-tl {
+  background: var(--tl-color-surface);
+  border: 1px solid var(--tl-color-border);
+  border-radius: var(--tl-radius);
+}

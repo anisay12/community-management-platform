@@ -120,6 +120,12 @@ Local sign-in is protected by django-axes: five failures for an (e-mail, IP) pai
 
 **Disabling local passwords.** Once `AUTH_MODE=sso_only` is in place, `python manage.py disable_local_passwords [--dry-run]` sets an unusable password on every account except the break-glass one (it refuses to run in other modes), signs the affected users out and writes an audit event.
 
+## Front-end assets and design tokens
+
+Styles are written in Sass under `src/core/static/core/scss/`. All brand values (colours, fonts, radius, spacing, touch target size) live in `tokens.scss`: they become `--tl-*` CSS custom properties, with a dark set under `prefers-color-scheme: dark`, and they also feed the Bootstrap Sass variables in `app.scss`. Changing the brand charter means editing that one file (keep the contrast ratios documented at its top valid).
+
+Bootstrap, Bootstrap Icons and HTMX are npm dev dependencies pinned to exact versions (`package.json`, `package-lock.json`). Rebuild with `make assets` (Node and npm required; `npm ci` runs when `node_modules/` is missing). The output in `src/core/static/core/dist/` (`app.css`, `bootstrap.bundle.min.js`, `htmx.min.js`, `fonts/`, `LICENSES.txt`) is committed on purpose: the Docker image and the Python test environment need no Node toolchain, and the build is deterministic. `make assets-check` (run in CI) rebuilds and fails if the committed output differs, so always commit regenerated files together with the source change.
+
 ## Languages and internationalization
 
 The interface is available in English and French. The language is resolved from the saved preference (`UserProfile.language`, empty = automatic), then the `django_language` cookie, then `Accept-Language`, then English; URLs carry no language prefix. The language switcher in the layout and the preferences page (`/me/preferences/`) set it. To try the French interface: open `/me/preferences/` and pick "Français", use the switcher in the header, or send `Accept-Language: fr`.
