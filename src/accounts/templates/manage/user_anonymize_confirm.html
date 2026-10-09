@@ -4,15 +4,19 @@
 {% block content %}
   {% include "manage/_nav.html" %}
   <h1>{% translate "Anonymize the account" %}</h1>
-  <p>{% blocktranslate with name=account.get_full_name|default:account.email email=account.email %}You are about to anonymize the account of {{ name }} ({{ email }}).{% endblocktranslate %}</p>
-  <ul>
-    <li>{% translate "The name, email address, profile, organization details, sign-in methods and data exports of the account are erased." %}</li>
-    <li>{% translate "The person appears as “Former employee” wherever their contributions remain." %}</li>
-    <li>{% translate "Anonymization cannot be undone." %}</li>
-  </ul>
-  <form method="post" action="{% url 'manage:user_anonymize' account.public_id %}" class="inline-form">
-    {% csrf_token %}
-    <button type="submit">{% translate "Anonymize the account" %}</button>
-  </form>
+  {% if can_anonymize %}
+    <p>{% blocktranslate with name=account.get_full_name|default:account.email email=account.email %}You are about to anonymize the account of {{ name }} ({{ email }}).{% endblocktranslate %}</p>
+    <ul>
+      <li>{% translate "The name, email address, profile, organization details, sign-in methods and data exports of the account are erased." %}</li>
+      <li>{% translate "The person appears as “Former employee” wherever their contributions remain." %}</li>
+      <li>{% translate "Anonymization cannot be undone." %}</li>
+    </ul>
+    <form method="post" action="{% url 'manage:user_anonymize' account.public_id %}" class="inline-form">
+      {% csrf_token %}
+      <button type="submit">{% translate "Anonymize the account" %}</button>
+    </form>
+  {% else %}
+    <p role="alert">{{ status_message }}</p>
+  {% endif %}
   <a href="{% url 'manage:user_detail' account.public_id %}">{% translate "Cancel" %}</a>
 {% endblock %}

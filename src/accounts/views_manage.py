@@ -179,7 +179,15 @@ def user_anonymize(request, public_id):
         else:
             messages.success(request, _("The account has been anonymized."))
         return redirect("manage:user_detail", public_id=account.public_id)
-    return render(request, "manage/user_anonymize_confirm.html", {"account": account})
+    return render(
+        request,
+        "manage/user_anonymize_confirm.html",
+        {
+            "account": account,
+            "can_anonymize": privacy.can_be_anonymized(account),
+            "status_message": privacy.ANONYMIZE_STATUS_MESSAGE,
+        },
+    )
 
 
 @manage_required

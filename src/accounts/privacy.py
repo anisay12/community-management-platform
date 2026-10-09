@@ -12,6 +12,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.utils import timezone
 from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy
 from django_otp import devices_for_user
 
 from audit.models import AuditEvent
@@ -152,6 +153,14 @@ def _clear_profile(user: User) -> None:
     profile.interests.clear()
 
 
+ANONYMIZE_STATUS_MESSAGE = gettext_lazy("Only a deactivated account can be anonymized.")
+
+
+def can_be_anonymized(user: User) -> bool:
+    """Only a deactivated account that is not yet anonymized can be anonymized."""
+    return user.status == User.Status.DEACTIVATED and user.anonymized_at is None
+
+
 @transaction.atomic
 def anonymize_user(*, actor, user: User) -> None:
     """Irreversibly erase the personal data of a deactivated account (idempotent).
@@ -173,8 +182,8 @@ def anonymize_user(*, actor, user: User) -> None:
                 "technical administrator."
             ),
         )
-    if locked.status != User.Status.DEACTIVATED:
-        raise DomainError("invalid_status", _("Only a deactivated account can be anonymized."))
+    if not can_be_anonymized(locked):
+        raise DomainError("invalid_status", str(ANONYMIZE_STATUS_MESSAGE))
 
     _clear_profile(locked)
     Employment.objects.filter(user=locked).delete()

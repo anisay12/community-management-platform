@@ -552,6 +552,43 @@ def test_anonymize_view_refuses_active_account(admin_client, owner):
     assert owner.anonymized_at is None
 
 
+def test_anonymize_confirm_page_shows_notice_and_no_form_for_active_account(admin_client, owner):
+    url = reverse("manage:user_anonymize", args=[owner.public_id])
+    content = admin_client.get(url).content.decode()
+    assert "Only a deactivated account can be anonymized." in content
+    assert 'class="inline-form"' not in content
+    assert "Anonymize the account</button>" not in content
+    assert "Cancel" in content
+
+
+def test_anonymize_confirm_page_shows_form_for_deactivated_account(
+    admin_client, owner, functional_admin
+):
+    _deactivated(owner, functional_admin)
+    content = admin_client.get(reverse("manage:user_anonymize", args=[owner.public_id])).content
+    content = content.decode()
+    assert 'class="inline-form"' in content
+    assert "Only a deactivated account can be anonymized." not in content
+
+
+def test_detail_page_links_to_anonymize_only_for_deactivated_accounts(
+    admin_client, owner, functional_admin
+):
+    url = reverse("manage:user_anonymize", args=[owner.public_id])
+    detail = reverse("manage:user_detail", args=[owner.public_id])
+    assert url not in admin_client.get(detail).content.decode()
+    _deactivated(owner, functional_admin)
+    assert url in admin_client.get(detail).content.decode()
+
+
+def test_can_be_anonymized_predicate(owner, functional_admin):
+    assert not privacy.can_be_anonymized(owner)
+    _deactivated(owner, functional_admin)
+    assert privacy.can_be_anonymized(owner)
+    privacy.anonymize_user(actor=functional_admin, user=owner)
+    assert not privacy.can_be_anonymized(owner)
+
+
 def test_anonymize_view_only_accepts_get_and_post(admin_client, client, owner, other):
     url = reverse("manage:user_anonymize", args=[owner.public_id])
     assert admin_client.put(url).status_code == 405
