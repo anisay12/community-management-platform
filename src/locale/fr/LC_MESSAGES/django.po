@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 15:54+0200\n"
+"POT-Creation-Date: 2026-10-09 16:18+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -875,12 +875,6 @@ msgstr "événements d'audit"
 msgid "Audit event"
 msgstr "Événement d'audit"
 
-msgid "Event"
-msgstr "Événement"
-
-msgid "Breadcrumb"
-msgstr "Fil d’Ariane"
-
 msgid "Date"
 msgstr "Date"
 
@@ -924,6 +918,9 @@ msgstr "Technique et sécurité"
 msgid "Functional"
 msgstr "Fonctionnel"
 
+msgid "Event"
+msgstr "Événement"
+
 msgid "Home"
 msgstr "Accueil"
 
@@ -935,6 +932,9 @@ msgstr "Communautés — plateforme interne"
 
 msgid "Close"
 msgstr "Fermer"
+
+msgid "Breadcrumb"
+msgstr "Fil d’Ariane"
 
 #, python-format
 msgid "%(counter)s member"
