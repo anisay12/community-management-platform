@@ -1,4 +1,6 @@
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from accounts.models import User
 from posts.mentions import extract_handles, handle_for, resolve_mentions, sync_mentions
@@ -14,10 +16,16 @@ pytestmark = pytest.mark.django_db
         ("Alice", "Doe", "alice.doe"),
         ("Jean-Rémi", "Lefèvre", "jean-remi.lefevre"),
         ("ÉLODIE", "De La Tour", "elodie.de-la-tour"),
+        ("Jean_Paul", "O'Neil", "jean-paul.oneil"),
     ],
 )
 def test_handle_for(first, last, handle):
     assert handle_for(User(first_name=first, last_name=last)) == handle
+
+
+def test_handles_always_match_the_mention_pattern():
+    handle = handle_for(User(first_name="Jean_Paul", last_name="Søren_Æby"))
+    assert extract_handles(f"Hi @{handle}!") == {handle}
 
 
 def test_extract_handles():
@@ -74,3 +82,33 @@ def test_render_body_stays_sanitised():
     html = render_body("<script>alert(1)</script> @a.b")
     assert "<script>" not in html
     assert '<span class="mention">@a.b</span>' in html
+
+
+def test_resolve_mentions_matches_accents_and_punctuation(community, make_user, add_member):
+    users = [
+        make_user("a@example.com", first_name="Jean Rémi", last_name="Lefèvre"),
+        make_user("b@example.com", first_name="Jean_Paul", last_name="O'Neil"),
+        make_user("c@example.com", first_name="Søren", last_name="Ĳssel"),
+    ]
+    for user in users:
+        add_member(community, user)
+    text = " ".join(f"@{handle_for(user)}" for user in users)
+    assert set(resolve_mentions(community, text)) == set(users)
+
+
+def test_resolve_mentions_loads_only_candidates(community, make_user, add_member):
+    alice = make_user("alice@example.com", first_name="Alice", last_name="Doe")
+    add_member(community, alice)
+
+    def count_queries():
+        with CaptureQueriesContext(connection) as context:
+            assert resolve_mentions(community, "@alice.doe") == [alice]
+        return context
+
+    baseline = len(count_queries())
+    for index in range(20):
+        member = make_user(f"m{index}@example.com", first_name="M", last_name=str(index))
+        add_member(community, member)
+    context = count_queries()
+    assert len(context) == baseline
+    assert any("translate(" in query["sql"] for query in context.captured_queries)

@@ -20,6 +20,12 @@ def _prefix(target) -> str:
     return "comment" if isinstance(target, Comment) else "post"
 
 
+def _lock(target) -> None:
+    """Re-read ``target`` under a row lock, so concurrent hide/unhide calls serialise and the
+    state checks below see the committed status (never a stale in-memory copy)."""
+    target.refresh_from_db(from_queryset=type(target).objects.select_for_update())
+
+
 def _community(target):
     return target.post.community if isinstance(target, Comment) else target.community
 
@@ -34,6 +40,7 @@ def mark_hidden(target, *, actor, reason, automatic=False):
     reason = AUTOMATIC_REASON if automatic else (reason or "").strip()
     if not reason:
         raise DomainError("reason_required", _("Give a reason for hiding this content."))
+    _lock(target)
     if target.status == target.Status.HIDDEN:
         raise DomainError("invalid_state", _("This action is not possible in the current state."))
     fields = ["status", "hidden_at", "hidden_by", "hidden_reason", "updated_at"]
@@ -60,6 +67,7 @@ def mark_hidden(target, *, actor, reason, automatic=False):
 def mark_visible(target, *, actor=None):
     """Restore a hidden ``target`` (posts get back ``status_before_hidden``, by default
     published) and record ``<kind>.unhidden`` with ``actor`` (``None`` for the system)."""
+    _lock(target)
     if target.status != target.Status.HIDDEN:
         raise DomainError("invalid_state", _("This action is not possible in the current state."))
     fields = ["status", "hidden_at", "hidden_by", "hidden_reason", "updated_at"]

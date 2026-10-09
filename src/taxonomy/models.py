@@ -4,6 +4,13 @@ from django.utils.translation import gettext_lazy as _
 
 
 class Tag(models.Model):
+    """A free-form label shared by communities and posts.
+
+    ``key`` is kept in sync with ``name`` only by ``save()``. Never change a name with
+    ``QuerySet.update(name=...)`` or create tags with ``bulk_create``: both bypass ``save()``
+    and leave a stale or empty ``key``, which breaks lookups and the uniqueness of keys.
+    """
+
     name = models.CharField(_("name"), max_length=64)
     slug = models.SlugField(_("slug"), unique=True)
     # Lowercase, accent-free form of the name (``services.normalize_tag_key``): the lookup key.

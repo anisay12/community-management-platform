@@ -1,4 +1,6 @@
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from audit.models import AuditEvent
 from core.errors import DomainError
@@ -76,3 +78,35 @@ def test_audit_is_rolled_back_with_the_change(post, functional_admin, monkeypatc
         mark_hidden(post, actor=functional_admin, reason="Spam")
     post.refresh_from_db()
     assert post.status == Post.Status.ARCHIVED
+
+
+def test_hiding_and_unhiding_lock_and_reread_the_target(post, functional_admin):
+    stale = Post.objects.get(pk=post.pk)
+    with CaptureQueriesContext(connection) as context:
+        mark_hidden(post, actor=functional_admin, reason="Spam")
+    assert any("FOR UPDATE" in query["sql"] for query in context.captured_queries)
+    with pytest.raises(DomainError) as error:  # stale copy still says archived
+        mark_hidden(stale, actor=functional_admin, reason="Again")
+    assert error.value.code == "invalid_state"
+    post.refresh_from_db()
+    assert post.status_before_hidden == Post.Status.ARCHIVED
+
+    stale_hidden = Post.objects.get(pk=post.pk)
+    with CaptureQueriesContext(connection) as context:
+        mark_visible(post, actor=functional_admin)
+    assert any("FOR UPDATE" in query["sql"] for query in context.captured_queries)
+    with pytest.raises(DomainError) as error:  # stale copy still says hidden
+        mark_visible(stale_hidden, actor=functional_admin)
+    assert error.value.code == "invalid_state"
+    post.refresh_from_db()
+    assert post.status == Post.Status.ARCHIVED
+    assert AuditEvent.objects.filter(action="post.unhidden").count() == 1
+
+
+def test_stale_hidden_comment_is_reread(make_comment, post, active_user):
+    comment = make_comment(post, active_user)
+    stale = Comment.objects.get(pk=comment.pk)
+    mark_hidden(comment, actor=None, reason="", automatic=True)
+    mark_visible(stale)  # the stale copy says visible, the database says hidden
+    stale.refresh_from_db()
+    assert stale.status == Comment.Status.VISIBLE

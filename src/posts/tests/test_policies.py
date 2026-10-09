@@ -54,8 +54,9 @@ MATRIX = {
     "create_question": live(MEMBERS),
     "create_article": live(at_least("contributor")),
     "create_announcement": live(at_least("animator") | {"functional_admin"}),
-    "moderate": live(at_least("moderator") | {"functional_admin"}),
-    "review": live(at_least("moderator") | {"functional_admin"}),
+    # Decision 9 clarification: moderation works whatever the community status.
+    "moderate": readable(at_least("moderator") | {"functional_admin"}),
+    "review": readable(at_least("moderator") | {"functional_admin"}),
     "pin": live(at_least("animator") | {"functional_admin"}),
     "create_tag": live(at_least("contributor") | {"functional_admin"}),
     "merge_tags": {status: {"functional_admin"} for status in STATUSES},
@@ -163,6 +164,14 @@ def test_authors_and_their_own_content(scene, make_post):
     assert policies.can_delete_draft(author, draft)
     assert not policies.can_delete_draft(author, post)
     assert not policies.can_comment(author, draft)
+
+
+@pytest.mark.parametrize("status", [Community.Status.SUSPENDED, Community.Status.ARCHIVED])
+def test_read_only_community_refuses_draft_deletion(scene, make_post, status):
+    community, author, _post, _comment = scene
+    draft = make_post(community, author, status=Post.Status.DRAFT)
+    community.status = status
+    assert not policies.can_delete_draft(author, draft)
 
 
 def test_hidden_and_archived_content_is_frozen(scene, make_user, add_member):

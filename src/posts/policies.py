@@ -4,7 +4,9 @@ Reading: a post the user may not see (``can_view_post`` false) answers 404; a vi
 where the action is refused answers 403. Writing (publishing, commenting, reacting, editing
 one's own content) needs a current membership of an ``active`` community; moderating needs the
 community moderator role or above, or a functional administrator who can read the content.
-Reporting and bookmarking need read access only.
+Moderation (reports, hiding and unhiding, reviewing pending posts) works whatever the community
+status (Decision 9 clarification); pinning, tag creation and editing still need an ``active``
+community. Reporting and bookmarking need read access only.
 """
 
 from communities.models import Community
@@ -105,7 +107,8 @@ def can_create_post(user, community, kind) -> bool:
 
 
 def can_moderate(user, community) -> bool:
-    return _is_live(community) and is_content_moderator(user, community)
+    """Resolve or dismiss reports, hide and unhide: any community status (Decision 9)."""
+    return is_content_moderator(user, community)
 
 
 def can_pin(user, community) -> bool:
@@ -117,13 +120,19 @@ def can_pin(user, community) -> bool:
 
 
 def can_review(user, community) -> bool:
-    return can_moderate(user, community)
+    """Decide on pending posts: any community status (Decision 9)."""
+    return is_content_moderator(user, community)
+
+
+def _can_moderate_live(user, community) -> bool:
+    """Moderator rights that write new content (editing, accepting): active communities only."""
+    return _is_live(community) and is_content_moderator(user, community)
 
 
 def can_edit_post(user, post) -> bool:
     if post.status == Post.Status.ARCHIVED or not can_view_post(user, post):
         return False
-    if can_moderate(user, post.community):
+    if _can_moderate_live(user, post.community):
         return True
     return (
         _is_author(user, post)
@@ -133,7 +142,13 @@ def can_edit_post(user, post) -> bool:
 
 
 def can_delete_draft(user, post) -> bool:
-    return _is_active_user(user) and post.status == Post.Status.DRAFT and _is_author(user, post)
+    """The author of a draft, while its community is active (read-only otherwise)."""
+    return (
+        _is_active_user(user)
+        and post.status == Post.Status.DRAFT
+        and _is_author(user, post)
+        and _is_live(post.community)
+    )
 
 
 def can_accept_answer(user, post) -> bool:
@@ -141,7 +156,7 @@ def can_accept_answer(user, post) -> bool:
         return False
     if not can_view_post(user, post):
         return False
-    return can_moderate(user, post.community) or (
+    return _can_moderate_live(user, post.community) or (
         _is_author(user, post) and _can_write(user, post.community)
     )
 

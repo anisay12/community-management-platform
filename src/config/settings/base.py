@@ -96,6 +96,8 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
         "KEY_PREFIX": "tc",
+        # Fail fast when Redis is slow or down, so the rate limiter fails open quickly.
+        "OPTIONS": {"socket_connect_timeout": 1, "socket_timeout": 1},
     }
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
