@@ -584,6 +584,18 @@ wheels = [
 ]
 
 [[package]]
+name = "django-otp"
+version = "1.7.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6a/56/a86b04c09242bc2f8e6a0e3294bb60d4235ab6d4436608482aace4c25c5f/django_otp-1.7.4.tar.gz", hash = "sha256:f3a970be59ca407d90fd278de3253979417364f91e9edcfcd7a9f05235859b27", size = 79413, upload-time = "2026-10-08T23:51:12.148Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/d7/1ac404fb204013b5875c3201a234c884b7c985cda0e50d51a2ac8c949b4d/django_otp-1.7.4-py3-none-any.whl", hash = "sha256:2fa56711167db887bf80ebdc35820355e756a3fdc0b9af0e34494b737312bc16", size = 73780, upload-time = "2026-10-08T23:51:11.009Z" },
+]
+
+[[package]]
 name = "django-prometheus"
 version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1212,6 +1224,15 @@ wheels = [
 ]
 
 [[package]]
+name = "segno"
+version = "1.6.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/2e/b396f750c53f570055bf5a9fc1ace09bed2dff013c73b7afec5702a581ba/segno-1.6.6.tar.gz", hash = "sha256:e60933afc4b52137d323a4434c8340e0ce1e58cec71439e46680d4db188f11b3", size = 1628586, upload-time = "2025-03-12T22:12:53.324Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/02/12c73fd423eb9577b97fc1924966b929eff7074ae6b2e15dd3d30cb9e4ae/segno-1.6.6-py3-none-any.whl", hash = "sha256:28c7d081ed0cf935e0411293a465efd4d500704072cdb039778a2ab8736190c7", size = 76503, upload-time = "2025-03-12T22:12:48.106Z" },
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1266,12 +1287,14 @@ dependencies = [
     { name = "django" },
     { name = "django-axes" },
     { name = "django-environ" },
+    { name = "django-otp" },
     { name = "django-prometheus" },
     { name = "django-storages", extra = ["s3"] },
     { name = "gunicorn" },
     { name = "pillow" },
     { name = "psycopg", extra = ["binary"] },
     { name = "redis" },
+    { name = "segno" },
     { name = "structlog" },
 ]
 
@@ -1292,12 +1315,14 @@ requires-dist = [
     { name = "django", specifier = ">=5.2,<5.3" },
     { name = "django-axes", specifier = ">=8.3.1" },
     { name = "django-environ", specifier = ">=0.12" },
+    { name = "django-otp", specifier = ">=1.7.4" },
     { name = "django-prometheus", specifier = ">=2.3" },
     { name = "django-storages", extras = ["s3"], specifier = ">=1.14" },
     { name = "gunicorn", specifier = ">=23" },
     { name = "pillow", specifier = ">=12.3.0" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.2" },
     { name = "redis", specifier = ">=5" },
+    { name = "segno", specifier = ">=1.6.6" },
     { name = "structlog", specifier = ">=24" },
 ]
 

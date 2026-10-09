@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 12:56+0200\n"
+"POT-Creation-Date: 2026-10-09 13:10+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -44,6 +44,12 @@ msgstr ""
 
 msgid "Your account is suspended. Contact an administrator."
 msgstr "Votre compte est suspendu. Contactez un administrateur."
+
+msgid "Invalid code. Please try again."
+msgstr "Code invalide. Veuillez réessayer."
+
+msgid "Verification code"
+msgstr "Code de vérification"
 
 msgid "Pending"
 msgstr "En attente"
@@ -220,6 +226,44 @@ msgstr "Se connecter"
 msgid "Forgot your password?"
 msgstr "Mot de passe oublié ?"
 
+msgid "Set up two-step verification"
+msgstr "Configurer la validation en deux étapes"
+
+msgid ""
+"Your role gives you access to sensitive features, so your account must be "
+"protected by a second factor."
+msgstr ""
+"Votre rôle vous donne accès à des fonctions sensibles : votre compte doit "
+"donc être protégé par un second facteur."
+
+msgid ""
+"Scan this QR code with an authenticator app (for example Microsoft "
+"Authenticator or FreeOTP)."
+msgstr ""
+"Scannez ce code QR avec une application d’authentification (par exemple "
+"Microsoft Authenticator ou FreeOTP)."
+
+msgid "Enter the 6-digit code shown by the app to confirm."
+msgstr ""
+"Saisissez le code à 6 chiffres affiché par l’application pour confirmer."
+
+msgid "Cannot scan the code? Enter this key manually:"
+msgstr "Impossible de scanner le code ? Saisissez cette clé manuellement :"
+
+msgid "Confirm"
+msgstr "Confirmer"
+
+msgid "Two-step verification"
+msgstr "Validation en deux étapes"
+
+msgid "Enter the 6-digit code shown by your authenticator app."
+msgstr ""
+"Saisissez le code à 6 chiffres affiché par votre application "
+"d’authentification."
+
+msgid "Verify"
+msgstr "Vérifier"
+
 msgid "Password changed"
 msgstr "Mot de passe modifié"
 
@@ -311,6 +355,9 @@ msgstr "Votre compte est actif. Vous pouvez maintenant vous connecter."
 
 msgid "Your account is active. Welcome!"
 msgstr "Votre compte est actif. Bienvenue !"
+
+msgid "QR code"
+msgstr "Code QR"
 
 msgid "actor"
 msgstr "acteur"

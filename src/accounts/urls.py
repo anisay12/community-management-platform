@@ -1,7 +1,7 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import path
 
-from . import views_auth
+from . import views_auth, views_mfa
 
 app_name = "accounts"
 
@@ -24,5 +24,7 @@ urlpatterns = [
         views_auth.PasswordResetCompleteView.as_view(),
         name="password_reset_complete",
     ),
+    path("mfa/setup/", views_mfa.mfa_setup, name="mfa_setup"),
+    path("mfa/verify/", views_mfa.mfa_verify, name="mfa_verify"),
     path("activate/<uidb64>/<token>/", views_auth.activate, name="activate"),
 ]

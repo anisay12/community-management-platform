@@ -19,6 +19,8 @@ DEBUG = env.bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=[])
 
 INSTALLED_APPS = [
+    # django.contrib.admin with core.admin_site.SecureAdminSite as the default site.
+    "core.apps.SecureAdminConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -26,6 +28,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_prometheus",
     "axes",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "django_otp.plugins.otp_static",
     "core",
     "taxonomy",
     "organizations",
@@ -42,8 +47,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
     "core.middleware.RequestUserContextMiddleware",
     "core.middleware.ActivityMiddleware",
+    # Needs OTPMiddleware (user.is_verified) above it.
+    "accounts.middleware.MFARequiredMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
@@ -176,6 +184,16 @@ AXES_CLIENT_IP_CALLABLE = "core.context.client_ip"
 AXES_IPWARE_PROXY_COUNT = NUM_PROXIES
 AXES_IPWARE_META_PRECEDENCE_ORDER = ["HTTP_X_FORWARDED_FOR", "REMOTE_ADDR"]
 AXES_ENABLE_ADMIN = False
+
+# Second factor (django-otp): mandatory TOTP for privileged users (accounts.policies).
+OTP_TOTP_ISSUER = "Talan Communities"
+MFA_MAX_FAILURES = 5
+MFA_FAILURE_WINDOW = timedelta(minutes=15)
+
+# Hidden Django admin: only reachable by verified staff, 404 for everyone else.
+DJANGO_ADMIN_PATH = env("DJANGO_ADMIN_PATH", default="django-admin/")
+if not DJANGO_ADMIN_PATH.endswith("/") or DJANGO_ADMIN_PATH.startswith("/"):
+    raise ImproperlyConfigured("DJANGO_ADMIN_PATH must end with '/' and not start with '/'.")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

@@ -93,3 +93,28 @@ class AuditedSetPasswordForm(SetPasswordForm):
             user = super().save(commit=commit)
             record(actor=user, action="auth.password_reset", target=user)
         return user
+
+
+class OTPTokenForm(forms.Form):
+    """A 6-digit TOTP code; any mismatch is reported with the same neutral message."""
+
+    INVALID = _("Invalid code. Please try again.")
+
+    otp_token = forms.RegexField(
+        label=_("Verification code"),
+        regex=r"^\d{6}$",
+        max_length=6,
+        strip=True,
+        error_messages={"required": INVALID, "invalid": INVALID, "max_length": INVALID},
+        widget=forms.TextInput(
+            attrs={
+                "autofocus": True,
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "pattern": "[0-9]{6}",
+            }
+        ),
+    )
+
+    def reject(self) -> None:
+        self.add_error("otp_token", self.INVALID)
