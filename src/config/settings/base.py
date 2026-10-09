@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 from core.logging import build_logging, configure_structlog
 
@@ -26,6 +27,7 @@ INSTALLED_APPS = [
     "taxonomy",
     "organizations",
     "accounts",
+    "audit",
 ]
 
 MIDDLEWARE = [
@@ -37,6 +39,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.RequestUserContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
@@ -118,6 +121,11 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="communautes@localhost")
 
 METRICS_TOKEN = env("METRICS_TOKEN", default="")
 
+AUDIT_IP_HASH_KEY = env("AUDIT_IP_HASH_KEY")
+AUDIT_RETENTION_DAYS = env.int("AUDIT_RETENTION_DAYS", default=365)
+# Number of reverse proxies in front of the app; 0 means X-Forwarded-For is not trusted.
+NUM_PROXIES = env.int("NUM_PROXIES", default=0)
+
 LOG_LEVEL = env("LOG_LEVEL", default="INFO")
 LOG_JSON = env.bool("LOG_JSON", default=True)
 LOGGING = build_logging(level=LOG_LEVEL, json=LOG_JSON)
@@ -132,3 +140,10 @@ CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_SOFT_TIME_LIMIT = 240
 CELERY_TASK_TIME_LIMIT = 300
 CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_BEAT_SCHEDULE = {
+    "audit-purge": {
+        "task": "audit.tasks.purge_audit_events",
+        "schedule": crontab(hour=3, minute=15),
+    },
+}

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 12:40+0200\n"
+"POT-Creation-Date: 2026-10-09 12:43+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -163,6 +163,36 @@ msgstr "Administrateur technique"
 
 msgid "Auditor"
 msgstr "Auditeur"
+
+msgid "actor"
+msgstr "acteur"
+
+msgid "action"
+msgstr "action"
+
+msgid "target type"
+msgstr "type de cible"
+
+msgid "target identifier"
+msgstr "identifiant de la cible"
+
+msgid "community identifier"
+msgstr "identifiant de la communauté"
+
+msgid "changes"
+msgstr "modifications"
+
+msgid "IP hash"
+msgstr "empreinte de l'adresse IP"
+
+msgid "request identifier"
+msgstr "identifiant de requête"
+
+msgid "audit event"
+msgstr "événement d'audit"
+
+msgid "audit events"
+msgstr "événements d'audit"
 
 msgid "Communities"
 msgstr "Communautés"

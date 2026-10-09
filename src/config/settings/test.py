@@ -4,6 +4,7 @@ os.environ.setdefault("DJANGO_SECRET_KEY", "test-only-not-a-secret")
 os.environ.setdefault("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/talan_test")
 os.environ.setdefault("REDIS_URL", "redis://localhost:6379/15")
 os.environ.setdefault("S3_BUCKET", "test-bucket")
+os.environ.setdefault("AUDIT_IP_HASH_KEY", "test-only-audit-key")
 
 from .base import *
 

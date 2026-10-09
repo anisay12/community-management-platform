@@ -2,7 +2,7 @@ import pytest
 from django.apps import apps
 from django.utils.functional import Promise
 
-APP_LABELS = {"accounts", "organizations", "taxonomy"}
+APP_LABELS = {"accounts", "audit", "organizations", "taxonomy"}
 # Inherited from Django base classes, already translated by Django itself.
 DJANGO_INHERITED = {"password", "last_login", "is_superuser", "groups", "user_permissions"}
 

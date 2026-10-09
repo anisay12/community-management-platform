@@ -16,6 +16,7 @@ def _prod_env(**overrides: str) -> dict[str, str]:
         "DATABASE_URL": "postgres://u:p@localhost:5432/db",
         "REDIS_URL": "redis://localhost:6379/0",
         "S3_BUCKET": "documents",
+        "AUDIT_IP_HASH_KEY": secrets.token_urlsafe(32),
     }
     env.update(overrides)
     return env
@@ -51,6 +52,15 @@ def test_dev_settings_load():
         "DATABASE_URL": "postgres://u:p@localhost:5432/db",
         "REDIS_URL": "redis://localhost:6379/0",
         "S3_BUCKET": "documents",
+        "AUDIT_IP_HASH_KEY": "dev-only",
     }
     result = _manage("check", env=env)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_settings_require_audit_ip_hash_key():
+    env = _prod_env()
+    env.pop("AUDIT_IP_HASH_KEY")
+    result = _manage("check", env=env)
+    assert result.returncode != 0
+    assert "AUDIT_IP_HASH_KEY" in result.stderr
