@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load i18n component_tags %}
+{% block title %}{% translate "Creation requests" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h2">{% translate "Creation requests" %}</h1>
+  {% include "manage/_tabs.html" with active="creation_requests" %}
+  {% if page_obj.object_list %}
+    <ul class="list-unstyled mt-3">
+      {% for item in page_obj %}
+        <li class="card mb-3">
+          <div class="card-body">
+            <h2 class="h5 card-title">{{ item.name }}</h2>
+            <p class="mb-1 text-body-secondary">
+              {% blocktranslate with requester=item.requester|member_name category=item.category.name date=item.created_at|date:"SHORT_DATE_FORMAT" %}Requested by {{ requester }} on {{ date }} — category {{ category }}{% endblocktranslate %}
+            </p>
+            <p class="mb-2">{{ item.justification|linebreaksbr }}</p>
+            {% if item.status == "pending" %}
+              <form method="post" action="{% url 'manage:creation_request_decide' item.public_id %}" class="row g-2 align-items-end">
+                {% csrf_token %}
+                <div class="col-12 col-md">
+                  <label class="form-label" for="note-{{ item.public_id }}">{% translate "Note to the requester (optional)" %}</label>
+                  <input class="form-control" type="text" id="note-{{ item.public_id }}" name="note" maxlength="1000">
+                </div>
+                <div class="col-12 col-md-auto">
+                  <button type="submit" name="decision" value="approve" class="btn btn-success">{% translate "Approve" %}</button>
+                  <button type="submit" name="decision" value="reject" class="btn btn-outline-danger">{% translate "Reject" %}</button>
+                </div>
+              </form>
+            {% else %}
+              <p class="mb-0">
+                <span class="badge {% if item.status == 'approved' %}text-bg-success{% else %}text-bg-secondary{% endif %}">{{ item.get_status_display }}</span>
+                {% if item.community %}<a href="{% url 'communities:detail' item.community.slug %}">{{ item.community.name }}</a>{% endif %}
+                {% if item.decision_note %}<span class="d-block mt-1">{{ item.decision_note }}</span>{% endif %}
+              </p>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% translate "No creation request." as empty_title %}
+    {% include "components/empty_state.html" with icon="inbox" title=empty_title %}
+  {% endif %}
+  {% include "components/pagination.html" with page_obj=page_obj %}
+{% endblock %}

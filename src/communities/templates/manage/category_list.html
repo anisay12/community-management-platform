@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Categories" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h2">{% translate "Categories" %}</h1>
+  {% include "manage/_tabs.html" with active="categories" %}
+  <p class="mt-3"><a class="btn btn-primary" href="{% url 'manage:category_create' %}"><span class="bi bi-plus-lg" aria-hidden="true"></span> {% translate "New category" %}</a></p>
+  {% if categories %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <caption class="visually-hidden">{% translate "Categories" %}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Order" %}</th>
+            <th scope="col">{% translate "Name" %}</th>
+            <th scope="col">{% translate "Slug" %}</th>
+            <th scope="col">{% translate "Communities" %}</th>
+            <th scope="col">{% translate "Status" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for category in categories %}
+            <tr>
+              <td>{{ category.order }}</td>
+              <td><span class="bi bi-{{ category.icon }}" aria-hidden="true"></span> <a href="{% url 'manage:category_edit' category.slug %}">{{ category.name }}</a></td>
+              <td><code>{{ category.slug }}</code></td>
+              <td>{{ category.community_count }}</td>
+              <td>{% if category.is_active %}<span class="badge text-bg-success">{% translate "Active" %}</span>{% else %}<span class="badge text-bg-secondary">{% translate "Inactive" %}</span>{% endif %}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% translate "No category yet." as empty_title %}
+    {% include "components/empty_state.html" with icon="tags" title=empty_title %}
+  {% endif %}
+{% endblock %}

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 17:17+0200\n"
+"POT-Creation-Date: 2026-10-09 17:25+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -764,6 +764,12 @@ msgstr "Nom"
 msgid "No user matches these filters."
 msgstr "Aucun utilisateur ne correspond à ces filtres."
 
+msgid "Categories"
+msgstr "Catégories"
+
+msgid "Creation requests"
+msgstr "Demandes de création"
+
 msgid "Your account is active. You can now sign in."
 msgstr "Votre compte est actif. Vous pouvez maintenant vous connecter."
 
@@ -953,6 +959,39 @@ msgstr "Motif"
 
 msgid "Recorded in the audit log. Access lasts one hour."
 msgstr "Consigné dans le journal d'audit. L'accès dure une heure."
+
+msgid "Slug"
+msgstr "Identifiant d’URL"
+
+msgid "Leave blank to derive it from the name."
+msgstr "Laisser vide pour le déduire du nom."
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Icon"
+msgstr "Icône"
+
+msgid "Order"
+msgstr "Ordre"
+
+msgid "Active (offered when creating a community)"
+msgstr "Active (proposée à la création d’une communauté)"
+
+msgid "A category with this name already exists."
+msgstr "Une catégorie portant ce nom existe déjà."
+
+msgid "A category with this slug already exists."
+msgstr "Une catégorie avec cet identifiant d’URL existe déjà."
+
+msgid "Approve"
+msgstr "Approuver"
+
+msgid "Reject"
+msgstr "Refuser"
+
+msgid "Note"
+msgstr "Note"
 
 msgid "name"
 msgstr "nom"
@@ -1198,9 +1237,6 @@ msgstr "Vous ne pouvez pas retirer un membre ayant ce rôle."
 msgid "Give a reason of at least %(count)d characters."
 msgstr "Indiquez un motif d’au moins %(count)d caractères."
 
-msgid "A category with this name already exists."
-msgstr "Une catégorie portant ce nom existe déjà."
-
 msgid "Breadcrumb"
 msgstr "Fil d’Ariane"
 
@@ -1242,9 +1278,6 @@ msgstr[1] "%(counter)s communautés"
 msgid "No community matches these filters."
 msgstr "Aucune communauté ne correspond à ces filtres."
 
-msgid "Description"
-msgstr "Description"
-
 msgid "No description yet."
 msgstr "Pas encore de description."
 
@@ -1253,6 +1286,41 @@ msgstr "Objectifs"
 
 msgid "Rules"
 msgstr "Règles"
+
+msgid "Edit the category"
+msgstr "Modifier la catégorie"
+
+msgid "New category"
+msgstr "Nouvelle catégorie"
+
+#, python-format
+msgid "Edit the category “%(name)s”"
+msgstr "Modifier la catégorie « %(name)s »"
+
+msgid "Inactive"
+msgstr "Inactive"
+
+msgid "No category yet."
+msgstr "Aucune catégorie pour le moment."
+
+#, python-format
+msgid "Requested by %(requester)s on %(date)s — category %(category)s"
+msgstr "Demandée par %(requester)s le %(date)s — catégorie %(category)s"
+
+msgid "Note to the requester (optional)"
+msgstr "Note au demandeur (facultative)"
+
+msgid "No creation request."
+msgstr "Aucune demande de création."
+
+msgid "The category has been saved."
+msgstr "La catégorie a été enregistrée."
+
+msgid "The community has been created."
+msgstr "La communauté a été créée."
+
+msgid "The request has been rejected."
+msgstr "La demande a été refusée."
 
 msgid "Home"
 msgstr "Accueil"

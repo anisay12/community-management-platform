@@ -1,6 +1,8 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 
+from communities.urls_admin import urlpatterns as communities_admin_patterns
+
 from . import views_auth, views_manage, views_mfa, views_privacy, views_profile
 
 app_name = "accounts"
@@ -64,6 +66,7 @@ manage_patterns = (
             views_manage.user_anonymize,
             name="user_anonymize",
         ),
+        *communities_admin_patterns,
     ],
     "manage",
 )

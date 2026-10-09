@@ -36,13 +36,18 @@ def initials(user) -> str:
 
 
 @register.simple_tag
-def manage_tabs(active: str) -> list[tuple[str, str, bool]]:
+def manage_tabs(active: str, user=None) -> list[tuple[str, str, bool]]:
     """Items of the administration tabs (``components/tabs.html``); ``active`` is the key."""
     entries = [
         ("list", gettext("Users"), "manage:user_list"),
         ("create", gettext("Create a user"), "manage:user_create"),
         ("import", gettext("Import users"), "manage:user_import"),
     ]
+    if user is not None and policies.can_manage_users(user):
+        entries += [
+            ("categories", gettext("Categories"), "manage:category_list"),
+            ("creation_requests", gettext("Creation requests"), "manage:creation_request_list"),
+        ]
     return [(label, reverse(name), key == active) for key, label, name in entries]
 
 
