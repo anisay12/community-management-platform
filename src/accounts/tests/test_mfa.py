@@ -335,3 +335,30 @@ def test_role_codes_memoised_and_reset_when_groups_change(make_user, django_asse
         assert user_roles(user) == set()
     user.groups.add(Group.objects.get(name=Role.AUDITOR))
     assert user_roles(user) == {"auditor"}
+
+
+def test_privileged_user_mfa_setup_queries_groups_once(client, admin_user):
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    client.force_login(admin_user)
+    client.get(reverse("accounts:mfa_setup"))  # warm caches, create the unconfirmed device
+    with CaptureQueriesContext(connection) as queries:
+        assert client.get(reverse("accounts:mfa_setup")).status_code == 200
+    group_queries = [q["sql"] for q in queries if "auth_group" in q["sql"]]
+    assert len(group_queries) == 1, group_queries
+
+
+def test_role_codes_memoised_through_lazy_user(make_user, django_assert_num_queries):
+    from django.utils.functional import SimpleLazyObject
+
+    from accounts.models import User
+    from accounts.roles import user_roles
+
+    user = make_user("lazy@example.com")
+    user.groups.add(Group.objects.get(name=Role.AUDITOR))
+    lazy = SimpleLazyObject(lambda: User.objects.get(pk=user.pk))
+    assert lazy.is_authenticated  # resolve the lazy object outside the counted block
+    with django_assert_num_queries(1):
+        assert user_roles(lazy) == {"auditor"}
+        assert user_roles(lazy) == {"auditor"}

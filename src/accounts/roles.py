@@ -21,7 +21,10 @@ def user_roles(user) -> set[str]:
     """Return the role codes (group names) held by ``user``."""
     if not getattr(user, "is_authenticated", False):
         return set()
-    cached = user.__dict__.get(ROLES_CACHE_ATTR)
+    # Attribute access (not ``__dict__``) so the cache also works through the
+    # ``SimpleLazyObject`` wrapping ``request.user``: ``setattr`` writes through to
+    # the wrapped instance and ``getattr`` reads through to it.
+    cached = getattr(user, ROLES_CACHE_ATTR, None)
     if cached is None:
         codes = {r.value for r in Role}
         cached = frozenset(g.name for g in user.groups.all() if g.name in codes)
