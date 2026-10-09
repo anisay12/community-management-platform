@@ -17,7 +17,7 @@ MARKDOWN_HELP = _(
 
 class CommunitySettingsForm(forms.ModelForm):
     tags = forms.ModelMultipleChoiceField(
-        label=_("Tags"), queryset=Tag.objects.all(), required=False
+        label=_("Tags"), queryset=Tag.objects.order_by("name"), required=False
     )
 
     class Meta:
@@ -74,6 +74,12 @@ class StatusForm(forms.Form):
     )
 
 
+def grantable_member_roles(can_change_roles: bool) -> list[tuple[str, str]]:
+    """Roles the role select offers: ``services.change_role`` lets leads and functional
+    administrators grant any role (lead included) and nobody else change one."""
+    return list(CommunityRole.choices) if can_change_roles else []
+
+
 def grantable_invitation_roles(can_change_roles: bool) -> list[tuple[str, str]]:
     """Roles an invitation may offer: never lead; facilitator only for leads and admins."""
     return [
@@ -94,9 +100,9 @@ class InvitationForm(forms.Form):
         self.fields["role"].initial = CommunityRole.MEMBER
 
     def clean_email(self):
+        """Look the employee up without telling whether the address belongs to one: an
+        unknown or inactive address leaves ``invited_user`` empty and the view answers with
+        the same neutral message as a sent invitation."""
         email = self.cleaned_data["email"]
-        user = User.objects.filter(email__iexact=email, is_active=True).first()
-        if user is None:
-            raise forms.ValidationError(_("No active employee has this e-mail address."))
-        self.invited_user = user
+        self.invited_user = User.objects.filter(email__iexact=email, is_active=True).first()
         return email

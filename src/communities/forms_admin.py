@@ -5,9 +5,15 @@ from django.utils.translation import gettext_lazy as _
 
 from .models import CommunityCategory
 
-# Bootstrap Icons names an administrator may pick for a category.
+# Bootstrap Icons names an administrator may pick for a category (includes every seeded icon).
 CATEGORY_ICONS = [
     "people",
+    "database-gear",
+    "robot",
+    "gear-wide-connected",
+    "shield-check",
+    "bar-chart-line",
+    "award",
     "cpu",
     "cloud",
     "shield-lock",
@@ -49,6 +55,10 @@ class CategoryForm(forms.Form):
                 for field in ("name", "slug", "description", "icon", "order", "is_active")
             }
         super().__init__(*args, **kwargs)
+        icons = list(CATEGORY_ICONS)
+        if instance is not None and instance.icon and instance.icon not in icons:
+            icons.insert(0, instance.icon)  # keep a legacy icon selectable
+        self.fields["icon"].choices = [(icon, icon) for icon in icons]
 
     def _others(self):
         others = CommunityCategory.objects.all()

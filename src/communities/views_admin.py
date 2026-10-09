@@ -51,24 +51,15 @@ def category_list(request):
 
 @transaction.atomic
 def _save_category(actor, category, data) -> CommunityCategory:
-    """Create or update ``category`` from the form data; a custom slug is applied after."""
+    """Create or update ``category`` from the form data through the services."""
     if category is None:
-        category = services.create_category(
-            actor=actor,
-            name=data["name"],
-            description=data["description"],
-            icon=data["icon"],
-            order=data["order"],
-        )
-    else:
-        was_active = category.is_active
-        fields = {key: data[key] for key in ("name", "description", "icon", "order")}
-        if data["is_active"] and not was_active:
-            fields["is_active"] = True
-        category = services.update_category(actor=actor, category=category, **fields)
-    if data["slug"] and data["slug"] != category.slug:
-        category.slug = data["slug"]
-        category.save(update_fields=["slug", "updated_at"])
+        return services.create_category(actor=actor, **data)
+    fields = {key: data[key] for key in ("name", "description", "icon", "order")}
+    if data["slug"]:
+        fields["slug"] = data["slug"]
+    if data["is_active"]:
+        fields["is_active"] = True
+    category = services.update_category(actor=actor, category=category, **fields)
     if not data["is_active"] and category.is_active:
         category = services.deactivate_category(actor=actor, category=category)
     return category

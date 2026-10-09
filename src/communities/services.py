@@ -45,7 +45,7 @@ SETTINGS_FIELDS = {
     "require_post_review",
     "tags",
 }
-CATEGORY_FIELDS = {"name", "description", "icon", "order", "is_active"}
+CATEGORY_FIELDS = {"name", "slug", "description", "icon", "order", "is_active"}
 
 
 # --- helpers --------------------------------------------------------------------------------
@@ -800,20 +800,44 @@ def _ensure_category_name_free(name: str, *, exclude_pk=None) -> None:
         raise DomainError("name_taken", _("A category with this name already exists."))
 
 
+def _ensure_category_slug_free(slug: str, *, exclude_pk=None) -> None:
+    taken = CommunityCategory.objects.filter(slug=slug)
+    if exclude_pk is not None:
+        taken = taken.exclude(pk=exclude_pk)
+    if taken.exists():
+        raise DomainError("slug_taken", _("A category with this slug already exists."))
+
+
 @transaction.atomic
 def create_category(
-    *, actor, name: str, description: str = "", icon: str = "people", order: int = 0
+    *,
+    actor,
+    name: str,
+    slug: str = "",
+    description: str = "",
+    icon: str = "people",
+    order: int = 0,
+    is_active: bool = True,
 ) -> CommunityCategory:
+    """Create a category; a blank ``slug`` is derived from the name."""
     _ensure_category_admin(actor)
     _ensure_category_name_free(name)
+    if slug:
+        _ensure_category_slug_free(slug)
     category = CommunityCategory.objects.create(
         name=name.strip(),
-        slug=_unique_slug(CommunityCategory, name, "category"),
+        slug=slug or _unique_slug(CommunityCategory, name, "category"),
         description=description,
         icon=icon,
         order=order,
+        is_active=is_active,
     )
-    record(actor=actor, action="category.created", target=category, changes={"name": name})
+    record(
+        actor=actor,
+        action="category.created",
+        target=category,
+        changes={"name": category.name, "slug": category.slug, "is_active": is_active},
+    )
     return category
 
 
@@ -825,6 +849,10 @@ def update_category(*, actor, category: CommunityCategory, **fields) -> Communit
     if "name" in fields:
         fields["name"] = fields["name"].strip()
         _ensure_category_name_free(fields["name"], exclude_pk=category.pk)
+    if "slug" in fields:
+        if not fields["slug"]:
+            raise _invalid_state()
+        _ensure_category_slug_free(fields["slug"], exclude_pk=category.pk)
     changes = {}
     for field, value in fields.items():
         before = getattr(category, field)

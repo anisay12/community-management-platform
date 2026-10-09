@@ -115,6 +115,44 @@ def test_create_category_with_custom_slug_inactive(admin_client):
     assert not created.is_active
 
 
+def test_create_category_inactive_is_audited_once(admin_client):
+    assert admin_client.post(CATEGORY_CREATE, _category_data(is_active=None)).status_code == 302
+    actions = list(AuditEvent.objects.values_list("action", flat=True))
+    assert actions.count("category.created") == 1
+    assert "category.deactivated" not in actions
+
+
+def test_edit_seeded_categories_without_changes_keeps_icon(admin_client):
+    seeded = list(CommunityCategory.objects.all())
+    assert len(seeded) >= 12
+    for category in seeded:
+        url = reverse("manage:category_edit", args=[category.slug])
+        form = admin_client.get(url).context["form"]
+        data = {key: value for key, value in form.initial.items() if value not in (None, False)}
+        response = admin_client.post(url, data)
+        assert response.status_code == 302, (category.icon, response.context["form"].errors)
+        refreshed = CommunityCategory.objects.get(pk=category.pk)
+        assert refreshed.icon == category.icon
+
+
+def test_edit_category_keeps_custom_icon(admin_client, category):
+    CommunityCategory.objects.filter(pk=category.pk).update(icon="atom")
+    url = reverse("manage:category_edit", args=[category.slug])
+    data = _category_data(name=category.name, slug=category.slug, icon="atom")
+    assert admin_client.post(url, data).status_code == 302
+    category.refresh_from_db()
+    assert category.icon == "atom"
+    assert admin_client.post(CATEGORY_CREATE, _category_data(icon="atom")).status_code == 200
+
+
+def test_edit_category_slug_change_is_audited(admin_client, category):
+    url = reverse("manage:category_edit", args=[category.slug])
+    data = _category_data(name=category.name, slug="new-slug")
+    assert admin_client.post(url, data).status_code == 302
+    event = AuditEvent.objects.get(action="category.updated")
+    assert event.changes["slug"] == {"before": category.slug, "after": "new-slug"}
+
+
 def test_create_category_rejects_duplicates(admin_client, category):
     before = CommunityCategory.objects.count()
     response = admin_client.post(CATEGORY_CREATE, _category_data(name="test CATEGORY"))
@@ -182,6 +220,18 @@ def test_request_list_pending_first(admin_client, creation_request, requester, c
     rows = list(response.context["page_obj"])
     assert rows == [creation_request, done]
     assert "req@example.com" not in response.content.decode()
+
+
+def test_request_decision_buttons_described_by_heading(admin_client, creation_request):
+    page = admin_client.get(REQUEST_LIST).content.decode()
+    heading_id = f"creation-request-{creation_request.public_id}"
+    assert f'id="{heading_id}"' in page
+    assert page.count(f'aria-describedby="{heading_id}"') == 2
+
+
+def test_admin_tabs_follow_category_and_admin_guards(admin_client):
+    page = admin_client.get(CATEGORY_LIST).content.decode()
+    assert CATEGORY_LIST in page and REQUEST_LIST in page
 
 
 def test_approve_request(

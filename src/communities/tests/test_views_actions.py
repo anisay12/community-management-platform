@@ -157,7 +157,6 @@ def test_leave(employee_client, make_community, employee, add_member, make_user)
     community = make_community("Open", access_mode=OPEN)
     add_member(community, make_user("own@example.com"), Role.OWNER)
     add_member(community, employee)
-    Community.objects.filter(pk=community.pk).update(member_count=2)
     response = employee_client.post(_url("leave", "open"))
     assert response.status_code == 302
     assert not CommunityMembership.objects.filter(user=employee).exists()
@@ -204,7 +203,6 @@ def invitation(make_community, employee, make_user, add_member):
     community = make_community("Secret", access_mode=INVITE)
     inviter = make_user("own@example.com")
     add_member(community, inviter, Role.OWNER)
-    Community.objects.filter(pk=community.pk).update(member_count=1)
     return CommunityInvitation.objects.create(
         community=community, invited_user=employee, invited_by=inviter, role=Role.EXPERT
     )
@@ -220,6 +218,23 @@ def test_my_invitations_lists_pending(employee_client, invitation):
     assert response.status_code == 200
     assert "Secret" in response.content.decode()
     assert list(response.context["invitations"]) == [invitation]
+
+
+def test_my_invitations_hides_inactive_communities(employee_client, invitation):
+    Community.objects.filter(pk=invitation.community_id).update(status=Community.Status.ARCHIVED)
+    response = employee_client.get(reverse("communities:my_invitations"))
+    assert list(response.context["invitations"]) == []
+
+
+def test_my_invitations_is_capped(employee_client, employee, make_community, make_user):
+    inviter = make_user("own@example.com")
+    for index in range(55):
+        community = make_community(f"Club {index}", access_mode=INVITE)
+        CommunityInvitation.objects.create(
+            community=community, invited_user=employee, invited_by=inviter
+        )
+    response = employee_client.get(reverse("communities:my_invitations"))
+    assert len(response.context["invitations"]) == 50
 
 
 def test_detail_for_invited_user_shows_respond(employee_client, invitation):

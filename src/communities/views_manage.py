@@ -30,6 +30,7 @@ from .forms_manage import (
     MemberSearchForm,
     RoleForm,
     StatusForm,
+    grantable_member_roles,
 )
 from .models import Community, CommunityInvitation, CommunityMembership, MembershipRequest
 from .roles import CommunityRole, role_at_least
@@ -206,7 +207,7 @@ def members(request, community):
         form=form,
         page_obj=page_obj,
         can_change_roles=can_change_roles,
-        role_choices=CommunityRole.choices,
+        role_choices=grantable_member_roles(can_change_roles),
     )
     return render(request, "communities/manage_members.html", context)
 
@@ -308,16 +309,20 @@ def invitations(request, community):
     form = InvitationForm(request.POST or None, can_change_roles=can_change_roles)
     if request.method == "POST" and form.is_valid():
         try:
-            services.invite(
-                actor=request.user,
-                community=community,
-                user=form.invited_user,
-                role=form.cleaned_data["role"],
-            )
+            if form.invited_user is not None:
+                services.invite(
+                    actor=request.user,
+                    community=community,
+                    user=form.invited_user,
+                    role=form.cleaned_data["role"],
+                )
         except DomainError as error:
             form.add_error(None, error.message)
         else:
-            messages.success(request, _("The invitation has been sent."))
+            messages.success(
+                request,
+                _("If this address belongs to an active employee, they have been invited."),
+            )
             return redirect("communities:manage_invitations", slug=community.slug)
     found = (
         CommunityInvitation.objects.filter(community=community)
@@ -360,9 +365,11 @@ def status(request, community):
     if not form.is_valid():
         return HttpResponseBadRequest()
     action = form.cleaned_data["action"]
-    service, policy, _sources, success, title, body = STATUS_ACTIONS[action]
+    service, policy, sources, success, title, body = STATUS_ACTIONS[action]
     if not policy(request.user, community):
         raise PermissionDenied
+    if community.status not in sources:
+        return HttpResponseBadRequest()
     if request.method != "POST":
         context = _context(request, community, "settings", action=action, title=title, body=body)
         return render(request, "communities/manage_status_confirm.html", context)

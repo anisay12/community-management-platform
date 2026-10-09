@@ -453,7 +453,7 @@ def test_remove_member(new_community, creator, bob, carol, add_member):
     services.remove_member(actor=carol, membership=_membership(community, bob))
     assert not CommunityMembership.objects.filter(community=community, user=bob).exists()
     community.refresh_from_db()
-    assert community.member_count == 1  # carol was added without the service
+    assert community.member_count == 2  # creator and carol remain
     assert _events("community.member_removed").get().community_id == community.pk
 
 
@@ -618,12 +618,34 @@ def test_category_services(functional_admin, bob):
     )
     assert sorted(actions) == ["category.created", "category.deactivated", "category.updated"]
     with pytest.raises(DomainError) as excinfo:
-        services.update_category(actor=functional_admin, category=category, slug="x")
+        services.update_category(actor=functional_admin, category=category, community="x")
     assert _error(excinfo) == "invalid_state"
     other = CommunityCategory.objects.exclude(pk=category.pk).first()
     with pytest.raises(DomainError) as excinfo:
         services.update_category(actor=functional_admin, category=category, name=other.name)
     assert _error(excinfo) == "name_taken"
+
+
+def test_category_services_slug_and_active(functional_admin):
+    category = services.create_category(
+        actor=functional_admin, name="Quantum", slug="q-lab", is_active=False
+    )
+    assert (category.slug, category.is_active) == ("q-lab", False)
+    created = AuditEvent.objects.get(action="category.created")
+    assert created.changes["slug"] == "q-lab"
+    assert created.changes["is_active"] is False
+    services.update_category(actor=functional_admin, category=category, slug="quantum-lab")
+    category.refresh_from_db()
+    assert category.slug == "quantum-lab"
+    updated = AuditEvent.objects.get(action="category.updated")
+    assert updated.changes["slug"] == {"before": "q-lab", "after": "quantum-lab"}
+    other = CommunityCategory.objects.exclude(pk=category.pk).first()
+    with pytest.raises(DomainError) as excinfo:
+        services.update_category(actor=functional_admin, category=category, slug=other.slug)
+    assert _error(excinfo) == "slug_taken"
+    with pytest.raises(DomainError) as excinfo:
+        services.create_category(actor=functional_admin, name="Other", slug=other.slug)
+    assert _error(excinfo) == "slug_taken"
 
 
 # --- component ------------------------------------------------------------------------------

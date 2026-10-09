@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 17:25+0200\n"
+"POT-Creation-Date: 2026-10-09 17:37+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -960,14 +960,35 @@ msgstr "Motif"
 msgid "Recorded in the audit log. Access lasts one hour."
 msgstr "Consigné dans le journal d'audit. L'accès dure une heure."
 
+msgid "Message to the facilitators"
+msgstr "Message aux animateurs"
+
+msgid "Tagline"
+msgstr "Accroche"
+
+msgid "Description"
+msgstr "Description"
+
+msgid "Markdown is supported."
+msgstr "Le Markdown est pris en charge."
+
+msgid "Show in the catalogue even when invitation-only"
+msgstr "Afficher dans le catalogue même sur invitation"
+
+msgid "Tags"
+msgstr "Étiquettes"
+
+msgid "Justification"
+msgstr "Justification"
+
+msgid "Explain the purpose of the community and who would take part."
+msgstr "Expliquez l’objet de la communauté et qui y participerait."
+
 msgid "Slug"
 msgstr "Identifiant d’URL"
 
 msgid "Leave blank to derive it from the name."
 msgstr "Laisser vide pour le déduire du nom."
-
-msgid "Description"
-msgstr "Description"
 
 msgid "Icon"
 msgstr "Icône"
@@ -992,6 +1013,34 @@ msgstr "Refuser"
 
 msgid "Note"
 msgstr "Note"
+
+msgid ""
+"Markdown is supported: **bold**, *italic*, lists, links, headings and "
+"tables. Images and raw HTML are removed."
+msgstr ""
+"Markdown est pris en charge : **gras**, *italique*, listes, liens, titres et "
+"tableaux. Les images et le HTML brut sont supprimés."
+
+msgid ""
+"Invitation-only communities are hidden from the catalogue unless listed."
+msgstr ""
+"Les communautés sur invitation sont masquées du catalogue sauf si elles y "
+"sont référencées."
+
+msgid "Search members"
+msgstr "Rechercher des membres"
+
+msgid "Role"
+msgstr "Rôle"
+
+msgid "Accept"
+msgstr "Accepter"
+
+msgid "Note to the applicant"
+msgstr "Note au demandeur"
+
+msgid "E-mail address of the employee"
+msgstr "Adresse e-mail du collaborateur"
 
 msgid "name"
 msgstr "nom"
@@ -1237,6 +1286,30 @@ msgstr "Vous ne pouvez pas retirer un membre ayant ce rôle."
 msgid "Give a reason of at least %(count)d characters."
 msgstr "Indiquez un motif d’au moins %(count)d caractères."
 
+msgid "Leave"
+msgstr "Quitter"
+
+msgid "Accept the invitation"
+msgstr "Accepter l’invitation"
+
+msgid "Decline"
+msgstr "Décliner"
+
+msgid "Request pending"
+msgstr "Demande en attente"
+
+msgid "Cancel my request"
+msgstr "Annuler ma demande"
+
+msgid "Message to the facilitators (optional)"
+msgstr "Message aux animateurs (facultatif)"
+
+msgid "Request to join"
+msgstr "Demander à rejoindre"
+
+msgid "Join"
+msgstr "Rejoindre"
+
 msgid "Breadcrumb"
 msgstr "Fil d’Ariane"
 
@@ -1255,6 +1328,28 @@ msgstr "Accéder en tant qu'administrateur"
 msgid "Community sections"
 msgstr "Rubriques de la communauté"
 
+msgid "Manage"
+msgstr "Gérer"
+
+#, python-format
+msgid "Manage %(name)s"
+msgstr "Gérer %(name)s"
+
+#, python-format
+msgid "This community is %(status)s: it is read-only."
+msgstr "Statut de la communauté : %(status)s. Elle est en lecture seule."
+
+#, python-format
+msgid ""
+"This community is %(status)s. As a functional administrator you can still "
+"change it."
+msgstr ""
+"Statut de la communauté : %(status)s. En tant qu'administrateur fonctionnel, "
+"vous pouvez encore la modifier."
+
+msgid "Management sections"
+msgstr "Sections de gestion"
+
 #, python-format
 msgid ""
 "You are not a member of %(name)s. Give the reason why you need to read its "
@@ -1269,6 +1364,15 @@ msgstr "Accéder au contenu"
 msgid "Communities catalogue"
 msgstr "Catalogue des communautés"
 
+msgid "My invitations"
+msgstr "Mes invitations"
+
+msgid "Create a community"
+msgstr "Créer une communauté"
+
+msgid "Request a community"
+msgstr "Demander une communauté"
+
 #, python-format
 msgid "%(counter)s community"
 msgid_plural "%(counter)s communities"
@@ -1278,6 +1382,25 @@ msgstr[1] "%(counter)s communautés"
 msgid "No community matches these filters."
 msgstr "Aucune communauté ne correspond à ces filtres."
 
+msgid "You will become the lead of the new community."
+msgstr "Vous deviendrez responsable de la nouvelle communauté."
+
+msgid "Create"
+msgstr "Créer"
+
+msgid "Request a new community"
+msgstr "Demander une nouvelle communauté"
+
+msgid ""
+"An administrator will review your request. If approved, you will become the "
+"lead of the community."
+msgstr ""
+"Un administrateur examinera votre demande. Si elle est approuvée, vous "
+"deviendrez responsable de la communauté."
+
+msgid "Send the request"
+msgstr "Envoyer la demande"
+
 msgid "No description yet."
 msgstr "Pas encore de description."
 
@@ -1286,6 +1409,70 @@ msgstr "Objectifs"
 
 msgid "Rules"
 msgstr "Règles"
+
+msgid "Invitations"
+msgstr "Invitations"
+
+msgid "Invite an employee"
+msgstr "Inviter un collaborateur"
+
+msgid "Invite"
+msgstr "Inviter"
+
+msgid "Revoke"
+msgstr "Révoquer"
+
+msgid "No invitation yet"
+msgstr "Aucune invitation pour l'instant"
+
+msgid "Actions"
+msgstr "Actions"
+
+#, python-format
+msgid "Role of %(name)s"
+msgstr "Rôle de %(name)s"
+
+msgid "Change"
+msgstr "Changer"
+
+#, python-format
+msgid "Remove %(name)s"
+msgstr "Retirer %(name)s"
+
+msgid "No member found"
+msgstr "Aucun membre trouvé"
+
+msgid "Requests"
+msgstr "Demandes"
+
+msgid "Membership requests"
+msgstr "Demandes d'adhésion"
+
+msgid "Note:"
+msgstr "Note :"
+
+msgid "Note to the applicant (optional)"
+msgstr "Note au demandeur (facultatif)"
+
+msgid "No membership request"
+msgstr "Aucune demande d'adhésion"
+
+msgid "Settings"
+msgstr "Paramètres"
+
+msgid "Community settings"
+msgstr "Paramètres de la communauté"
+
+#, python-format
+msgid "Current status: %(status)s."
+msgstr "Statut actuel : %(status)s."
+
+#, python-format
+msgid "Invited by %(inviter)s as %(role)s, until %(date)s"
+msgstr "Invitation de %(inviter)s en tant que %(role)s, jusqu’au %(date)s"
+
+msgid "You have no pending invitations."
+msgstr "Vous n’avez aucune invitation en attente."
 
 msgid "Edit the category"
 msgstr "Modifier la catégorie"
@@ -1313,14 +1500,104 @@ msgstr "Note au demandeur (facultative)"
 msgid "No creation request."
 msgstr "Aucune demande de création."
 
-msgid "The category has been saved."
-msgstr "La catégorie a été enregistrée."
+msgid "Your message is too long (500 characters at most)."
+msgstr "Votre message est trop long (500 caractères au maximum)."
+
+msgid "Your request to join has been sent."
+msgstr "Votre demande d’adhésion a été envoyée."
+
+msgid "Welcome! You are now a member."
+msgstr "Bienvenue ! Vous êtes désormais membre."
+
+msgid "You have left the community."
+msgstr "Vous avez quitté la communauté."
+
+msgid "You have no pending request for this community."
+msgstr "Vous n’avez aucune demande en attente pour cette communauté."
+
+msgid "Your request has been cancelled."
+msgstr "Votre demande a été annulée."
+
+msgid "Invitation declined."
+msgstr "Invitation déclinée."
 
 msgid "The community has been created."
 msgstr "La communauté a été créée."
 
+msgid "Your request has been sent to the administrators for review."
+msgstr "Votre demande a été transmise aux administrateurs pour examen."
+
+msgid "The category has been saved."
+msgstr "La catégorie a été enregistrée."
+
 msgid "The request has been rejected."
 msgstr "La demande a été refusée."
+
+msgid "The community has been suspended."
+msgstr "La communauté a été suspendue."
+
+msgid "Suspend the community"
+msgstr "Suspendre la communauté"
+
+msgid "Members keep read access but nothing can be changed until reactivation."
+msgstr ""
+"Les membres gardent l'accès en lecture mais rien ne peut être modifié avant "
+"la réactivation."
+
+msgid "The community has been reactivated."
+msgstr "La communauté a été réactivée."
+
+msgid "Reactivate the community"
+msgstr "Réactiver la communauté"
+
+msgid "The community becomes fully usable again."
+msgstr "La communauté redevient pleinement utilisable."
+
+msgid "The community has been archived."
+msgstr "La communauté a été archivée."
+
+msgid "Archive the community"
+msgstr "Archiver la communauté"
+
+msgid ""
+"The community leaves the catalogue and becomes read-only; only its members "
+"and functional administrators can still see it."
+msgstr ""
+"La communauté quitte le catalogue et passe en lecture seule ; seuls ses "
+"membres et les administrateurs fonctionnels peuvent encore la voir."
+
+msgid "The community has been restored."
+msgstr "La communauté a été restaurée."
+
+msgid "Restore the community"
+msgstr "Restaurer la communauté"
+
+msgid "The community becomes active again and returns to the catalogue."
+msgstr "La communauté redevient active et revient dans le catalogue."
+
+msgid "The settings have been saved."
+msgstr "Les paramètres ont été enregistrés."
+
+msgid "Choose a valid role."
+msgstr "Choisissez un rôle valide."
+
+msgid "The role has been changed."
+msgstr "Le rôle a été modifié."
+
+msgid "The member has been removed."
+msgstr "Le membre a été retiré."
+
+msgid "This request has already been decided."
+msgstr "Cette demande a déjà été traitée."
+
+msgid "The request has been accepted."
+msgstr "La demande a été acceptée."
+
+msgid "If this address belongs to an active employee, they have been invited."
+msgstr "Si cette adresse appartient à un collaborateur actif, il a été invité."
+
+msgid "The invitation has been revoked."
+msgstr "L'invitation a été révoquée."
 
 msgid "Home"
 msgstr "Accueil"
@@ -1339,9 +1616,6 @@ msgstr "Il y a un problème"
 
 msgid "Language"
 msgstr "Langue"
-
-msgid "Change"
-msgstr "Changer"
 
 msgid "Main navigation"
 msgstr "Navigation principale"
@@ -1437,9 +1711,6 @@ msgstr "Vos modifications ont été enregistrées."
 msgid "Create the first one to get started."
 msgstr "Créez la première pour commencer."
 
-msgid "Create a community"
-msgstr "Créer une communauté"
-
 msgid "Badges and avatars"
 msgstr "Badges et avatars"
 
@@ -1506,9 +1777,6 @@ msgstr "Nom complet"
 msgid "As it appears on your badge."
 msgstr "Tel qu’il figure sur votre badge."
 
-msgid "Role"
-msgstr "Rôle"
-
 msgid "I accept the code of conduct"
 msgstr "J’accepte le code de conduite"
 
@@ -1523,9 +1791,6 @@ msgstr "Page courante"
 
 msgid "Overview"
 msgstr "Vue d’ensemble"
-
-msgid "Settings"
-msgstr "Paramètres"
 
 msgid "recipient"
 msgstr "destinataire"
@@ -1565,268 +1830,3 @@ msgstr "affectations"
 
 msgid "tag"
 msgstr "tag"
-
-msgid "Message to the facilitators"
-msgstr "Message aux animateurs"
-
-msgid "Tagline"
-msgstr "Accroche"
-
-msgid "Markdown is supported."
-msgstr "Le Markdown est pris en charge."
-
-msgid "Show in the catalogue even when invitation-only"
-msgstr "Afficher dans le catalogue même sur invitation"
-
-msgid "Tags"
-msgstr "Étiquettes"
-
-msgid "Justification"
-msgstr "Justification"
-
-msgid "Explain the purpose of the community and who would take part."
-msgstr "Expliquez l’objet de la communauté et qui y participerait."
-
-msgid "Leave"
-msgstr "Quitter"
-
-msgid "Accept the invitation"
-msgstr "Accepter l’invitation"
-
-msgid "Decline"
-msgstr "Décliner"
-
-msgid "Request pending"
-msgstr "Demande en attente"
-
-msgid "Cancel my request"
-msgstr "Annuler ma demande"
-
-msgid "Message to the facilitators (optional)"
-msgstr "Message aux animateurs (facultatif)"
-
-msgid "Request to join"
-msgstr "Demander à rejoindre"
-
-msgid "Join"
-msgstr "Rejoindre"
-
-msgid "You will become the lead of the new community."
-msgstr "Vous deviendrez responsable de la nouvelle communauté."
-
-msgid "Create"
-msgstr "Créer"
-
-msgid "Request a new community"
-msgstr "Demander une nouvelle communauté"
-
-msgid ""
-"An administrator will review your request. If approved, you will become the "
-"lead of the community."
-msgstr ""
-"Un administrateur examinera votre demande. Si elle est approuvée, vous "
-"deviendrez responsable de la communauté."
-
-msgid "Send the request"
-msgstr "Envoyer la demande"
-
-msgid "My invitations"
-msgstr "Mes invitations"
-
-#, python-format
-msgid "Invited by %(inviter)s as %(role)s, until %(date)s"
-msgstr "Invitation de %(inviter)s en tant que %(role)s, jusqu’au %(date)s"
-
-msgid "Accept"
-msgstr "Accepter"
-
-msgid "You have no pending invitations."
-msgstr "Vous n’avez aucune invitation en attente."
-
-msgid "Your message is too long (500 characters at most)."
-msgstr "Votre message est trop long (500 caractères au maximum)."
-
-msgid "Your request to join has been sent."
-msgstr "Votre demande d’adhésion a été envoyée."
-
-msgid "Welcome! You are now a member."
-msgstr "Bienvenue ! Vous êtes désormais membre."
-
-msgid "You have left the community."
-msgstr "Vous avez quitté la communauté."
-
-msgid "You have no pending request for this community."
-msgstr "Vous n’avez aucune demande en attente pour cette communauté."
-
-msgid "Your request has been cancelled."
-msgstr "Votre demande a été annulée."
-
-msgid "Invitation declined."
-msgstr "Invitation déclinée."
-
-msgid "Your request has been sent to the administrators for review."
-msgstr "Votre demande a été transmise aux administrateurs pour examen."
-
-msgid ""
-"Markdown is supported: **bold**, *italic*, lists, links, headings and "
-"tables. Images and raw HTML are removed."
-msgstr ""
-"Markdown est pris en charge : **gras**, *italique*, listes, liens, titres et "
-"tableaux. Les images et le HTML brut sont supprimés."
-
-msgid ""
-"Invitation-only communities are hidden from the catalogue unless listed."
-msgstr ""
-"Les communautés sur invitation sont masquées du catalogue sauf si elles y "
-"sont référencées."
-
-msgid "Search members"
-msgstr "Rechercher des membres"
-
-msgid "Note to the applicant"
-msgstr "Note au demandeur"
-
-msgid "E-mail address of the employee"
-msgstr "Adresse e-mail du collaborateur"
-
-msgid "No active employee has this e-mail address."
-msgstr "Aucun collaborateur actif n'a cette adresse e-mail."
-
-msgid "Manage"
-msgstr "Gérer"
-
-#, python-format
-msgid "Manage %(name)s"
-msgstr "Gérer %(name)s"
-
-#, python-format
-msgid "This community is %(status)s: it is read-only."
-msgstr "Statut de la communauté : %(status)s. Elle est en lecture seule."
-
-#, python-format
-msgid ""
-"This community is %(status)s. As a functional administrator you can still "
-"change it."
-msgstr ""
-"Statut de la communauté : %(status)s. En tant qu'administrateur fonctionnel, "
-"vous pouvez encore la modifier."
-
-msgid "Management sections"
-msgstr "Sections de gestion"
-
-msgid "Invitations"
-msgstr "Invitations"
-
-msgid "Invite an employee"
-msgstr "Inviter un collaborateur"
-
-msgid "Invite"
-msgstr "Inviter"
-
-msgid "Revoke"
-msgstr "Révoquer"
-
-msgid "No invitation yet"
-msgstr "Aucune invitation pour l'instant"
-
-msgid "Actions"
-msgstr "Actions"
-
-#, python-format
-msgid "Role of %(name)s"
-msgstr "Rôle de %(name)s"
-
-#, python-format
-msgid "Remove %(name)s"
-msgstr "Retirer %(name)s"
-
-msgid "No member found"
-msgstr "Aucun membre trouvé"
-
-msgid "Requests"
-msgstr "Demandes"
-
-msgid "Membership requests"
-msgstr "Demandes d'adhésion"
-
-msgid "Note:"
-msgstr "Note :"
-
-msgid "Note to the applicant (optional)"
-msgstr "Note au demandeur (facultatif)"
-
-msgid "No membership request"
-msgstr "Aucune demande d'adhésion"
-
-msgid "Community settings"
-msgstr "Paramètres de la communauté"
-
-#, python-format
-msgid "Current status: %(status)s."
-msgstr "Statut actuel : %(status)s."
-
-msgid "The community has been suspended."
-msgstr "La communauté a été suspendue."
-
-msgid "Suspend the community"
-msgstr "Suspendre la communauté"
-
-msgid "Members keep read access but nothing can be changed until reactivation."
-msgstr ""
-"Les membres gardent l'accès en lecture mais rien ne peut être modifié avant "
-"la réactivation."
-
-msgid "The community has been reactivated."
-msgstr "La communauté a été réactivée."
-
-msgid "Reactivate the community"
-msgstr "Réactiver la communauté"
-
-msgid "The community becomes fully usable again."
-msgstr "La communauté redevient pleinement utilisable."
-
-msgid "The community has been archived."
-msgstr "La communauté a été archivée."
-
-msgid "Archive the community"
-msgstr "Archiver la communauté"
-
-msgid ""
-"The community leaves the catalogue and becomes read-only; only its members "
-"and functional administrators can still see it."
-msgstr ""
-"La communauté quitte le catalogue et passe en lecture seule ; seuls ses "
-"membres et les administrateurs fonctionnels peuvent encore la voir."
-
-msgid "The community has been restored."
-msgstr "La communauté a été restaurée."
-
-msgid "Restore the community"
-msgstr "Restaurer la communauté"
-
-msgid "The community becomes active again and returns to the catalogue."
-msgstr "La communauté redevient active et revient dans le catalogue."
-
-msgid "The settings have been saved."
-msgstr "Les paramètres ont été enregistrés."
-
-msgid "Choose a valid role."
-msgstr "Choisissez un rôle valide."
-
-msgid "The role has been changed."
-msgstr "Le rôle a été modifié."
-
-msgid "The member has been removed."
-msgstr "Le membre a été retiré."
-
-msgid "This request has already been decided."
-msgstr "Cette demande a déjà été traitée."
-
-msgid "The request has been accepted."
-msgstr "La demande a été acceptée."
-
-msgid "The invitation has been sent."
-msgstr "L'invitation a été envoyée."
-
-msgid "The invitation has been revoked."
-msgstr "L'invitation a été révoquée."

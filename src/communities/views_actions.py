@@ -16,8 +16,10 @@ from core.errors import DomainError
 
 from . import policies, services
 from .forms_actions import CommunityCreateForm, CreationRequestForm, JoinRequestForm
-from .models import CommunityInvitation, MembershipRequest
+from .models import Community, CommunityInvitation, MembershipRequest
 from .selectors import visible_communities
+
+INVITATIONS_LIMIT = 50
 
 
 def _visible(request, slug):
@@ -90,9 +92,10 @@ def my_invitations(request):
             invited_user=request.user,
             status=CommunityInvitation.Status.PENDING,
             expires_at__gt=timezone.now(),
+            community__status=Community.Status.ACTIVE,
         )
         .select_related("community", "community__category", "invited_by")
-        .order_by("-created_at")
+        .order_by("-created_at")[:INVITATIONS_LIMIT]
     )
     return render(request, "communities/my_invitations.html", {"invitations": invitations})
 

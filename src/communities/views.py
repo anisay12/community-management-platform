@@ -63,7 +63,12 @@ def catalogue(request):
     return render(
         request,
         "communities/catalogue.html",
-        {"form": form, "page_obj": page_obj, "querystring": querystring},
+        {
+            "form": form,
+            "page_obj": page_obj,
+            "querystring": querystring,
+            "can_create_community": policies.can_create_community(request.user),
+        },
     )
 
 

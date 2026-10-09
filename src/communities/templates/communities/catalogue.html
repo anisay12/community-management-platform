@@ -2,7 +2,17 @@
 {% load i18n %}
 {% block title %}{% translate "Communities catalogue" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h2">{% translate "Communities catalogue" %}</h1>
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h2 mb-0">{% translate "Communities catalogue" %}</h1>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'communities:my_invitations' %}">{% translate "My invitations" %}</a>
+      {% if can_create_community %}
+        <a class="btn btn-primary" href="{% url 'communities:create' %}">{% translate "Create a community" %}</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'communities:creation_request' %}">{% translate "Request a community" %}</a>
+      {% endif %}
+    </div>
+  </div>
   <div class="card mb-3">
     <div class="card-body">
       <form method="get" action="{% url 'communities:catalogue' %}" role="search" class="row g-3 align-items-end">

@@ -47,7 +47,7 @@ class CommunityCreateForm(forms.Form):
         label=_("Show in the catalogue even when invitation-only"), required=False
     )
     tags = forms.ModelMultipleChoiceField(
-        label=_("Tags"), queryset=Tag.objects.all(), required=False
+        label=_("Tags"), queryset=Tag.objects.order_by("name"), required=False
     )
 
 

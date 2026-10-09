@@ -338,3 +338,16 @@ def test_admin_access_domain_error_is_a_form_error(admin_client, make_community,
     assert response.status_code == 200
     assert "Refused for a test reason." in response.content.decode()
     assert not AdminAccessGrant.objects.exists()
+
+
+def test_catalogue_links_to_invitations_and_creation_request(employee_client):
+    page = employee_client.get(reverse("communities:catalogue")).content.decode()
+    assert reverse("communities:my_invitations") in page
+    assert reverse("communities:creation_request") in page
+    assert f'href="{reverse("communities:create")}"' not in page
+
+
+def test_catalogue_links_to_create_for_creators(admin_client):
+    page = admin_client.get(reverse("communities:catalogue")).content.decode()
+    assert f'href="{reverse("communities:create")}"' in page
+    assert reverse("communities:creation_request") not in page

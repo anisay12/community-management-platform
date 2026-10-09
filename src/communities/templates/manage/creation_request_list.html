@@ -9,7 +9,7 @@
       {% for item in page_obj %}
         <li class="card mb-3">
           <div class="card-body">
-            <h2 class="h5 card-title">{{ item.name }}</h2>
+            <h2 class="h5 card-title" id="creation-request-{{ item.public_id }}">{{ item.name }}</h2>
             <p class="mb-1 text-body-secondary">
               {% blocktranslate with requester=item.requester|member_name category=item.category.name date=item.created_at|date:"SHORT_DATE_FORMAT" %}Requested by {{ requester }} on {{ date }} — category {{ category }}{% endblocktranslate %}
             </p>
@@ -22,8 +22,8 @@
                   <input class="form-control" type="text" id="note-{{ item.public_id }}" name="note" maxlength="1000">
                 </div>
                 <div class="col-12 col-md-auto">
-                  <button type="submit" name="decision" value="approve" class="btn btn-success">{% translate "Approve" %}</button>
-                  <button type="submit" name="decision" value="reject" class="btn btn-outline-danger">{% translate "Reject" %}</button>
+                  <button type="submit" name="decision" value="approve" aria-describedby="creation-request-{{ item.public_id }}" class="btn btn-success">{% translate "Approve" %}</button>
+                  <button type="submit" name="decision" value="reject" aria-describedby="creation-request-{{ item.public_id }}" class="btn btn-outline-danger">{% translate "Reject" %}</button>
                 </div>
               </form>
             {% else %}

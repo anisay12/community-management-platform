@@ -1,4 +1,5 @@
 import pytest
+from django.db.models import F
 from django.utils.text import slugify
 
 from communities.models import Community, CommunityCategory, CommunityMembership
@@ -22,7 +23,12 @@ def make_community(category):
 
 @pytest.fixture
 def add_member():
+    """Add a membership directly, keeping ``Community.member_count`` in sync."""
+
     def _add(community, user, role=CommunityMembership.Role.MEMBER):
-        return CommunityMembership.objects.create(community=community, user=user, role=role)
+        membership = CommunityMembership.objects.create(community=community, user=user, role=role)
+        Community.objects.filter(pk=community.pk).update(member_count=F("member_count") + 1)
+        community.member_count += 1
+        return membership
 
     return _add

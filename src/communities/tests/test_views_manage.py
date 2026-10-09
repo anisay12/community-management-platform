@@ -4,6 +4,7 @@ status) by role: member 403, facilitator, lead and functional administrator."""
 import pytest
 from django.urls import reverse
 
+from accounts.models import User
 from audit.models import AuditEvent
 from communities.models import (
     Community,
@@ -25,8 +26,7 @@ def url(name, *args):
 
 @pytest.fixture
 def community(make_community):
-    # The conftest ``add_member`` does not maintain the counter: start from a positive one.
-    return make_community("Python guild", access_mode=Community.AccessMode.REQUEST, member_count=10)
+    return make_community("Python guild", access_mode=Community.AccessMode.REQUEST)
 
 
 @pytest.fixture
@@ -312,13 +312,19 @@ def test_invite_by_email(login, facilitator, make_user, community):
     assert invitation.role == Role.EXPERT
 
 
-def test_invite_unknown_email(login, facilitator, community):
-    response = login(facilitator).post(
-        url("manage_invitations"), {"email": "nobody@example.com", "role": Role.MEMBER}
-    )
-    assert response.status_code == 200
-    assert response.context["form"].errors
-    assert not CommunityInvitation.objects.exists()
+def test_invite_unknown_email_is_neutral(login, facilitator, make_user, community):
+    make_user("gone@example.com", status=User.Status.DEACTIVATED)
+    make_user("here@example.com")
+    client = login(facilitator)
+    feedback = []
+    for email in ("nobody@example.com", "gone@example.com", "here@example.com"):
+        response = client.post(
+            url("manage_invitations"), {"email": email, "role": Role.MEMBER}, follow=True
+        )
+        assert response.redirect_chain[-1][0] == url("manage_invitations")
+        feedback.append(_messages(response))
+    assert feedback[0] == feedback[1] == feedback[2]
+    assert CommunityInvitation.objects.get().invited_user.email == "here@example.com"
 
 
 def test_facilitator_cannot_offer_facilitator(login, facilitator, make_user):
@@ -401,9 +407,28 @@ def test_status_confirmation_page_without_js(login, lead):
     assert login(lead).get(url("manage_status"), {"action": "bogus"}).status_code == 400
 
 
-def test_status_invalid_transition_message(login, lead, community):
-    response = login(lead).post(url("manage_status"), {"action": "unarchive"}, follow=True)
-    assert _messages(response)
+def test_status_action_not_applicable_is_400(login, lead, community):
+    client = login(lead)
+    assert client.post(url("manage_status"), {"action": "unarchive"}).status_code == 400
+    assert client.get(url("manage_status"), {"action": "unarchive"}).status_code == 400
+    community.refresh_from_db()
+    assert community.status == Community.Status.ACTIVE
+
+
+def test_settings_and_create_tags_ordered_by_name():
+    from communities.forms_actions import CommunityCreateForm
+    from communities.forms_manage import CommunitySettingsForm
+
+    for form_class in (CommunityCreateForm, CommunitySettingsForm):
+        assert form_class.base_fields["tags"].queryset.query.order_by == ("name",)
+
+
+def test_role_select_offers_grantable_roles(login, lead, facilitator, member):
+    response = login(lead).get(url("manage_members"))
+    assert [value for value, _ in response.context["role_choices"]] == list(Role.values)
+    response = login(facilitator).get(url("manage_members"))
+    assert response.context["role_choices"] == []
+    assert 'name="role"' not in response.content.decode()
 
 
 def test_member_cannot_archive(login, member):
