@@ -12,7 +12,7 @@
 
 ## Decisions taken in this plan (defaults)
 
-- **Initial categories.** The original prompt's list of 12 categories is not in the repository. The data migration seeds 12 neutral, editable categories: Data & AI; Cloud & DevOps; Cybersecurity; Software engineering; Architecture; Product & UX; Agile & project management; Business consulting; Finance & risk; Telecoms & networks; CSR & sustainability; Life at Talan. Functional admins edit them from the UI; a later data migration can replace them if the owner supplies the official list.
+- **Initial categories.** The data migration seeds the 12 example categories of the owner's master prompt (§ 4.2), admin-editable: Data Engineering; Data Science et Intelligence Artificielle; Cloud et Architecture; DevOps et Platform Engineering; Data Governance et Data Quality; Business Intelligence et Analytics; Cybersécurité; Développement logiciel; Agilité et gestion de projet; Expertise métier; Préparation aux certifications; Innovation et veille technologique.
 - **Cover image** upload is deferred to L5 (needs the antivirus pipeline and private file serving, same as avatars in L1); the field exists, the UI shows a coloured header with the category icon.
 - **Community page tabs.** Only tabs whose content exists are shown: About and Members. Feed (L4), Resources (L5), Lessons learned (L6) and Events (L7) register their tab when they ship (same "no fake empty screen" rule as the L2 navigation). The tab list is a small registry in `communities/tabs.py`.
 - **Notifications.** `notifications.notify()` stores in-app rows only; there is no UI before L8.
