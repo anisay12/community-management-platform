@@ -9,7 +9,7 @@ community row, so concurrent joins serialise and ``member_count`` stays exact.
 from collections.abc import Iterable
 
 from django.contrib.postgres.search import SearchVector
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.utils import timezone
 from django.utils.text import slugify
@@ -84,6 +84,25 @@ def _ensure_name_free(name: str, *, exclude_pk=None) -> None:
         taken = taken.exclude(pk=exclude_pk)
     if taken.exists():
         raise DomainError("name_taken", _("A community with this name already exists."))
+
+
+NAME_CONSTRAINT = "community_name_unique_active"
+
+
+def _saving_name(write):
+    """Run ``write`` in a savepoint, mapping a lost race on the active-name constraint.
+
+    ``_ensure_name_free`` gives the friendly error up front; a concurrent write can still
+    hit ``community_name_unique_active``, which becomes ``name_taken`` here while the
+    savepoint keeps the caller's transaction usable.
+    """
+    try:
+        with transaction.atomic():
+            return write()
+    except IntegrityError as error:
+        if NAME_CONSTRAINT not in str(error):
+            raise
+        raise DomainError("name_taken", _("A community with this name already exists.")) from error
 
 
 def _unique_slug(model, name: str, default: str) -> str:
@@ -185,17 +204,19 @@ def create_community(
         raise _forbidden()
     owner = owner or actor
     _ensure_name_free(name)
-    community = Community.objects.create(
-        name=name.strip(),
-        slug=_unique_slug(Community, name, "community"),
-        category=category,
-        tagline=tagline,
-        description=description,
-        rules=rules,
-        objectives=objectives,
-        access_mode=access_mode,
-        listed=listed,
-        created_by=owner,
+    community = _saving_name(
+        lambda: Community.objects.create(
+            name=name.strip(),
+            slug=_unique_slug(Community, name, "community"),
+            category=category,
+            tagline=tagline,
+            description=description,
+            rules=rules,
+            objectives=objectives,
+            access_mode=access_mode,
+            listed=listed,
+            created_by=owner,
+        )
     )
     community.tags.set(tags)
     _add_membership(community, owner, CommunityRole.OWNER)
@@ -224,6 +245,8 @@ def update_settings(*, actor, community: Community, **fields) -> Community:
     if set(fields) - SETTINGS_FIELDS:
         raise _invalid_state()
     _lock(community)
+    # Audit "before" values come from the locked row, not from a possibly stale instance.
+    community.refresh_from_db()
     _ensure_writable(actor, community)
     if "name" in fields:
         fields["name"] = fields["name"].strip()
@@ -241,7 +264,7 @@ def update_settings(*, actor, community: Community, **fields) -> Community:
         if before != value:
             changes[field] = {"before": _audit_value(before), "after": _audit_value(value)}
             setattr(community, field, value)
-    community.save()
+    _saving_name(community.save)
     _refresh_search_vector(community)
     record(
         actor=actor,
@@ -259,12 +282,20 @@ def update_settings(*, actor, community: Community, **fields) -> Community:
 @transaction.atomic
 def join(*, actor, community: Community, message: str = ""):
     """Join an open community or ask to join an on-request one (idempotent request)."""
+    if not getattr(actor, "is_active", False):
+        raise _forbidden()
     _lock(community)
     _ensure_writable(actor, community)
     if CommunityMembership.objects.filter(community=community, user=actor).exists():
         raise DomainError("already_member", _("You are already a member of this community."))
     if community.access_mode == Community.AccessMode.INVITE:
         raise DomainError("invite_only", _("This community is open by invitation only."))
+    policies.clear_membership_cache(actor)
+    allowed = policies.can_join(actor, community)
+    # Not a member yet: do not leave a memoised "no membership" on the caller's instance.
+    policies.clear_membership_cache(actor)
+    if not allowed:
+        raise _forbidden()
     if community.access_mode == Community.AccessMode.OPEN:
         membership = _add_membership(community, actor)
         record(actor=actor, action="community.joined", target=community, community=community)
@@ -302,6 +333,8 @@ def _locked_request(request: MembershipRequest) -> MembershipRequest:
 def cancel_request(*, actor, request: MembershipRequest) -> MembershipRequest:
     if request.user_id != actor.pk:
         raise _forbidden()
+    _lock(request.community)
+    _ensure_writable(actor, request.community)
     locked = _locked_request(request)
     locked.status = MembershipRequest.Status.CANCELLED
     locked.save(update_fields=["status", "updated_at"])
@@ -468,6 +501,8 @@ def revoke_invitation(*, actor, invitation: CommunityInvitation) -> CommunityInv
     community = invitation.community
     if not policies.can_manage_members(actor, community):
         raise _forbidden()
+    _lock(community)
+    _ensure_writable(actor, community)
     locked = _locked_invitation(invitation)
     locked.status = CommunityInvitation.Status.REVOKED
     locked.save(update_fields=["status", "updated_at"])
@@ -510,7 +545,7 @@ def remove_member(*, actor, membership: CommunityMembership) -> None:
         raise DomainError("forbidden_role", _("You cannot remove a member with this role."))
     if _is_last_owner(locked):
         raise _last_owner_error()
-    _delete_membership(locked, membership.user)
+    _delete_membership(locked, membership.user, actor)
     record(
         actor=actor,
         action="community.member_removed",
@@ -540,6 +575,7 @@ def change_role(*, actor, membership: CommunityMembership, role) -> CommunityMem
     membership.role = role
     policies.clear_membership_cache(locked.user)
     policies.clear_membership_cache(membership.user)
+    policies.clear_membership_cache(actor)
     record(
         actor=actor,
         action="community.role_changed",
@@ -553,17 +589,25 @@ def change_role(*, actor, membership: CommunityMembership, role) -> CommunityMem
 # --- lifecycle ------------------------------------------------------------------------------
 
 
-def _transition(actor, community, allowed, *, source, target, action, **extra) -> Community:
+def _transition(
+    actor, community, allowed, *, source, target, action, check=None, **extra
+) -> Community:
+    """Move ``community`` from a ``source`` status to ``target``.
+
+    ``check(actor, community)`` runs after the permission check and the row lock.
+    """
     if not allowed(actor, community):
         raise _forbidden()
     _lock(community)
+    if check is not None:
+        check(actor, community)
     if community.status not in source:
         raise _invalid_state()
     before = community.status
     community.status = target
     for field, value in extra.items():
         setattr(community, field, value)
-    community.save(update_fields=["status", "updated_at", *extra])
+    _saving_name(lambda: community.save(update_fields=["status", "updated_at", *extra]))
     record(
         actor=actor,
         action=action,
@@ -598,14 +642,19 @@ def reactivate(*, actor, community: Community) -> Community:
     )
 
 
-@transaction.atomic
-def archive(*, actor, community: Community) -> Community:
+def _ensure_writable_if_suspended(actor, community: Community) -> None:
     if community.status == Community.Status.SUSPENDED:
         _ensure_writable(actor, community)
+
+
+@transaction.atomic
+def archive(*, actor, community: Community) -> Community:
+    """Archive; a suspended community can only be archived by a functional admin."""
     return _transition(
         actor,
         community,
         policies.can_archive,
+        check=_ensure_writable_if_suspended,
         source={Community.Status.ACTIVE, Community.Status.SUSPENDED},
         target=Community.Status.ARCHIVED,
         action="community.archived",

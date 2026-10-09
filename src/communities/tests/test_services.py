@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from django.contrib.auth.models import Group
 from django.contrib.postgres.search import SearchQuery
+from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone, translation
 
@@ -633,3 +634,111 @@ def test_community_role_badge_renders_translated_label():
         html = render_to_string("components/community_role_badge.html", {"role": "animator"})
     assert "Facilitator" in html
     assert "badge" in html
+
+
+# --- integration fixes ----------------------------------------------------------------------
+
+
+def test_revoke_invitation_and_cancel_request_refuse_read_only_community(
+    new_community, creator, bob, carol, functional_admin
+):
+    community = new_community(access_mode=Community.AccessMode.REQUEST)
+    invitation = services.invite(actor=creator, community=community, user=bob)
+    request = services.join(actor=carol, community=community)
+    services.suspend(actor=functional_admin, community=community)
+    with pytest.raises(DomainError) as excinfo:
+        services.revoke_invitation(actor=creator, invitation=invitation)
+    assert _error(excinfo) == "read_only"
+    with pytest.raises(DomainError) as excinfo:
+        services.cancel_request(actor=carol, request=request)
+    assert _error(excinfo) == "read_only"
+    invitation.refresh_from_db()
+    request.refresh_from_db()
+    assert invitation.status == CommunityInvitation.Status.PENDING
+    assert request.status == MembershipRequest.Status.PENDING
+
+
+def test_join_requires_active_actor_and_can_join(new_community, make_user, functional_admin):
+    community = new_community()
+    suspended = make_user("suspended@example.com", status="suspended")
+    with pytest.raises(DomainError) as excinfo:
+        services.join(actor=suspended, community=community)
+    assert _error(excinfo) == "forbidden"
+    # A functional admin may change a suspended community, but nobody can join one.
+    services.suspend(actor=functional_admin, community=community)
+    with pytest.raises(DomainError) as excinfo:
+        services.join(actor=functional_admin, community=community)
+    assert _error(excinfo) == "forbidden"
+    assert not CommunityMembership.objects.filter(user__in=[suspended, functional_admin]).exists()
+
+
+def test_archive_checks_permission_before_read_only(new_community, bob, functional_admin):
+    community = new_community()
+    services.suspend(actor=functional_admin, community=community)
+    with pytest.raises(DomainError) as excinfo:
+        services.archive(actor=bob, community=community)
+    assert _error(excinfo) == "forbidden"
+
+
+@pytest.fixture
+def skip_name_precheck(monkeypatch):
+    """Simulate a concurrent creation that the ``_ensure_name_free`` pre-check misses."""
+    monkeypatch.setattr(services, "_ensure_name_free", lambda *args, **kwargs: None)
+
+
+def _assert_name_taken_keeps_transaction(call):
+    with transaction.atomic():
+        with pytest.raises(DomainError) as excinfo:
+            call()
+        assert _error(excinfo) == "name_taken"
+        # The outer transaction is still usable.
+        assert Community.objects.exists()
+
+
+def test_create_community_maps_unique_violation(new_community, skip_name_precheck):
+    new_community()
+    _assert_name_taken_keeps_transaction(lambda: new_community(name="python GUILD"))
+
+
+def test_update_settings_maps_unique_violation(new_community, creator, skip_name_precheck):
+    new_community()
+    other = new_community(name="Other")
+    _assert_name_taken_keeps_transaction(
+        lambda: services.update_settings(actor=creator, community=other, name="Python guild")
+    )
+
+
+def test_unarchive_maps_unique_violation(
+    new_community, creator, functional_admin, skip_name_precheck
+):
+    community = new_community()
+    services.archive(actor=creator, community=community)
+    new_community()
+    _assert_name_taken_keeps_transaction(
+        lambda: services.unarchive(actor=functional_admin, community=community)
+    )
+
+
+def test_change_role_and_remove_member_clear_actor_cache(
+    new_community, creator, bob, carol, add_member
+):
+    community = new_community()
+    add_member(community, bob, CommunityRole.OWNER)
+    add_member(community, carol, CommunityRole.OWNER)
+    assert policies.can_change_roles(creator, community)  # fills the actor's cache
+    own = CommunityMembership.objects.get(community=community, user=creator)
+    services.change_role(actor=creator, membership=own, role=CommunityRole.MEMBER)
+    assert not policies.can_change_roles(creator, community)
+    assert policies.can_manage_members(bob, community)  # fills bob's cache
+    bob_membership = CommunityMembership.objects.get(community=community, user=bob)
+    services.remove_member(actor=bob, membership=bob_membership)
+    assert policies.membership_of(bob, community) is None
+
+
+def test_update_settings_audits_before_values_from_locked_row(new_community, creator):
+    community = new_community()
+    stale = Community.objects.get(pk=community.pk)
+    services.update_settings(actor=creator, community=community, tagline="Second")
+    services.update_settings(actor=creator, community=stale, tagline="Third")
+    changes = _events("community.updated").order_by("pk").last().changes
+    assert changes == {"tagline": {"before": "Second", "after": "Third"}}

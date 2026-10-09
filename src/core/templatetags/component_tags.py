@@ -122,3 +122,12 @@ def community_role_colour(code) -> str:
         return COMMUNITY_ROLE_COLOURS[CommunityRole(code)]
     except (ValueError, KeyError):
         return "secondary"
+
+
+@register.filter
+def member_name(user) -> str:
+    """Name of ``user`` shown to other employees, never their full e-mail address.
+
+    The full name ("Former employee" once anonymized), else the e-mail's local part.
+    """
+    return user.get_full_name() or user.email.partition("@")[0]

@@ -1,6 +1,5 @@
 """HTTP tests of the read side: catalogue, community page, members tab, admin access."""
 
-import importlib
 from datetime import timedelta
 
 import pytest
@@ -17,19 +16,6 @@ pytestmark = pytest.mark.django_db
 
 OPEN, REQUEST, INVITE = Community.AccessMode
 CATALOGUE = "/communities/"
-
-
-def _services_ready() -> bool:
-    try:
-        return hasattr(importlib.import_module("communities.services"), "grant_admin_access")
-    except ImportError:
-        return False
-
-
-# The admin-access POST calls ``services.grant_admin_access`` (Task 2): run after integration.
-after_integration = pytest.mark.skipif(
-    not _services_ready(), reason="needs communities.services (Task 2)"
-)
 
 
 @pytest.fixture
@@ -131,11 +117,21 @@ def test_catalogue_search_uses_vector_and_name(employee_client, make_community):
     make_community("Data guild", tagline="Pipelines and warehouses")
     make_community("Design")
     Community.objects.update(
-        search_vector=SearchVector("name", weight="A") + SearchVector("tagline", weight="B")
+        search_vector=SearchVector("name", weight="A", config="simple")
+        + SearchVector("tagline", weight="B", config="simple")
     )
     assert _names(employee_client.get(CATALOGUE, {"q": "pipelines"})) == ["Data guild"]
     # Name fallback (partial word, not a lexeme).
     assert _names(employee_client.get(CATALOGUE, {"q": "kuber"})) == ["Kubernetes club"]
+
+
+def test_catalogue_search_matches_simple_config_vector(employee_client, make_community):
+    # The services build ``search_vector`` with the "simple" configuration (no stemming):
+    # the query must use it too, or "running" (stemmed to "run" in English) never matches.
+    make_community("Joggers", tagline="Running every morning")
+    make_community("Other", tagline="Reading")
+    Community.objects.update(search_vector=SearchVector("tagline", config="simple"))
+    assert _names(employee_client.get(CATALOGUE, {"q": "running"})) == ["Joggers"]
 
 
 def test_catalogue_pagination(employee_client, make_community):
@@ -245,9 +241,29 @@ def test_members_tab_lists_members_with_roles(employee_client, employee, make_us
     response = employee_client.get(reverse("communities:members", args=[community.slug]))
     html = response.content.decode()
     assert "Bob Lead" in html and "Eve Employee" in html
-    assert "Lead</span>" in html and "Member</span>" in html
+    assert 'tl-role-badge text-bg-dark">Lead</span>' in html
+    assert 'tl-role-badge text-bg-secondary">Member</span>' in html
+    assert "tl-community-role-badge" not in html
     detail = employee_client.get(reverse("communities:detail", args=[community.slug]))
     assert reverse("communities:members", args=[community.slug]) in detail.content.decode()
+
+
+def test_member_names_never_expose_email(employee_client, employee, make_user, make_community,
+                                        add_member):  # fmt: skip
+    community = make_community("Open", access_mode=OPEN)
+    nameless = make_user("nameless.lead@example.com", first_name="", last_name="")
+    add_member(community, nameless, Role.OWNER)
+    former = make_user("former@example.com", anonymized_at=timezone.now())
+    add_member(community, former)
+    add_member(community, employee)
+    for name in ("members", "detail"):
+        html = employee_client.get(reverse(f"communities:{name}", args=[community.slug]))
+        html = html.content.decode()
+        assert "nameless.lead@example.com" not in html
+        assert "nameless.lead" in html
+    html = employee_client.get(reverse("communities:members", args=[community.slug]))
+    html = html.content.decode()
+    assert "Former employee" in html and "former@example.com" not in html
 
 
 # --- Administrator access ------------------------------------------------------------------
@@ -295,7 +311,6 @@ def test_admin_with_grant_sees_content(admin_client, functional_admin, make_comm
     assert response.status_code == 200
 
 
-@after_integration
 def test_admin_access_flow(admin_client, functional_admin, make_community):
     community = make_community("Closed", access_mode=REQUEST)
     members_url = reverse("communities:members", args=[community.slug])
@@ -307,3 +322,19 @@ def test_admin_access_flow(admin_client, functional_admin, make_community):
     assert AdminAccessGrant.objects.filter(community=community, user=functional_admin).exists()
     assert AuditEvent.objects.filter(action="community.admin_access", community=community).exists()
     assert admin_client.get(members_url).status_code == 200
+
+
+def test_admin_access_domain_error_is_a_form_error(admin_client, make_community, monkeypatch):
+    from communities import services
+    from core.errors import DomainError
+
+    def refuse(**kwargs):
+        raise DomainError("forbidden", "Refused for a test reason.")
+
+    monkeypatch.setattr(services, "grant_admin_access", refuse)
+    community = make_community("Closed", access_mode=REQUEST)
+    url = reverse("communities:admin_access", args=[community.slug])
+    response = admin_client.post(url, {"reason": "Investigating a report"})
+    assert response.status_code == 200
+    assert "Refused for a test reason." in response.content.decode()
+    assert not AdminAccessGrant.objects.exists()

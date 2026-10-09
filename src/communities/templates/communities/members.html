@@ -7,8 +7,8 @@
   <ul class="list-group mb-3">
     {% for member in page_obj %}
       <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>{{ member.user.get_full_name|default:member.user.email }}</span>
-        <span class="badge tl-community-role-badge text-bg-{% if member.role == 'owner' %}primary{% elif member.role == 'animator' %}info{% else %}secondary{% endif %}">{{ member.get_role_display }}</span>
+        <span>{{ member.user|member_name }}</span>
+        {% include "components/community_role_badge.html" with role=member.role %}
       </li>
     {% endfor %}
   </ul>

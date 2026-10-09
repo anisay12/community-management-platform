@@ -15,6 +15,8 @@ from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_safe
 
+from core.errors import DomainError
+
 from . import policies, tabs
 from .forms import SORT_ORDERING, AdminAccessForm, CatalogueFilterForm
 from .models import CommunityMembership
@@ -29,7 +31,7 @@ CARD_ACCESS_STYLE = {"open": "open", "request": "restricted", "invite": "private
 
 def _filter_catalogue(user, communities, data):
     if data.get("q"):
-        query = SearchQuery(data["q"], search_type="websearch")
+        query = SearchQuery(data["q"], search_type="websearch", config="simple")
         communities = communities.filter(Q(search_vector=query) | Q(name__icontains=data["q"]))
     if data.get("category"):
         communities = communities.filter(category=data["category"])
@@ -118,9 +120,13 @@ def admin_access(request, slug):
         # Task 2's service; imported here only, as the read side does not depend on services.
         from . import services
 
-        services.grant_admin_access(
-            actor=request.user, community=community, reason=form.cleaned_data["reason"]
-        )
-        return redirect("communities:detail", slug=community.slug)
+        try:
+            services.grant_admin_access(
+                actor=request.user, community=community, reason=form.cleaned_data["reason"]
+            )
+        except DomainError as error:
+            form.add_error(None, error.message)
+        else:
+            return redirect("communities:detail", slug=community.slug)
     context["form"] = form
     return render(request, "communities/admin_access.html", context)

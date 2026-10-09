@@ -1,4 +1,4 @@
-{% load i18n %}{% comment %}
+{% load i18n component_tags %}{% comment %}
   Header of a community page. Context: community (with prefetched ``leads``), tabs,
   show_admin_access.
 {% endcomment %}
@@ -20,7 +20,7 @@
   </ul>
   {% if community.leads %}
     <p class="mb-2"><span class="text-body-secondary">{% translate "Leads:" %}</span>
-      {% for lead in community.leads %}{{ lead.user.get_full_name|default:lead.user.email }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      {% for lead in community.leads %}{{ lead.user|member_name }}{% if not forloop.last %}, {% endif %}{% endfor %}
     </p>
   {% endif %}
   <div class="d-flex flex-wrap gap-2">
