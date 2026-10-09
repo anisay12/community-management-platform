@@ -3,7 +3,6 @@
 import re
 
 import pytest
-
 from django.contrib.staticfiles import finders
 
 TOKENS = [
