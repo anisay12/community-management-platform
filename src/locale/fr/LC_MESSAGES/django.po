@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 17:00+0200\n"
+"POT-Creation-Date: 2026-10-09 17:09+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -1118,6 +1118,55 @@ msgstr "Animateur"
 
 msgid "Lead"
 msgstr "Responsable"
+
+msgid "You are not allowed to perform this action."
+msgstr "Vous n’êtes pas autorisé à effectuer cette action."
+
+msgid "This action is not possible in the current state."
+msgstr "Cette action est impossible dans l’état actuel."
+
+msgid "This community is suspended or archived: it cannot be changed."
+msgstr ""
+"Cette communauté est suspendue ou archivée : elle ne peut pas être modifiée."
+
+msgid "A community with this name already exists."
+msgstr "Une communauté portant ce nom existe déjà."
+
+msgid "The community needs at least one lead: appoint another lead first."
+msgstr ""
+"La communauté doit avoir au moins un responsable : désignez d’abord un autre "
+"responsable."
+
+msgid "This person is not a member."
+msgstr "Cette personne n’est pas membre."
+
+msgid "You are already a member of this community."
+msgstr "Vous êtes déjà membre de cette communauté."
+
+msgid "This community is open by invitation only."
+msgstr "Cette communauté est accessible sur invitation uniquement."
+
+msgid "You cannot offer this role."
+msgstr "Vous ne pouvez pas proposer ce rôle."
+
+msgid "This person is already a member."
+msgstr "Cette personne est déjà membre."
+
+msgid "This invitation has expired."
+msgstr "Cette invitation a expiré."
+
+msgid "You are not a member of this community."
+msgstr "Vous n’êtes pas membre de cette communauté."
+
+msgid "You cannot remove a member with this role."
+msgstr "Vous ne pouvez pas retirer un membre ayant ce rôle."
+
+#, python-format
+msgid "Give a reason of at least %(count)d characters."
+msgstr "Indiquez un motif d’au moins %(count)d caractères."
+
+msgid "A category with this name already exists."
+msgstr "Une catégorie portant ce nom existe déjà."
 
 msgid "Home"
 msgstr "Accueil"

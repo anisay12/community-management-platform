@@ -1,0 +1,4 @@
+{% load component_tags %}{% comment %}
+  Community role badge. Arguments: role (community role code, e.g. "animator"); shows the translated label.
+{% endcomment %}
+<span class="badge tl-role-badge text-bg-{{ role|community_role_colour }}">{{ role|community_role_label }}</span>

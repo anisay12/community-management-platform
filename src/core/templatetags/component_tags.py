@@ -9,6 +9,7 @@ from django.forms import CheckboxInput, CheckboxSelectMultiple, RadioSelect, Sel
 from django.utils.http import urlencode
 
 from accounts.roles import Role
+from communities.roles import CommunityRole
 
 register = template.Library()
 
@@ -92,5 +93,32 @@ def role_label(code) -> str:
 def role_colour(code) -> str:
     try:
         return ROLE_COLOURS[Role(code)]
+    except (ValueError, KeyError):
+        return "secondary"
+
+
+COMMUNITY_ROLE_COLOURS = {
+    CommunityRole.MEMBER: "secondary",
+    CommunityRole.CONTRIBUTOR: "info",
+    CommunityRole.EXPERT: "success",
+    CommunityRole.MODERATOR: "warning",
+    CommunityRole.ANIMATOR: "primary",
+    CommunityRole.OWNER: "dark",
+}
+
+
+@register.filter
+def community_role_label(code) -> str:
+    """Translated label of a community role code; an unknown code is returned unchanged."""
+    try:
+        return str(CommunityRole(code).label)
+    except ValueError:
+        return str(code)
+
+
+@register.filter
+def community_role_colour(code) -> str:
+    try:
+        return COMMUNITY_ROLE_COLOURS[CommunityRole(code)]
     except (ValueError, KeyError):
         return "secondary"
