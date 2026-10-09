@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     "organizations",
     "accounts",
     "audit",
+    "communities",
+    "notifications",
 ]
 
 MIDDLEWARE = [

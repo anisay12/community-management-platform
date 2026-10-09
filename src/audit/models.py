@@ -28,8 +28,17 @@ class AuditEvent(models.Model):
     action = models.CharField(_("action"), max_length=64, db_index=True)
     target_type = models.CharField(_("target type"), max_length=64)
     target_id = models.CharField(_("target identifier"), max_length=64)
-    # Foreign key to communities is added in L3.
-    community_id = models.BigIntegerField(_("community identifier"), null=True, blank=True)
+    # Same ``community_id`` column as before L3; never deleted with the community.
+    community = models.ForeignKey(
+        "communities.Community",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_constraint=True,
+        db_column="community_id",
+        related_name="+",
+        verbose_name=_("community"),
+    )
     changes = models.JSONField(_("changes"), default=dict, blank=True)
     ip_hash = models.CharField(_("IP hash"), max_length=64, blank=True)
     request_id = models.CharField(_("request identifier"), max_length=64, blank=True)

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 16:18+0200\n"
+"POT-Creation-Date: 2026-10-09 17:00+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -854,8 +854,8 @@ msgstr "type de cible"
 msgid "target identifier"
 msgstr "identifiant de la cible"
 
-msgid "community identifier"
-msgstr "identifiant de la communauté"
+msgid "community"
+msgstr "communauté"
 
 msgid "changes"
 msgstr "modifications"
@@ -920,6 +920,204 @@ msgstr "Fonctionnel"
 
 msgid "Event"
 msgstr "Événement"
+
+msgid "name"
+msgstr "nom"
+
+msgid "slug"
+msgstr "identifiant URL"
+
+msgid "description"
+msgstr "description"
+
+msgid "icon"
+msgstr "icône"
+
+msgid "Bootstrap Icons name."
+msgstr "Nom d'icône Bootstrap Icons."
+
+msgid "order"
+msgstr "ordre"
+
+msgid "community category"
+msgstr "catégorie de communauté"
+
+msgid "community categories"
+msgstr "catégories de communauté"
+
+msgid "Open"
+msgstr "Ouverte"
+
+msgid "On request"
+msgstr "Sur demande"
+
+msgid "Invitation only"
+msgstr "Sur invitation"
+
+msgid "Archived"
+msgstr "Archivée"
+
+msgid "category"
+msgstr "catégorie"
+
+msgid "tagline"
+msgstr "accroche"
+
+msgid "rules"
+msgstr "règles"
+
+msgid "objectives"
+msgstr "objectifs"
+
+msgid "cover image"
+msgstr "image de couverture"
+
+msgid "access mode"
+msgstr "mode d'accès"
+
+msgid "listed in the catalogue"
+msgstr "visible dans le catalogue"
+
+msgid "members may upload files"
+msgstr "les membres peuvent déposer des fichiers"
+
+msgid "posts require review"
+msgstr "publications soumises à validation"
+
+msgid "archived at"
+msgstr "archivée le"
+
+msgid "created by"
+msgstr "créée par"
+
+msgid "tags"
+msgstr "tags"
+
+msgid "search vector"
+msgstr "vecteur de recherche"
+
+msgid "member count"
+msgstr "nombre de membres"
+
+msgid "last activity"
+msgstr "dernière activité"
+
+msgid "communities"
+msgstr "communautés"
+
+msgid "All activity"
+msgstr "Toute l'activité"
+
+msgid "Highlights"
+msgstr "Temps forts"
+
+msgid "None"
+msgstr "Aucune"
+
+msgid "role"
+msgstr "rôle"
+
+msgid "joined at"
+msgstr "membre depuis"
+
+msgid "notification level"
+msgstr "niveau de notification"
+
+msgid "community membership"
+msgstr "adhésion à une communauté"
+
+msgid "community memberships"
+msgstr "adhésions aux communautés"
+
+msgid "Accepted"
+msgstr "Acceptée"
+
+msgid "Rejected"
+msgstr "Refusée"
+
+msgid "Cancelled"
+msgstr "Annulée"
+
+msgid "message"
+msgstr "message"
+
+msgid "decided by"
+msgstr "décidé par"
+
+msgid "decided at"
+msgstr "décidé le"
+
+msgid "decision note"
+msgstr "note de décision"
+
+msgid "membership request"
+msgstr "demande d'adhésion"
+
+msgid "membership requests"
+msgstr "demandes d'adhésion"
+
+msgid "Declined"
+msgstr "Déclinée"
+
+msgid "Revoked"
+msgstr "Révoquée"
+
+msgid "Expired"
+msgstr "Expirée"
+
+msgid "invited user"
+msgstr "utilisateur invité"
+
+msgid "invited by"
+msgstr "invité par"
+
+msgid "community invitation"
+msgstr "invitation à une communauté"
+
+msgid "community invitations"
+msgstr "invitations aux communautés"
+
+msgid "Approved"
+msgstr "Approuvée"
+
+msgid "requester"
+msgstr "demandeur"
+
+msgid "justification"
+msgstr "justification"
+
+msgid "community creation request"
+msgstr "demande de création de communauté"
+
+msgid "community creation requests"
+msgstr "demandes de création de communauté"
+
+msgid "reason"
+msgstr "motif"
+
+msgid "administrator access grant"
+msgstr "accès administrateur"
+
+msgid "administrator access grants"
+msgstr "accès administrateur"
+
+msgid "Member"
+msgstr "Membre"
+
+msgid "Contributor"
+msgstr "Contributeur"
+
+msgid "Expert"
+msgstr "Expert"
+
+msgid "Moderator"
+msgstr "Modérateur"
+
+msgid "Facilitator"
+msgstr "Animateur"
+
+msgid "Lead"
+msgstr "Responsable"
 
 msgid "Home"
 msgstr "Accueil"
@@ -1023,9 +1221,6 @@ msgstr "Tout sur Python chez Talan."
 
 msgid "Technology"
 msgstr "Technologie"
-
-msgid "Open"
-msgstr "Ouverte"
 
 msgid "Feedback"
 msgstr "Retours"
@@ -1144,8 +1339,17 @@ msgstr "Membres"
 msgid "Settings"
 msgstr "Paramètres"
 
-msgid "name"
-msgstr "nom"
+msgid "recipient"
+msgstr "destinataire"
+
+msgid "read at"
+msgstr "lu le"
+
+msgid "notification"
+msgstr "notification"
+
+msgid "notifications"
+msgstr "notifications"
 
 msgid "code"
 msgstr "code"
@@ -1171,11 +1375,5 @@ msgstr "affectation"
 msgid "employments"
 msgstr "affectations"
 
-msgid "slug"
-msgstr "identifiant URL"
-
 msgid "tag"
 msgstr "tag"
-
-msgid "tags"
-msgstr "tags"

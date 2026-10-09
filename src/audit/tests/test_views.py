@@ -9,6 +9,7 @@ from accounts.roles import Role
 from audit.forms import AuditFilterForm
 from audit.models import AuditEvent
 from audit.templatetags.audit_tags import action_category, can_view_audit_log
+from communities.models import Community, CommunityCategory
 from core.tests.helpers import assert_single_h1
 
 pytestmark = pytest.mark.django_db
@@ -37,6 +38,9 @@ def auditor_client(client, auditor, verified_login):
 def events(make_user):
     actor = make_user("actor@example.com", first_name="Alice", last_name="Martin")
     base = timezone.now()
+    community = Community.objects.create(
+        name="Audited", slug="audited", tagline="t", category=CommunityCategory.objects.first()
+    )
     return {
         "auth": AuditEvent.objects.create(
             actor=actor, action="auth.login", target_type="user", target_id="1", created_at=base
@@ -49,7 +53,7 @@ def events(make_user):
             changes={"note": "<script>alert(1)</script>"},
             ip_hash="abc123",
             request_id="req-1",
-            community_id=9,
+            community=community,
             created_at=base - timedelta(minutes=1),
         ),
     }

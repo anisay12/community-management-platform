@@ -35,9 +35,16 @@ def record(
     action: str,
     target,
     changes: dict | None = None,
+    community=None,
     community_id: int | None = None,
 ) -> AuditEvent:
-    """Append an audit event; call it inside the transaction of the change it describes."""
+    """Append an audit event; call it inside the transaction of the change it describes.
+
+    The community is given as an instance (``community=``) or, for older callers, by
+    primary key (``community_id=``).
+    """
+    if community is not None:
+        community_id = community.pk
     if isinstance(target, tuple):
         target_type, target_id = target
     else:
