@@ -2,6 +2,8 @@
 
 import re
 
+import pytest
+
 from django.contrib.staticfiles import finders
 
 TOKENS = [
@@ -61,3 +63,11 @@ def test_icon_fonts_use_a_relative_url_that_resolves():
     assert urls
     for url in set(urls):
         assert finders.find(f"core/dist/{url}"), url
+
+
+@pytest.mark.parametrize("name", ["app.css", "bootstrap.bundle.min.js", "htmx.min.js"])
+def test_dist_files_reference_no_missing_source_map(name):
+    # ManifestStaticFilesStorage (collectstatic in the image build) fails on a dangling .map.
+    path = finders.find(f"core/dist/{name}")
+    with open(path, encoding="utf-8-sig") as handle:
+        assert "sourceMappingURL" not in handle.read()

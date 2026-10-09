@@ -23,8 +23,12 @@ npx --no-install sass \
   --load-path=node_modules \
   "$STATIC/scss/app.scss" "$DIST/app.css"
 
-cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js "$DIST/bootstrap.bundle.min.js"
-cp node_modules/htmx.org/dist/htmx.min.js "$DIST/htmx.min.js"
+# Source maps are not shipped, so their sourceMappingURL comments are dropped: Django's
+# ManifestStaticFilesStorage (collectstatic in the image build) fails on a reference to a
+# missing .map file.
+for js in bootstrap/dist/js/bootstrap.bundle.min.js htmx.org/dist/htmx.min.js; do
+  sed '/^\/\/# sourceMappingURL=/d' "node_modules/$js" > "$DIST/$(basename "$js")"
+done
 cp node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2 "$DIST/fonts/"
 cp node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff "$DIST/fonts/"
 
