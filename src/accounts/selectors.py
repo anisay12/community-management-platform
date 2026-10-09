@@ -1,6 +1,7 @@
 from django.db.models import Q, QuerySet
+from django.utils import timezone
 
-from .models import User
+from .models import DataExport, User
 
 
 def users_for_admin(*, query: str = "", status: str = "") -> QuerySet[User]:
@@ -20,3 +21,18 @@ def users_for_admin(*, query: str = "", status: str = "") -> QuerySet[User]:
     if status in User.Status.values:
         users = users.filter(status=status)
     return users
+
+
+def current_data_export(user) -> DataExport | None:
+    """The export that is pending or still available for download, if any.
+
+    While there is one, the user cannot request another.
+    """
+    return (
+        DataExport.objects.filter(user=user)
+        .filter(
+            Q(status=DataExport.Status.PENDING)
+            | Q(status=DataExport.Status.READY, expires_at__gt=timezone.now())
+        )
+        .first()
+    )

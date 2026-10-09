@@ -10,6 +10,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from . import services
 from .models import DataExport
+from .selectors import current_data_export
 
 
 @login_required
@@ -26,9 +27,7 @@ def data_export(request):
     context = {
         "export": export,
         "downloadable": export is not None and export.is_downloadable(),
-        "can_request": export is None
-        or export.status == DataExport.Status.FAILED
-        or (export.status == DataExport.Status.READY and not export.is_downloadable()),
+        "can_request": current_data_export(request.user) is None,
     }
     return render(request, "accounts/data_export.html", context)
 

@@ -2,6 +2,7 @@ import json
 from datetime import timedelta
 
 import pytest
+import structlog
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.contrib.sessions.backends.cache import SessionStore
@@ -68,9 +69,13 @@ def _ready_export(owner, capture) -> DataExport:
     return export
 
 
-def _content(export) -> dict:
+def _raw(export) -> str:
     with export.file.open("rb") as handle:
-        return json.loads(handle.read().decode("utf-8"))
+        return handle.read().decode("utf-8")
+
+
+def _content(export) -> dict:
+    return json.loads(_raw(export))
 
 
 # Export ---------------------------------------------------------------------------
@@ -99,7 +104,7 @@ def test_export_contains_own_data_and_nothing_about_other_users(
     with django_capture_on_commit_callbacks(execute=True):
         export = services.request_data_export(user=owner)
     export.refresh_from_db()
-    raw = export.file.open("rb").read().decode("utf-8")
+    raw = _raw(export)
     data = json.loads(raw)
     account = data["sections"]["account"]
     assert account["email"] == "owner@example.com"
@@ -124,7 +129,7 @@ def test_export_file_is_utf8_with_indent(owner, django_capture_on_commit_callbac
     with django_capture_on_commit_callbacks(execute=True):
         export = services.request_data_export(user=owner)
     export.refresh_from_db()
-    raw = export.file.open("rb").read().decode("utf-8")
+    raw = _raw(export)
     assert "Élodie" in raw
     assert '\n  "sections"' in raw
 
@@ -163,6 +168,78 @@ def test_build_failure_marks_export_failed(owner, monkeypatch):
     export.refresh_from_db()
     assert export.status == DataExport.Status.FAILED
     assert not export.file
+
+
+def test_build_removes_the_file_when_the_export_was_deleted_meanwhile(owner, monkeypatch):
+    export = DataExport.objects.create(user=owner)
+    written = []
+    real_save = default_storage.save
+
+    def deleting_exporter(user):
+        DataExport.objects.filter(pk=export.pk).delete()  # e.g. the account was anonymized
+        return {}
+
+    def spying_save(name, content, *args, **kwargs):
+        written.append(real_save(name, content, *args, **kwargs))
+        return written[-1]
+
+    monkeypatch.setitem(privacy._exporters, "vanishing", deleting_exporter)
+    monkeypatch.setattr(default_storage, "save", spying_save)
+    tasks.build_data_export(export.pk)  # no exception
+    assert len(written) == 1
+    assert not default_storage.exists(written[0])
+
+
+def test_build_removes_the_file_when_the_final_save_fails(owner, monkeypatch):
+    export = DataExport.objects.create(user=owner)
+    written = []
+    real_save = default_storage.save
+
+    def spying_save(name, content, *args, **kwargs):
+        written.append(real_save(name, content, *args, **kwargs))
+        return written[-1]
+
+    def broken_save(self, *args, **kwargs):
+        raise RuntimeError("database down")
+
+    monkeypatch.setattr(default_storage, "save", spying_save)
+    monkeypatch.setattr(DataExport, "save", broken_save)
+    with pytest.raises(RuntimeError):
+        tasks.build_data_export(export.pk)
+    monkeypatch.undo()
+    assert len(written) == 1
+    assert not default_storage.exists(written[0])
+    export.refresh_from_db()
+    assert export.status == DataExport.Status.FAILED
+    assert not export.file
+
+
+def test_transient_storage_error_leaves_the_export_pending_for_retry(owner, monkeypatch):
+    export = DataExport.objects.create(user=owner)
+
+    def flaky(user):
+        raise OSError("storage unavailable")
+
+    monkeypatch.setitem(privacy._exporters, "flaky", flaky)
+    with pytest.raises(OSError):
+        tasks.build_data_export(export.pk)  # called directly: first attempt
+    export.refresh_from_db()
+    assert export.status == DataExport.Status.PENDING
+    assert tasks.build_data_export.max_retries == 3
+    assert OSError in tasks.build_data_export.autoretry_for
+
+
+def test_transient_storage_error_marks_failed_after_the_last_retry(owner, monkeypatch):
+    export = DataExport.objects.create(user=owner)
+
+    def flaky(user):
+        raise OSError("storage unavailable")
+
+    monkeypatch.setitem(privacy._exporters, "flaky", flaky)
+    result = tasks.build_data_export.apply(args=[export.pk], retries=3, throw=False)
+    assert isinstance(result.result, OSError)
+    export.refresh_from_db()
+    assert export.status == DataExport.Status.FAILED
 
 
 def test_build_ignores_missing_or_already_built_export(owner, django_capture_on_commit_callbacks):
@@ -397,6 +474,35 @@ def test_scheduled_task_anonymizes_only_old_deactivations(make_user):
     assert tasks.anonymize_expired_accounts() == 0
 
 
+def test_scheduled_task_carries_on_after_a_failing_account(make_user, monkeypatch):
+    days = settings.ACCOUNT_ANONYMIZE_AFTER_DAYS
+    broken = make_user("broken@example.com")
+    fine = make_user("fine@example.com")
+    for user in (broken, fine):
+        services.deactivate_user(actor=None, user=user)
+    old = timezone.now() - timedelta(days=days, hours=1)
+    User.objects.filter(pk__in=[broken.pk, fine.pk]).update(deactivated_at=old)
+
+    def failing(user):
+        if user.pk == broken.pk:
+            raise RuntimeError("boom for broken@example.com")
+
+    monkeypatch.setattr(privacy, "_anonymizers", list(privacy._anonymizers))
+    privacy.register_anonymizer(failing)
+
+    with structlog.testing.capture_logs() as logs:
+        assert tasks.anonymize_expired_accounts() == 1
+
+    broken.refresh_from_db()
+    fine.refresh_from_db()
+    assert broken.anonymized_at is None
+    assert broken.email == "broken@example.com"  # rolled back
+    assert fine.anonymized_at is not None
+    failure = next(log for log in logs if log["event"] == "account_anonymization_failed")
+    assert failure["user_public_id"] == str(broken.public_id)
+    assert "broken@example.com" not in str(logs)
+
+
 def test_beat_schedule_has_privacy_tasks():
     schedule = {
         entry["task"]: entry["schedule"] for entry in settings.CELERY_BEAT_SCHEDULE.values()
@@ -439,12 +545,19 @@ def test_anonymize_view_confirm_then_perform(admin_client, owner, functional_adm
 
 def test_anonymize_view_refuses_active_account(admin_client, owner):
     url = reverse("manage:user_anonymize", args=[owner.public_id])
-    response = admin_client.get(url)
-    assert response.status_code == 302
-    response = admin_client.post(url)
-    assert response.status_code == 302
+    response = admin_client.post(url, follow=True)
+    assert response.redirect_chain == [(reverse("manage:user_detail", args=[owner.public_id]), 302)]
+    assert "Only a deactivated account can be anonymized." in response.content.decode()
     owner.refresh_from_db()
     assert owner.anonymized_at is None
+
+
+def test_anonymize_view_only_accepts_get_and_post(admin_client, client, owner, other):
+    url = reverse("manage:user_anonymize", args=[owner.public_id])
+    assert admin_client.put(url).status_code == 405
+    assert admin_client.delete(url).status_code == 405
+    client.force_login(other)
+    assert client.put(url).status_code == 404  # non-managers never learn the page exists
 
 
 def test_anonymize_view_redirects_when_already_anonymized(admin_client, owner, functional_admin):
@@ -485,3 +598,11 @@ def test_purge_removes_stale_unfinished_exports(owner):
     DataExport.objects.filter(pk__in=[stale.pk, failed.pk]).update(created_at=old)
     assert tasks.purge_expired_exports() == 2
     assert list(DataExport.objects.values_list("pk", flat=True)) == [recent.pk]
+
+
+def test_discarding_a_stored_file_never_raises(monkeypatch):
+    class BrokenStorage:
+        def delete(self, name):
+            raise OSError("storage unavailable")
+
+    tasks._discard_stored_file(BrokenStorage(), "exports/x.json")

@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_http_methods, require_POST
 
 from core.errors import DomainError
 
@@ -162,6 +162,7 @@ def user_deactivate_confirm(request, public_id):
 
 
 @manage_required
+@require_http_methods(["GET", "POST"])
 def user_anonymize(request, public_id):
     """Anonymization erases personal data for good: confirm it on its own page."""
     account = _account(public_id)
@@ -169,9 +170,6 @@ def user_anonymize(request, public_id):
         raise PermissionDenied
     if account.anonymized_at is not None:
         messages.error(request, _("This account is already anonymized."))
-        return redirect("manage:user_detail", public_id=account.public_id)
-    if account.status != User.Status.DEACTIVATED:
-        messages.error(request, _("Only a deactivated account can be anonymized."))
         return redirect("manage:user_detail", public_id=account.public_id)
     if request.method == "POST":
         try:
