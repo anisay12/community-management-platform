@@ -1,0 +1,33 @@
+{% load i18n %}{% comment %}
+  Header of a community page. Context: community (with prefetched ``leads``), tabs,
+  show_admin_access.
+{% endcomment %}
+{% translate "Communities" as catalogue_label %}{% url 'communities:catalogue' as catalogue_url %}
+<nav aria-label="{% translate 'Breadcrumb' %}">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{{ catalogue_url }}">{{ catalogue_label }}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ community.name }}</li>
+  </ol>
+</nav>
+<header class="tl-community-header rounded p-4 mb-3 bg-body-tertiary border">
+  <p class="small text-body-secondary mb-1"><i class="bi bi-{{ community.category.icon }} me-1" aria-hidden="true"></i>{{ community.category.name }}</p>
+  <h1 class="h2">{{ community.name }}</h1>
+  <p class="lead">{{ community.tagline }}</p>
+  <ul class="list-inline mb-2">
+    <li class="list-inline-item"><span class="badge text-bg-{% if community.access_mode == 'open' %}success{% elif community.access_mode == 'request' %}warning{% else %}secondary{% endif %}">{{ community.get_access_mode_display }}</span></li>
+    {% if community.status != "active" %}<li class="list-inline-item"><span class="badge text-bg-dark">{{ community.get_status_display }}</span></li>{% endif %}
+    <li class="list-inline-item"><i class="bi bi-people me-1" aria-hidden="true"></i>{% blocktranslate count counter=community.member_count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</li>
+  </ul>
+  {% if community.leads %}
+    <p class="mb-2"><span class="text-body-secondary">{% translate "Leads:" %}</span>
+      {% for lead in community.leads %}{{ lead.user.get_full_name|default:lead.user.email }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </p>
+  {% endif %}
+  <div class="d-flex flex-wrap gap-2">
+    {% include "communities/_actions.html" %}
+    {% include "communities/_manage_link.html" %}
+    {% if show_admin_access %}<a class="btn btn-outline-secondary" href="{% url 'communities:admin_access' community.slug %}"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>{% translate "Access as administrator" %}</a>{% endif %}
+  </div>
+</header>
+{% translate "Community sections" as tabs_label %}
+{% include "components/tabs.html" with items=tabs label=tabs_label %}

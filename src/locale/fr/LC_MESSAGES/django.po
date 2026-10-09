@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 17:09+0200\n"
+"POT-Creation-Date: 2026-10-09 17:17+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -921,6 +921,39 @@ msgstr "Fonctionnel"
 msgid "Event"
 msgstr "Événement"
 
+msgid "Recent activity"
+msgstr "Activité récente"
+
+msgid "Members"
+msgstr "Membres"
+
+msgid "Alphabetical"
+msgstr "Ordre alphabétique"
+
+msgid "Search by name"
+msgstr "Rechercher par nom"
+
+msgid "All categories"
+msgstr "Toutes les catégories"
+
+msgid "Access mode"
+msgstr "Mode d'accès"
+
+msgid "All access modes"
+msgstr "Tous les modes d'accès"
+
+msgid "Sort by"
+msgstr "Trier par"
+
+msgid "My communities"
+msgstr "Mes communautés"
+
+msgid "Reason"
+msgstr "Motif"
+
+msgid "Recorded in the audit log. Access lasts one hour."
+msgstr "Consigné dans le journal d'audit. L'accès dure une heure."
+
 msgid "name"
 msgstr "nom"
 
@@ -1168,6 +1201,59 @@ msgstr "Indiquez un motif d’au moins %(count)d caractères."
 msgid "A category with this name already exists."
 msgstr "Une catégorie portant ce nom existe déjà."
 
+msgid "Breadcrumb"
+msgstr "Fil d’Ariane"
+
+#, python-format
+msgid "%(counter)s member"
+msgid_plural "%(counter)s members"
+msgstr[0] "%(counter)s membre"
+msgstr[1] "%(counter)s membres"
+
+msgid "Leads:"
+msgstr "Responsables :"
+
+msgid "Access as administrator"
+msgstr "Accéder en tant qu'administrateur"
+
+msgid "Community sections"
+msgstr "Rubriques de la communauté"
+
+#, python-format
+msgid ""
+"You are not a member of %(name)s. Give the reason why you need to read its "
+"content."
+msgstr ""
+"Vous n'êtes pas membre de %(name)s. Indiquez pourquoi vous avez besoin de "
+"consulter son contenu."
+
+msgid "Access the content"
+msgstr "Accéder au contenu"
+
+msgid "Communities catalogue"
+msgstr "Catalogue des communautés"
+
+#, python-format
+msgid "%(counter)s community"
+msgid_plural "%(counter)s communities"
+msgstr[0] "%(counter)s communauté"
+msgstr[1] "%(counter)s communautés"
+
+msgid "No community matches these filters."
+msgstr "Aucune communauté ne correspond à ces filtres."
+
+msgid "Description"
+msgstr "Description"
+
+msgid "No description yet."
+msgstr "Pas encore de description."
+
+msgid "Objectives"
+msgstr "Objectifs"
+
+msgid "Rules"
+msgstr "Règles"
+
 msgid "Home"
 msgstr "Accueil"
 
@@ -1179,15 +1265,6 @@ msgstr "Communautés — plateforme interne"
 
 msgid "Close"
 msgstr "Fermer"
-
-msgid "Breadcrumb"
-msgstr "Fil d’Ariane"
-
-#, python-format
-msgid "%(counter)s member"
-msgid_plural "%(counter)s members"
-msgstr[0] "%(counter)s membre"
-msgstr[1] "%(counter)s membres"
 
 msgid "There is a problem"
 msgstr "Il y a un problème"
@@ -1304,9 +1381,6 @@ msgstr "Eve F."
 msgid "Navigation"
 msgstr "Navigation"
 
-msgid "Community sections"
-msgstr "Rubriques de la communauté"
-
 msgid "Modal"
 msgstr "Fenêtre modale"
 
@@ -1381,9 +1455,6 @@ msgstr "Page courante"
 
 msgid "Overview"
 msgstr "Vue d’ensemble"
-
-msgid "Members"
-msgstr "Membres"
 
 msgid "Settings"
 msgstr "Paramètres"

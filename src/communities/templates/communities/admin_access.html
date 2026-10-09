@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Access as administrator" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <nav aria-label="{% translate 'Breadcrumb' %}">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'communities:catalogue' %}">{% translate "Communities" %}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'communities:detail' community.slug %}">{{ community.name }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{% translate "Access as administrator" %}</li>
+    </ol>
+  </nav>
+  <h1 class="h2">{% translate "Access as administrator" %}</h1>
+  <p>{% blocktranslate with name=community.name %}You are not a member of {{ name }}. Give the reason why you need to read its content.{% endblocktranslate %}</p>
+  {% include "components/form_errors.html" with form=form %}
+  <form method="post" class="col-12 col-lg-8">
+    {% csrf_token %}
+    {% include "components/form_field.html" with field=form.reason %}
+    <button type="submit" class="btn btn-primary">{% translate "Access the content" %}</button>
+    <a class="btn btn-link" href="{% url 'communities:detail' community.slug %}">{% translate "Cancel" %}</a>
+  </form>
+{% endblock %}

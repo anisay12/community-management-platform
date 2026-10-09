@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Communities catalogue" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h2">{% translate "Communities catalogue" %}</h1>
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" action="{% url 'communities:catalogue' %}" role="search" class="row g-3 align-items-end">
+        {% for field in form %}
+          <div class="col-12 col-md-6 col-lg-{% if field.name == 'mine' %}2{% else %}3{% endif %}">{% include "components/form_field.html" with field=field %}</div>
+        {% endfor %}
+        <div class="col-12 mb-3"><button type="submit" class="btn btn-primary">{% translate "Filter" %}</button></div>
+      </form>
+    </div>
+  </div>
+  <p>{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} community{% plural %}{{ counter }} communities{% endblocktranslate %}</p>
+  {% if page_obj.object_list %}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-3">
+      {% for community in page_obj %}
+        <div class="col">
+          {% url 'communities:detail' community.slug as community_url %}
+          {% include "components/community_card.html" with name=community.name url=community_url tagline=community.tagline category=community.category.name member_count=community.member_count access_mode=community.card_access_style access_mode_label=community.get_access_mode_display %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% translate "No community matches these filters." as empty_title %}
+    {% include "components/empty_state.html" with icon="people" title=empty_title %}
+  {% endif %}
+  {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n component_tags %}
+{% block title %}{% translate "Members" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_header.html" %}
+  <h2 class="h4 mt-3">{% translate "Members" %}</h2>
+  <ul class="list-group mb-3">
+    {% for member in page_obj %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ member.user.get_full_name|default:member.user.email }}</span>
+        <span class="badge tl-community-role-badge text-bg-{% if member.role == 'owner' %}primary{% elif member.role == 'animator' %}info{% else %}secondary{% endif %}">{{ member.get_role_display }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+  {% querystring_without_page as querystring %}
+  {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
+{% endblock %}
