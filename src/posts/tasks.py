@@ -63,12 +63,24 @@ def recount_target(model_label: str, pk: int) -> None:
         cache.delete(_lock_key(model_label, pk))
     except Exception:  # the lock only deduplicates; counting must still happen
         logger.warning("posts.recount.cache_unavailable", exc_info=True)
+    _recount(model, pk)
+
+
+def _recount(model, pk: int) -> int:
+    """Store the current counters of one post or comment; returns 1 when they changed."""
     if model is Post:
-        Post.objects.filter(pk=pk).update(
-            comment_count=_comment_count(pk), reaction_counts=_reaction_counts("post", pk)
+        comments, reactions = _comment_count(pk), _reaction_counts("post", pk)
+        return (
+            Post.objects.filter(pk=pk)
+            .exclude(comment_count=comments, reaction_counts=reactions)
+            .update(comment_count=comments, reaction_counts=reactions)
         )
-    else:
-        Comment.objects.filter(pk=pk).update(reaction_counts=_reaction_counts("comment", pk))
+    reactions = _reaction_counts("comment", pk)
+    return (
+        Comment.objects.filter(pk=pk)
+        .exclude(reaction_counts=reactions)
+        .update(reaction_counts=reactions)
+    )
 
 
 def _enqueue(model_label: str, pk: int) -> None:
@@ -116,7 +128,13 @@ def verify_counters() -> None:
 
 
 def fix_counters() -> int:
-    """Correct every drifted counter; returns the number of corrected posts and comments."""
+    """Correct every drifted counter; returns the number of corrected posts and comments.
+
+    The bulk totals and the stored counters are read at different moments, so they only
+    *detect* a possible drift: each suspect is recounted from the current rows
+    (``_recount``), never overwritten with the older totals (a reaction recounted while the
+    job runs stays counted).
+    """
     fixed = 0
     post_reactions = _reaction_totals("post")
     posts = Post.objects.annotate(
@@ -125,18 +143,13 @@ def fix_counters() -> int:
     for post in posts.iterator(chunk_size=2000):
         reactions = post_reactions.get(post.pk, {})
         if post.comment_count != post.actual_comments or post.reaction_counts != reactions:
-            Post.objects.filter(pk=post.pk).update(
-                comment_count=post.actual_comments, reaction_counts=reactions
-            )
-            fixed += 1
+            fixed += _recount(Post, post.pk)
     comment_reactions = _reaction_totals("comment")
     comments = Comment.objects.exclude(reaction_counts={}).values_list("pk", "reaction_counts")
     candidates = dict(comments.iterator(chunk_size=2000))
     for pk in comment_reactions.keys() | candidates.keys():
-        reactions = comment_reactions.get(pk, {})
-        if candidates.get(pk, {}) != reactions:
-            Comment.objects.filter(pk=pk).update(reaction_counts=reactions)
-            fixed += 1
+        if candidates.get(pk, {}) != comment_reactions.get(pk, {}):
+            fixed += _recount(Comment, pk)
     return fixed
 
 

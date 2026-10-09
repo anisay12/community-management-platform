@@ -4,7 +4,7 @@
 import base64
 import binascii
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.db.models import Exists, OuterRef, Prefetch, Q, prefetch_related_objects
 from django.shortcuts import get_object_or_404
@@ -96,13 +96,16 @@ def encode_cursor(post) -> str:
 
 
 def decode_cursor(value) -> tuple[datetime, int] | None:
-    """``(last_activity_at, id)`` of a cursor, or ``None`` when it is missing or malformed."""
+    """``(last_activity_at, id)`` of a cursor (in UTC), or ``None`` when it is missing or
+    malformed, naive, or out of range once converted to UTC (a tampered offset)."""
     try:
-        moment, _, pk = base64.urlsafe_b64decode(str(value).encode()).decode().partition("|")
-        decoded = (datetime.fromisoformat(moment), int(pk))
-    except (ValueError, UnicodeError, binascii.Error):
+        raw, _, pk = base64.urlsafe_b64decode(str(value).encode()).decode().partition("|")
+        moment = datetime.fromisoformat(raw)
+        if moment.tzinfo is None:
+            return None
+        return moment.astimezone(UTC), int(pk)
+    except (ValueError, UnicodeError, binascii.Error, OverflowError):
         return None
-    return decoded if decoded[0].tzinfo is not None else None
 
 
 def _feed_queryset(user):
@@ -189,15 +192,17 @@ def mark_share_access(user, posts) -> None:
 # Comments ----------------------------------------------------------------------------------
 
 
-def comment_thread(user, post) -> list[Comment]:
+def comment_thread(user, post, *, moderator=None) -> list[Comment]:
     """Top-level comments of ``post`` with their replies in ``prefetched_replies``.
 
     Hidden comments stay in the thread (as a placeholder): ``body_visible`` is true only for
     visible comments, or for hidden ones when ``user`` is their author or a moderator.
+    ``moderator`` is whether ``user`` moderates the community, when the caller already knows.
     """
-    from .policies import is_content_moderator
+    if moderator is None:
+        from .policies import is_content_moderator
 
-    moderator = is_content_moderator(user, post.community)
+        moderator = is_content_moderator(user, post.community)
     replies = Comment.objects.order_by("created_at", "pk")
     thread = list(
         Comment.objects.filter(post=post, parent__isnull=True)

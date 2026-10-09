@@ -351,7 +351,7 @@ def test_detail_hidden_comments(client, community, author, member, make_post, ma
     add_member(community, moderator, CommunityRole.MODERATOR)
     client.force_login(reader)
     html = client.get(_detail(post)).content.decode()
-    assert "Comment hidden by a moderator" in html and "Something rude" not in html
+    assert "This comment is hidden." in html and "Something rude" not in html
     for viewer in (member, moderator):
         client.force_login(viewer)
         html = client.get(_detail(post)).content.decode()
@@ -363,6 +363,66 @@ def test_detail_of_hidden_post_for_author_shows_reason(client, community, author
     client.force_login(author)
     html = client.get(_detail(post)).content.decode()
     assert "Duplicate topic" in html and "Hidden</span>" in html
+
+
+def test_automatic_hiding_shows_a_translated_reason(client, community, author, member, make_post,
+                                                    make_comment):  # fmt: skip
+    post = make_post(community, author, status=S.HIDDEN, hidden_reason="automatic")
+    make_comment(post, author, body="Mine", status=Comment.Status.HIDDEN,
+                 hidden_reason="automatic")  # fmt: skip
+    client.force_login(author)
+    html = client.get(_detail(post)).content.decode()
+    assert "Hidden automatically after several reports" in html
+    assert "Reason for hiding: automatic" not in html
+    assert "This post is hidden." in html
+    client.force_login(author)
+    html = client.get(_detail(post), headers={"Accept-Language": "fr"}).content.decode()
+    assert "Masqué automatiquement après plusieurs signalements" in html
+
+
+def test_hidden_accepted_answer_is_not_highlighted(member_client, community, author, member,
+                                                   make_post, make_comment):  # fmt: skip
+    post = make_post(community, author, kind=K.QUESTION)
+    answer = make_comment(post, author, body="Secret answer", status=Comment.Status.HIDDEN,
+                          hidden_reason="Leak")  # fmt: skip
+    Post.objects.filter(pk=post.pk).update(accepted_answer=answer)
+    html = member_client.get(_detail(post)).content.decode()
+    assert 'id="accepted-answer-title"' not in html
+    assert "Secret answer" not in html and "This comment is hidden." in html
+
+
+def test_detail_checks_moderator_rights_once(member_client, community, author, make_post,
+                                            make_comment, monkeypatch):  # fmt: skip
+    from posts import policies
+
+    post = make_post(community, author)
+    make_comment(post, author)
+    calls = []
+    original = policies.is_content_moderator
+
+    def counting(user, community):
+        calls.append(user)
+        return original(user, community)
+
+    monkeypatch.setattr(policies, "is_content_moderator", counting)
+    assert member_client.get(_detail(post)).status_code == 200
+    assert len(calls) == 1
+
+
+def test_feeds_vary_on_htmx_requests(member_client, community):
+    for url in (_feed(community), reverse("posts:home_feed")):
+        response = member_client.get(url)
+        assert "HX-Request" in response["Vary"]
+
+
+def test_tampered_cursor_falls_back_to_the_first_page(member_client, community, author,
+                                                     make_post):  # fmt: skip
+    import base64
+
+    make_post(community, author, title="Only post")
+    cursor = base64.urlsafe_b64encode(b"0001-01-01T00:00:00+20:00|5").decode()
+    response = member_client.get(_feed(community), {"cursor": cursor})
+    assert response.status_code == 200 and "Only post" in response.content.decode()
 
 
 def test_detail_query_count(member_client, community, author, make_post, make_comment,
@@ -388,7 +448,7 @@ def test_detail_and_feed_in_french(client, member, community, author, make_post,
     assert '<html lang="fr"' in feed
     assert "Questions sans réponse" in feed and "2 commentaires" in feed and "il y a" in feed
     detail = client.get(_detail(post), headers={"accept-language": "fr"}).content.decode()
-    assert "Commentaires" in detail and "Commentaire masqué par un modérateur" in detail
+    assert "Commentaires" in detail and "Ce commentaire est masqué." in detail
     home = client.get(reverse("posts:home_feed"), headers={"accept-language": "fr"})
     assert "Fil" in home.content.decode()
     empty = client.get(_feed(community), {"kind": "article"}, headers={"accept-language": "fr"})

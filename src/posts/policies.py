@@ -151,13 +151,26 @@ def can_delete_draft(user, post) -> bool:
     )
 
 
-def can_accept_answer(user, post) -> bool:
-    if post.kind != Post.Kind.QUESTION or post.status != Post.Status.PUBLISHED:
-        return False
+def may_decide_answers(user, post) -> bool:
+    """Who decides the accepted answer of ``post``, whatever its kind and status: the post's
+    author or an expert+ member of its active community, or a moderator (functional admin
+    with content access included). Services check it before the state of the post."""
     if not can_view_post(user, post):
         return False
-    return _can_moderate_live(user, post.community) or (
-        _is_author(user, post) and _can_write(user, post.community)
+    if _can_moderate_live(user, post.community):
+        return True
+    return _can_write(user, post.community) and (
+        _is_author(user, post) or _has_role(user, post.community, CommunityRole.EXPERT)
+    )
+
+
+def can_accept_answer(user, post) -> bool:
+    """Accept or clear the answer of a published question: its author, expert+ or
+    moderator+."""
+    return (
+        post.kind == Post.Kind.QUESTION
+        and post.status == Post.Status.PUBLISHED
+        and may_decide_answers(user, post)
     )
 
 

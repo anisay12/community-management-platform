@@ -20,7 +20,7 @@ from core.errors import DomainError
 from notifications.services import notify
 
 from . import policies
-from .hiding import AUTOMATIC_REASON, mark_hidden, mark_visible
+from .hiding import confirm_hidden, is_auto_hidden, mark_hidden, mark_visible
 from .mentions import resolve_mentions, sync_mentions
 from .models import (
     COMMENT_BODY_MAX_LENGTH,
@@ -32,6 +32,7 @@ from .models import (
     Post,
     Reaction,
 )
+from .privacy import author_display_for
 from .ratelimit import hit
 from .rendering import render_body
 from .tasks import schedule_recount
@@ -74,6 +75,14 @@ def _is_author(user, content) -> bool:
 
 def _post_of(target) -> Post:
     return target.post if isinstance(target, Comment) else target
+
+
+def _can_view_target(user, target) -> bool:
+    """Read access to a post, or to a comment (a hidden one only for its author and the
+    moderators): a refusal answers 404, never revealing that the target exists."""
+    if isinstance(target, Comment):
+        return policies.can_view_comment(user, target)
+    return policies.can_view_post(user, target)
 
 
 def _is_open(target) -> bool:
@@ -154,27 +163,32 @@ def add_comment(*, actor, post, body, parent=None):
         raise _forbidden()
     answered = post.author
     if parent is not None:
-        answered = parent.author  # the person answered, even when the reply is flattened
         if parent.post_id != post.pk:
             raise DomainError("depth_exceeded", _("This reply does not belong to this post."))
-        if parent.parent_id is not None:
-            parent = parent.parent
+        answered = parent.author  # the person answered, even when the reply is flattened
+        # Both the comment answered and, for a reply, its top-level comment must be visible.
         if parent.status != Comment.Status.VISIBLE:
             raise _invalid_state()
+        if parent.parent_id is not None:
+            parent = parent.parent
+            if parent.status != Comment.Status.VISIBLE:
+                raise _invalid_state()
     body = _clean_body(body)
     hit(actor, "comment")
     membership = membership_of(actor, post.community)
     comment = Comment.objects.create(
         post=post,
         author=actor,
-        author_display=actor.get_full_name(),
+        author_display=author_display_for(actor),
         parent=parent,
         body=body,
         body_html=render_body(body),
         is_expert_answer=role_at_least(membership.role, CommunityRole.EXPERT),
     )
     _touch(post)
-    if answered is not None:
+    # Only someone who can still read the post (e.g. not a former member of a private
+    # community) hears about the reply.
+    if answered is not None and policies.can_view_comment(answered, comment):
         notify("reply", [answered], actor=actor, target=comment, community=post.community)
     _notify_mentions(actor, comment)
     schedule_recount(post)
@@ -189,6 +203,8 @@ def update_comment(*, actor, comment, body):
         raise _forbidden()
     if post.community.is_read_only:
         raise _read_only()
+    if post.status == Post.Status.ARCHIVED:
+        raise _invalid_state()  # archived posts are read-only, for moderators too
     moderating = policies.is_content_moderator(actor, post.community)
     if not (moderating or policies.can_edit_comment(actor, comment)):
         raise _forbidden()
@@ -243,7 +259,7 @@ def toggle_reaction(*, actor, target, kind) -> bool:
     Returns whether the reaction is now present.
     """
     post = _post_of(target)
-    if not policies.can_view_post(actor, post):
+    if not _can_view_target(actor, target):
         raise _forbidden()
     if _is_author(actor, target):
         raise _own_content()
@@ -281,13 +297,16 @@ def _ensure_owner(actor, obj) -> None:
 @transaction.atomic
 def toggle_bookmark(*, actor, post, collection=None) -> bool:
     """Bookmark a post the actor can read (optionally in one of their collections), or remove
-    the bookmark. Returns whether the post is now bookmarked."""
+    the bookmark. Returns whether the post is now bookmarked.
+
+    Removing needs no read access: a former member can still clean up their bookmarks.
+    """
     _ensure_owner(actor, collection)
-    if not policies.can_bookmark(actor, post):
-        raise _forbidden()
     deleted, _rows = Bookmark.objects.filter(user=actor, post=post).delete()
     if deleted:
         return False
+    if not policies.can_bookmark(actor, post):
+        raise _forbidden()
     try:
         with transaction.atomic():
             Bookmark.objects.create(user=actor, post=post, collection=collection)
@@ -369,14 +388,6 @@ def _open_reports(target):
     )
 
 
-def _is_auto_hidden(target) -> bool:
-    return (
-        target.status == target.Status.HIDDEN
-        and target.hidden_by_id is None
-        and target.hidden_reason == AUTOMATIC_REASON
-    )
-
-
 def _after_visibility_change(target) -> None:
     if isinstance(target, Comment):
         schedule_recount(target.post)
@@ -390,7 +401,7 @@ def report(*, actor, target, reason, details=""):
     Moderators+ receive a ``moderation_alert`` for every new report.
     """
     post = _post_of(target)
-    if not policies.can_view_post(actor, post):
+    if not _can_view_target(actor, target):
         raise _forbidden()
     if _is_author(actor, target):
         raise _own_content()
@@ -424,10 +435,13 @@ def report(*, actor, target, reason, details=""):
         raise _already_reported() from error
     moderators = _moderators(post.community)
     notify("moderation_alert", moderators, actor=actor, target=target, community=post.community)
-    reporters = _open_reports(target).values("reporter").distinct().count()
+    # Reports whose reporter account was deleted no longer count.
+    reporters = (
+        _open_reports(target).exclude(reporter__isnull=True).values("reporter").distinct().count()
+    )
     if reporters >= settings.POSTS_REPORT_AUTOHIDE_THRESHOLD:
         mark_hidden(target, actor=None, reason="", automatic=True)
-        if target.author is not None:
+        if target.author is not None and _can_view_target(target.author, target):
             notify("system", [target.author], target=target, community=post.community)
         _after_visibility_change(target)
     return content_report
@@ -442,6 +456,16 @@ def _report_target(content_report):
 
 
 def _locked_open_report(actor, content_report) -> ContentReport:
+    """Lock the reported target, then the report.
+
+    Every write on the reports of one target (``report`` included) locks the target first, so
+    concurrent decisions serialise and each sees the reports the others closed: dismissing
+    the last two open reports at once still restores an automatically hidden target.
+    """
+    target = _report_target(
+        ContentReport.objects.select_related("post", "comment").get(pk=content_report.pk)
+    )
+    _lock(target)
     content_report = ContentReport.objects.select_for_update().get(pk=content_report.pk)
     if content_report.status != ContentReport.Status.OPEN:
         raise _invalid_state()
@@ -475,7 +499,7 @@ def _close(actor, content_report, status, note: str) -> None:
 def _restore_if_cleared(actor, target) -> None:
     """An automatically hidden target comes back once no open report remains."""
     target.refresh_from_db()
-    if _is_auto_hidden(target) and not _open_reports(target).exists():
+    if is_auto_hidden(target) and not _open_reports(target).exists():
         mark_visible(target, actor=actor)
         _after_visibility_change(target)
 
@@ -484,15 +508,18 @@ def _restore_if_cleared(actor, target) -> None:
 def resolve_report(*, actor, report, note="", hide=False):
     """Accept a report (audited ``report.resolved``).
 
-    With ``hide`` the target is hidden with ``note`` as the reason (unless already hidden) and
-    every open report of the target is resolved with it. Without ``hide``, an automatically
-    hidden target is restored once no open report remains.
+    With ``hide`` the target is hidden with ``note`` (required) as the reason and every open
+    report of the target is resolved with it; an automatically hidden target becomes hidden by
+    the moderator (``confirm_hidden``), a target a moderator already hid stays as it is.
+    Without ``hide``, an automatically hidden target is restored once no open report remains.
     """
     content_report = _locked_open_report(actor, report)
     note = (note or "").strip()
     target = _report_target(content_report)
     if hide:
-        if target.status != target.Status.HIDDEN:
+        if is_auto_hidden(target):
+            confirm_hidden(target, actor=actor, reason=note)
+        elif target.status != target.Status.HIDDEN:
             mark_hidden(target, actor=actor, reason=note)
             _after_visibility_change(target)
         others = _open_reports(target).exclude(pk=content_report.pk).select_for_update()

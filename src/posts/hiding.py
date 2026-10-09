@@ -90,3 +90,37 @@ def mark_visible(target, *, actor=None):
         community=_community(target),
     )
     return target
+
+
+def is_auto_hidden(target) -> bool:
+    """Hidden by the report threshold (no moderator decision yet)."""
+    return (
+        target.status == target.Status.HIDDEN
+        and target.hidden_by_id is None
+        and target.hidden_reason == AUTOMATIC_REASON
+    )
+
+
+@transaction.atomic
+def confirm_hidden(target, *, actor, reason):
+    """Turn an automatic hiding into a moderator's one: ``hidden_by`` and ``reason`` replace
+    the provisional values (so dismissing reports no longer restores the target) and
+    ``<kind>.hidden`` is recorded with the reason."""
+    reason = (reason or "").strip()
+    if not reason:
+        raise DomainError("reason_required", _("Give a reason for hiding this content."))
+    _lock(target)
+    if not is_auto_hidden(target):
+        raise DomainError("invalid_state", _("This action is not possible in the current state."))
+    target.hidden_at = timezone.now()
+    target.hidden_by = actor
+    target.hidden_reason = reason
+    target.save(update_fields=["hidden_at", "hidden_by", "hidden_reason", "updated_at"])
+    record(
+        actor=actor,
+        action=f"{_prefix(target)}.hidden",
+        target=target,
+        changes={"reason": reason},
+        community=_community(target),
+    )
+    return target

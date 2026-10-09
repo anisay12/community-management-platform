@@ -61,7 +61,8 @@ MATRIX = {
     "create_tag": live(at_least("contributor") | {"functional_admin"}),
     "merge_tags": {status: {"functional_admin"} for status in STATUSES},
     "edit_post": live(at_least("moderator") | {"functional_admin"}),
-    "accept_answer": live(at_least("moderator") | {"functional_admin"}),
+    # Question author (see below), expert+ or moderator+ (the services' rule).
+    "accept_answer": live(at_least("expert") | {"functional_admin"}),
     "view_revisions": readable(at_least("moderator") | {"functional_admin"}),
     "comment": live(MEMBERS),
     "react_post": live(MEMBERS),

@@ -126,6 +126,36 @@ def test_reply_to_a_hidden_comment_is_refused(post, reader, author, make_comment
     assert code in {"invalid_state", "forbidden"}
 
 
+def test_reply_to_a_hidden_reply_is_refused(
+    post, reader, author, moderator, make_comment, django_capture_on_commit_callbacks
+):
+    top = make_comment(post, author)
+    hidden = make_comment(post, moderator, parent=top, status=Comment.Status.HIDDEN,
+                          hidden_reason="r")  # fmt: skip
+    with django_capture_on_commit_callbacks(execute=True):
+        code = _code(services.add_comment, actor=reader, post=post, body="x", parent=hidden)
+    assert code == "invalid_state"
+    assert not _notifications("reply").exists()
+
+
+def test_reply_notification_only_for_readers(
+    make_community, make_user, make_post, make_comment, add_member,
+    django_capture_on_commit_callbacks,
+):  # fmt: skip
+    private = make_community("Private", access_mode=Community.AccessMode.INVITE)
+    left = make_user("left@example.com", first_name="Lea", last_name="Left")
+    stayer = make_user("stay@example.com", first_name="Sam", last_name="Stayer")
+    for user in (left, stayer):
+        add_member(private, user)
+    post = make_post(private, left)
+    top = make_comment(post, left)
+    CommunityMembership.objects.filter(community=private, user=left).delete()
+    with django_capture_on_commit_callbacks(execute=True):
+        services.add_comment(actor=stayer, post=post, body="On the post")
+        services.add_comment(actor=stayer, post=post, body="On the comment", parent=top)
+    assert not _notifications("reply").exists()
+
+
 @pytest.mark.parametrize("role", [Role.EXPERT, Role.OWNER])
 def test_expert_answer_flag_for_expert_and_above(post, make_user, add_member, role):
     expert = make_user("expert@example.com", first_name="Eve", last_name="Expert")
@@ -226,6 +256,17 @@ def test_update_comment_by_moderator_and_refused_for_others(
     assert _code(services.update_comment, actor=author, comment=comment, body="x") == "forbidden"
 
 
+def test_update_comment_on_an_archived_post_is_refused(post, reader, moderator, make_comment):
+    comment = make_comment(post, reader)
+    Post.objects.filter(pk=post.pk).update(status=Post.Status.ARCHIVED)
+    comment.refresh_from_db()
+    for actor in (reader, moderator):
+        code = _code(services.update_comment, actor=actor, comment=comment, body="x")
+        assert code == "invalid_state"
+    comment.refresh_from_db()
+    assert comment.body == "A comment"
+
+
 def test_update_comment_in_read_only_community(post, reader, make_comment):
     comment = make_comment(post, reader)
     Community.objects.filter(pk=post.community_id).update(status=Community.Status.ARCHIVED)
@@ -321,10 +362,22 @@ def test_reaction_on_archived_post_is_invalid_state(make_post, community, author
     )
 
 
-def test_reaction_on_hidden_comment_refused(post, author, reader, make_comment):
+def test_reaction_on_hidden_comment_refused(post, author, reader, moderator, make_comment):
     comment = make_comment(post, author, status=Comment.Status.HIDDEN, hidden_reason="r")
+    # A reader who cannot see the comment learns nothing about it (404 in the views).
     code = _code(services.toggle_reaction, actor=reader, target=comment, kind="useful")
+    assert code == "forbidden"
+    code = _code(services.toggle_reaction, actor=moderator, target=comment, kind="useful")
     assert code == "invalid_state"
+
+
+def test_report_of_a_hidden_comment_does_not_leak_it(post, author, reader, moderator,
+                                                     make_comment):  # fmt: skip
+    comment = make_comment(post, author, status=Comment.Status.HIDDEN, hidden_reason="r")
+    assert _code(services.report, actor=reader, target=comment, reason="spam") == "forbidden"
+    assert _code(services.report, actor=moderator, target=comment, reason="spam") == (
+        "invalid_state"
+    )
 
 
 def test_reaction_unknown_kind_and_non_member(post, reader, outsider):
@@ -378,6 +431,20 @@ def test_bookmark_needs_view(make_community, make_post, author, add_member, outs
     assert _code(services.toggle_bookmark, actor=outsider, post=secret) == "forbidden"
     draft = make_post(private, author, status=Post.Status.DRAFT)
     assert _code(services.toggle_bookmark, actor=reader, post=draft) == "forbidden"
+
+
+def test_bookmark_removal_needs_no_read_access(make_community, make_post, author, add_member,
+                                              reader):  # fmt: skip
+    private = make_community("Private", access_mode=Community.AccessMode.INVITE)
+    add_member(private, author)
+    add_member(private, reader)
+    secret = make_post(private, author)
+    assert services.toggle_bookmark(actor=reader, post=secret) is True
+    CommunityMembership.objects.filter(community=private, user=reader).delete()
+    reader = type(reader).objects.get(pk=reader.pk)  # memberships are memoised per instance
+    assert services.toggle_bookmark(actor=reader, post=secret) is False
+    assert not Bookmark.objects.exists()
+    assert _code(services.toggle_bookmark, actor=reader, post=secret) == "forbidden"
 
 
 def test_bookmark_open_community_without_membership(post, outsider):

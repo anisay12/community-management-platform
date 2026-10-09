@@ -147,6 +147,26 @@ def test_verify_counters_fixes_drift(post, author, make_post, make_user, make_co
     assert tasks.fix_counters() == 2
 
 
+def test_fix_counters_never_writes_a_stale_snapshot(post, make_user, monkeypatch):
+    """A reaction added (and recounted) while the job runs must not be undone by it."""
+    first, second = _users(make_user, 2)
+    Reaction.objects.create(user=first, post=post, kind="useful")
+    tasks.recount_target("posts.post", post.pk)
+    snapshot = tasks._reaction_totals
+
+    def totals_then_concurrent_reaction(field):
+        totals = snapshot(field)
+        if field == "post":
+            Reaction.objects.create(user=second, post=post, kind="useful")
+            tasks.recount_target("posts.post", post.pk)
+        return totals
+
+    monkeypatch.setattr(tasks, "_reaction_totals", totals_then_concurrent_reaction)
+    tasks.fix_counters()
+    post.refresh_from_db()
+    assert post.reaction_counts == {"useful": 2}
+
+
 # Broadcast -------------------------------------------------------------------------
 
 

@@ -1,6 +1,7 @@
 import importlib
 
 import pytest
+from celery import _state as celery_state
 from django.contrib.auth.models import Group
 from django.db.models import F
 from django.urls import clear_url_caches, reverse
@@ -13,6 +14,17 @@ from accounts.roles import Role
 from communities.models import Community, CommunityCategory, CommunityMembership
 
 PASSWORD = "correct-horse-battery-staple"  # noqa: S105  # test fixture
+
+
+@pytest.fixture(autouse=True)
+def _reset_celery_task_join_flag():
+    """Eager Celery tasks run from several threads at once (concurrency tests) can leave
+    Celery's process-global "join will block" flag set, because ``denied_join_result`` is
+    not thread-safe; later tests calling ``result.get()`` would then fail. Reset it around
+    every test."""
+    celery_state._set_task_join_will_block(False)
+    yield
+    celery_state._set_task_join_will_block(False)
 
 
 @pytest.fixture

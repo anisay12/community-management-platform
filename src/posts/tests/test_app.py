@@ -1,17 +1,15 @@
-"""App wiring: Feed tab, navigation entries, error responses, anonymizer, stubs."""
+"""App wiring: Feed tab, navigation entries, error responses, anonymizer."""
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.backends.signed_cookies import SessionStore
 from django.test import RequestFactory
-from django.utils import timezone
 
 from communities.models import Community
 from communities.tabs import tabs_for
 from core import navigation
 from core.errors import DomainError
-from posts import tasks
 from posts.apps import _routable
 from posts.models import Comment, Post
 from posts.privacy import anonymize_author
@@ -102,11 +100,3 @@ def test_anonymizer_is_registered():
     from accounts import privacy
 
     assert anonymize_author in privacy._anonymizers
-
-
-def test_task_stubs_are_no_ops(make_community, active_user, make_post):
-    post = make_post(make_community(), active_user, last_activity_at=timezone.now())
-    assert tasks.recount_target("posts.post", post.pk) is None
-    assert tasks.schedule_recount(post) is None
-    assert tasks.verify_counters() is None
-    assert tasks.broadcast_post(post.pk, "community_post") is None

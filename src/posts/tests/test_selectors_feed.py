@@ -1,5 +1,6 @@
 """Feed and thread selectors: ordering, pinned posts, filters, cursor stability, visibility."""
 
+import base64
 from datetime import timedelta
 
 import pytest
@@ -174,6 +175,18 @@ def test_cursor_round_trip_and_invalid_values(community, author, make_post):
         assert decode_cursor(value) is None
 
 
+@pytest.mark.parametrize("moment", ["0001-01-01T00:00:00+20:00", "9999-12-31T23:59:59-20:00"])
+def test_cursor_with_an_out_of_range_offset_is_invalid(moment):
+    value = base64.urlsafe_b64encode(f"{moment}|5".encode()).decode()
+    assert decode_cursor(value) is None
+
+
+def test_cursor_is_normalised_to_utc():
+    value = base64.urlsafe_b64encode(b"2026-01-01T12:00:00+02:00|5").decode()
+    moment, pk = decode_cursor(value)
+    assert (moment.isoformat(), pk) == ("2026-01-01T10:00:00+00:00", 5)
+
+
 def test_invalid_cursor_falls_back_to_the_first_page(community, author, reader, make_post):
     make_post(community, author, title="Only", pinned_at=_at(1))
     page = community_feed(reader, community, cursor="garbage")
@@ -266,6 +279,15 @@ def test_comment_thread_two_levels_and_hidden_masking(
         thread = comment_thread(viewer, post)
         assert all(c.body_visible for c in thread)
         assert all(c.body_visible for c in thread[0].prefetched_replies)
+
+
+def test_comment_thread_takes_the_moderator_flag_from_the_caller(
+    community, author, reader, make_post, make_comment
+):
+    post = make_post(community, author)
+    make_comment(post, author, body="Rude", status=Comment.Status.HIDDEN)
+    assert [c.body_visible for c in comment_thread(reader, post)] == [False]
+    assert [c.body_visible for c in comment_thread(reader, post, moderator=True)] == [True]
 
 
 def test_comment_thread_query_count(

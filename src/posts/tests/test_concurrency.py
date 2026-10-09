@@ -5,6 +5,7 @@ from django.core.cache import cache
 from django.db import connection
 
 from audit.models import AuditEvent
+from communities.models import CommunityMembership
 from core.errors import DomainError
 from posts import services_interactions as services
 from posts.models import ContentReport, Post, Reaction
@@ -18,14 +19,6 @@ def _clear_cache():
     cache.clear()
     yield
     cache.clear()
-
-
-@pytest.fixture(autouse=True)
-def _no_eager_tasks_in_threads(monkeypatch):
-    """Eager Celery tasks run from several threads at once leave Celery's process-global
-    "join will block" flag set (``denied_join_result`` is not thread-safe), which breaks later
-    tests calling ``result.get()``. Counters are not under test here."""
-    monkeypatch.setattr(services, "schedule_recount", lambda obj: None)
 
 
 def _run_concurrently(targets):
@@ -97,3 +90,34 @@ def test_simultaneous_reports_reaching_the_threshold_hide_once(setup, make_user,
     post.refresh_from_db()
     assert post.status == Post.Status.HIDDEN
     assert AuditEvent.objects.filter(action="post.auto_hidden").count() == 1
+
+
+def test_simultaneous_dismissals_of_the_last_reports_restore_the_target(setup, make_user, settings):
+    settings.POSTS_REPORT_AUTOHIDE_THRESHOLD = 2
+    community, post = setup
+    moderator = make_user("mod@example.com", first_name="Mo", last_name="Derator")
+    CommunityMembership.objects.create(
+        community=community, user=moderator, role=CommunityMembership.Role.MODERATOR
+    )
+    reports = [
+        services.report(
+            actor=make_user(f"r{index}@example.com", first_name="R", last_name=str(index)),
+            target=Post.objects.get(pk=post.pk),
+            reason="spam",
+        )
+        for index in range(2)
+    ]
+    post.refresh_from_db()
+    assert post.status == Post.Status.HIDDEN
+
+    def dismiss(report):
+        return lambda: services.dismiss_report(
+            actor=moderator, report=ContentReport.objects.get(pk=report.pk)
+        )
+
+    _results, errors, crashes = _run_concurrently([dismiss(report) for report in reports])
+    assert crashes == []
+    assert errors == []
+    post.refresh_from_db()
+    assert post.status == Post.Status.PUBLISHED
+    assert AuditEvent.objects.filter(action="post.unhidden").count() == 1

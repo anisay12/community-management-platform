@@ -182,6 +182,15 @@ def test_non_member_and_read_only_community(outsider, member, community):
         assert _code(services.create_post, actor=member, **kwargs) == "read_only"
 
 
+def test_author_display_never_shows_an_email(make_user, community, add_member, broadcasts):
+    nameless = make_user("j.smith@example.com", first_name="", last_name="")
+    add_member(community, nameless)
+    post = services.create_post(
+        actor=nameless, community=community, kind=Post.Kind.DISCUSSION, title="T", body="B"
+    )
+    assert post.author_display == "j.smith"
+
+
 def test_invalid_content_is_refused(member, community):
     kwargs = {"actor": member, "community": community, "kind": Post.Kind.DISCUSSION}
     assert _code(services.create_post, title="  ", body="B", **kwargs) == "title_required"
@@ -241,6 +250,44 @@ def test_mentions_in_a_draft_are_notified_only_when_published(
     assert broadcasts == [(post.pk, "community_post")]
 
 
+def test_mentions_are_resolved_again_at_publication(
+    member, people, community, make_user, add_member, broadcasts,
+    django_capture_on_commit_callbacks,
+):  # fmt: skip
+    expert = people["expert"]
+    post = services.create_post(
+        actor=member, community=community, kind=Post.Kind.DISCUSSION, title="T",
+        body="Ping @expert.person and @new.comer", publish=False,
+    )  # fmt: skip
+    CommunityMembership.objects.filter(community=community, user=expert).delete()
+    newcomer = make_user("new@example.com", first_name="New", last_name="Comer")
+    add_member(community, newcomer)
+    Community.objects.filter(pk=community.pk).update(access_mode=Community.AccessMode.INVITE)
+    post.community.refresh_from_db()
+    with django_capture_on_commit_callbacks(execute=True):
+        services.publish_draft(actor=member, post=post)
+    mentions = Notification.objects.filter(category="mention")
+    mentioned = set(mentions.values_list("recipient", flat=True))
+    assert mentioned == {newcomer.pk}
+    assert list(Mention.objects.filter(post=post).values_list("mentioned_user", flat=True)) == [
+        newcomer.pk
+    ]
+
+
+def test_mention_notifications_on_approval_come_from_the_author(
+    member, people, reviewed, broadcasts, django_capture_on_commit_callbacks
+):
+    expert = people["expert"]
+    post = services.create_post(
+        actor=member, community=reviewed, kind=Post.Kind.DISCUSSION, title="T",
+        body="Ping @expert.person",
+    )  # fmt: skip
+    with django_capture_on_commit_callbacks(execute=True):
+        services.approve_review(actor=people["moderator"], post=post)
+    notification = Notification.objects.get(category="mention", recipient=expert)
+    assert notification.actor == member
+
+
 # Tags ----------------------------------------------------------------------------------
 
 
@@ -265,6 +312,20 @@ def test_contributor_creates_tags_member_only_picks(people, member, community, b
         "tag_creation_forbidden"
     )
     assert not Tag.objects.filter(name="brand-new").exists()
+
+
+def test_set_tags_bumps_and_checks_the_version(member, community, make_post):
+    for name in ("Python", "Go"):
+        Tag.objects.create(name=name, slug=name.lower())
+    post = make_post(community, member)
+    services.set_tags(actor=member, post=post, names=["python"])
+    post.refresh_from_db()
+    assert post.version == 2
+    stale = {"actor": member, "post": post, "names": ["go"], "version": 1}
+    assert _code(services.set_tags, **stale) == "edit_conflict"
+    services.set_tags(actor=member, post=post, names=["go"], version=2)
+    post.refresh_from_db()
+    assert post.version == 3 and [t.name for t in post.tags.all()] == ["Go"]
 
 
 def test_set_tags(member, people, community, make_post):
@@ -421,6 +482,19 @@ def test_edit_conflict_on_stale_version(member, community, make_post):
     assert _code(_edit, post=stale, actor=member, body="Second", version=1) == "edit_conflict"
     post.refresh_from_db()
     assert post.body == "First"
+
+
+@pytest.mark.parametrize("version", ["abc", None, "", "1.5"])
+def test_garbage_version_is_an_edit_conflict(member, community, make_post, version):
+    post = make_post(community, member)
+    assert _code(_edit, post=post, actor=member, body="x", version=version) == "edit_conflict"
+
+
+def test_unchanged_text_keeps_no_revision(member, moderator, community, make_post):
+    post = make_post(community, member, title="Same", body="Same body")
+    _edit(post, moderator, tags=["python"])
+    assert not PostRevision.objects.exists()
+    assert post.version == 2
 
 
 def test_published_article_edit_keeps_a_revision(people, community, make_post):
@@ -652,6 +726,47 @@ def test_accept_answer_rules(question, member, people, community, make_post, mak
     )
 
 
+def test_accept_answer_rechecks_the_comment_under_lock(question, member, people, make_comment):
+    answer = make_comment(question, people["expert"])
+    Comment.objects.filter(pk=answer.pk).update(status=Comment.Status.HIDDEN)
+    # ``answer`` in memory is still visible: the service must read the current row.
+    assert _code(services.accept_answer, actor=member, post=question, comment=answer) == (
+        "invalid_state"
+    )
+
+
+def test_accept_answer_refuses_before_checking_the_state(member, people, community, make_post,
+                                                         make_comment):  # fmt: skip
+    discussion = make_post(community, member)
+    comment = make_comment(discussion, people["expert"])
+    assert _code(services.accept_answer, actor=people["contributor"], post=discussion,
+                 comment=comment) == "forbidden"  # fmt: skip
+
+
+def test_system_notifications_only_reach_readers(
+    make_community, make_user, add_member, make_post, make_comment,
+    django_capture_on_commit_callbacks,
+):  # fmt: skip
+    private = make_community("Private", access_mode=Community.AccessMode.INVITE)
+    author = make_user("author@example.com", first_name="Ann", last_name="Author")
+    answerer = make_user("answer@example.com", first_name="Al", last_name="Answer")
+    moderator = make_user("modo@example.com", first_name="Mo", last_name="Derator")
+    for user in (author, answerer):
+        add_member(private, user)
+    add_member(private, moderator, Role.MODERATOR)
+    question = make_post(private, author, kind=Post.Kind.QUESTION)
+    answer = make_comment(question, answerer)
+    hidden = make_post(private, author, status=Post.Status.HIDDEN, hidden_reason="r",
+                       status_before_hidden=Post.Status.PUBLISHED)  # fmt: skip
+    edited = make_post(private, author)
+    CommunityMembership.objects.filter(community=private, user__in=[author, answerer]).delete()
+    with django_capture_on_commit_callbacks(execute=True):
+        services.accept_answer(actor=moderator, post=question, comment=answer)
+        services.unhide_post(actor=moderator, post=hidden)
+        _edit(edited, moderator, title="Fixed")
+    assert not Notification.objects.filter(category="system").exists()
+
+
 # Sharing -------------------------------------------------------------------------------
 
 
@@ -666,39 +781,75 @@ def test_share_creates_a_discussion_in_the_target(
     add_member(target, member)
     original = make_post(community, member, title="Original", kind=Post.Kind.QUESTION)
     shared = services.share_post(
-        actor=member, post=original, target_community=target, comment="Worth a read"
+        actor=member,
+        post=original,
+        target_community=target,
+        title="  My pick  ",
+        comment="Worth a read",
     )
     assert shared.community == target
     assert shared.kind == Post.Kind.DISCUSSION
     assert shared.shared_from == original
-    assert shared.title == "Original"
+    assert shared.title == "My pick"
     assert shared.status == Post.Status.PUBLISHED
     assert "Worth a read" in shared.body_html
     assert broadcasts == []  # on commit only
 
 
+def test_share_never_copies_the_original_content(
+    member, community, target, add_member, make_post, broadcasts
+):
+    """The original may be private: its title and body never reach the target community,
+    not even through the search vector."""
+    add_member(target, member)
+    original = make_post(community, member, title="Confidential roadmap", body="Secret plans")
+    shared = services.share_post(actor=member, post=original, target_community=target,
+                                 title="Have a look")  # fmt: skip
+    shared.refresh_from_db()
+    assert (shared.title, shared.body) == ("Have a look", "")
+    for word in ("confidential", "roadmap", "secret", "plans"):
+        assert not Post.objects.filter(
+            pk=shared.pk, search_vector=SearchQuery(word, config="simple")
+        ).exists()
+    assert _code(services.share_post, actor=member, post=original, target_community=target,
+                 title="  ") == "title_required"  # fmt: skip
+
+
+def test_share_goes_through_the_target_review(member, community, target, add_member, make_post,
+                                              broadcasts):  # fmt: skip
+    Community.objects.filter(pk=target.pk).update(require_post_review=True)
+    target.refresh_from_db()
+    add_member(target, member)
+    original = make_post(community, member)
+    shared = services.share_post(actor=member, post=original, target_community=target,
+                                 title="Shared")  # fmt: skip
+    assert shared.status == Post.Status.PENDING_REVIEW
+
+
 def test_share_rules(member, outsider, community, target, add_member, make_post, make_community):
     original = make_post(community, member)
-    assert _code(services.share_post, actor=member, post=original, target_community=target) == (
-        "not_member"
-    )
+    assert _code(
+        services.share_post, actor=member, post=original, target_community=target, title="T"
+    ) == ("not_member")
     assert (
-        _code(services.share_post, actor=member, post=original, target_community=community)
+        _code(
+            services.share_post, actor=member, post=original, target_community=community, title="T"
+        )
         == "forbidden"
     )
     private = make_community("Secret", access_mode=Community.AccessMode.INVITE)
     hidden = make_post(private, None)
     add_member(target, outsider)
     assert (
-        _code(services.share_post, actor=outsider, post=hidden, target_community=target)
+        _code(services.share_post, actor=outsider, post=hidden, target_community=target, title="T")
         == "forbidden"
     )
     Community.objects.filter(pk=target.pk).update(status=Community.Status.SUSPENDED)
     target.refresh_from_db()
     add_member(target, member)
-    assert _code(services.share_post, actor=member, post=original, target_community=target) == (
-        "read_only"
-    )
+    assert _code(
+        services.share_post, actor=member, post=original, target_community=target, title="T"
+    ) == ("read_only")
 
 
 def test_last_activity_bumped_on_approve(member, people, reviewed):

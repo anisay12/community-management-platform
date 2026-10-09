@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n post_tags %}
 {% block title %}{{ post.title }} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
 {% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
 {% block content %}
@@ -28,7 +28,7 @@
       {% endif %}
     </header>
     {% if post.status == "hidden" %}
-      <div class="alert alert-warning" role="status">{% translate "This post is hidden by a moderator." %}{% if post.hidden_reason %} {% translate "Reason for hiding:" %} {{ post.hidden_reason }}{% endif %}</div>
+      <div class="alert alert-warning" role="status">{% translate "This post is hidden." %}{% if post.hidden_reason %} {% translate "Reason for hiding:" %} {{ post.hidden_reason|hidden_reason_label }}{% endif %}</div>
     {% elif post.status == "pending_review" %}
       <div class="alert alert-info" role="status">{% translate "This post is awaiting review by a moderator." %}</div>
     {% elif post.status == "archived" %}

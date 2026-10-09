@@ -187,12 +187,60 @@ def test_resolve_with_hiding_needs_a_reason(post, readers, moderator):
     assert report.status == ContentReport.Status.OPEN
 
 
-def test_resolve_with_hiding_keeps_an_auto_hidden_target_hidden(post, readers, moderator):
+def test_resolve_with_hiding_confirms_an_auto_hidden_target(post, readers, moderator):
     reports = [services.report(actor=r, target=post, reason="spam") for r in readers[:3]]
+    code = _code(services.resolve_report, actor=moderator, report=reports[0], hide=True)
+    assert code == "reason_required"
     services.resolve_report(actor=moderator, report=reports[0], note="Spam", hide=True)
     post.refresh_from_db()
     assert post.status == Post.Status.HIDDEN
+    # The moderator's decision replaces the provisional hiding: dismissals no longer undo it.
+    assert post.hidden_by == moderator and post.hidden_reason == "Spam"
+    event = AuditEvent.objects.get(action="post.hidden")
+    assert event.actor == moderator and event.changes == {"reason": "Spam"}
+    assert event.community_id == post.community_id
     assert not ContentReport.objects.filter(status=ContentReport.Status.OPEN).exists()
+
+
+def test_resolve_with_hiding_confirms_an_auto_hidden_comment(
+    post, readers, moderator, author, make_comment
+):
+    comment = make_comment(post, author)
+    reports = [services.report(actor=r, target=comment, reason="spam") for r in readers[:3]]
+    services.resolve_report(actor=moderator, report=reports[1], note="Spam", hide=True)
+    comment.refresh_from_db()
+    assert comment.status == Comment.Status.HIDDEN and comment.hidden_by == moderator
+    assert AuditEvent.objects.filter(action="comment.hidden", actor=moderator).exists()
+
+
+def test_threshold_ignores_reports_of_deleted_reporters(post, readers, settings):
+    settings.POSTS_REPORT_AUTOHIDE_THRESHOLD = 2
+    for _ in range(2):
+        ContentReport.objects.create(
+            reporter=None, post=post, community=post.community, reason="spam"
+        )
+    services.report(actor=readers[0], target=post, reason="spam")
+    post.refresh_from_db()
+    assert post.status == Post.Status.PUBLISHED
+
+
+def test_auto_hide_notification_only_for_an_author_who_can_read(
+    make_community, make_user, make_post, make_comment, add_member, readers,
+    django_capture_on_commit_callbacks,
+):  # fmt: skip
+    private = make_community("Private", access_mode=Community.AccessMode.INVITE)
+    left = make_user("left@example.com", first_name="Lea", last_name="Left")
+    for user in (left, *readers[:3]):
+        add_member(private, user)
+    post = make_post(private, left)
+    comment = make_comment(post, left)
+    CommunityMembership.objects.filter(community=private, user=left).delete()
+    with django_capture_on_commit_callbacks(execute=True):
+        for reader in readers[:3]:
+            services.report(actor=reader, target=comment, reason="spam")
+    comment.refresh_from_db()
+    assert comment.status == Comment.Status.HIDDEN
+    assert not Notification.objects.filter(category="system", recipient=left).exists()
 
 
 def test_dismiss_report_audited(post, readers, moderator):

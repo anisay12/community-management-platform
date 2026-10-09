@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 from audit.services import record
 from communities.models import Community, CommunityMembership
 from communities.policies import membership_of
-from communities.roles import ROLE_RANK, CommunityRole, role_at_least
+from communities.roles import ROLE_RANK, CommunityRole
 from core.errors import DomainError
 from notifications.services import notify
 from taxonomy.models import Tag
@@ -26,6 +26,7 @@ from . import policies, ratelimit
 from .hiding import mark_hidden, mark_visible
 from .mentions import resolve_mentions, sync_mentions
 from .models import POST_BODY_MAX_LENGTH, Comment, Post, PostRevision
+from .privacy import author_display_for
 from .rendering import render_body
 from .tasks import broadcast_post
 
@@ -81,8 +82,20 @@ def _clean_content(title: str, body: str) -> tuple[str, str]:
     return title, body
 
 
-def _author_display(user) -> str:
-    return (user.get_full_name() or user.email)[: Post._meta.get_field("author_display").max_length]
+def _edit_conflict():
+    return DomainError(
+        "edit_conflict", _("This post was changed by someone else since you opened it.")
+    )
+
+
+def _ensure_version(post: Post, version) -> None:
+    """``version`` (as sent by the editor, possibly garbage) must be the current one."""
+    try:
+        expected = int(version)
+    except (TypeError, ValueError):
+        expected = None
+    if expected != post.version:
+        raise _edit_conflict()
 
 
 def _resolve_tags(actor, community, names) -> list[Tag]:
@@ -141,20 +154,31 @@ def _needs_review(actor, community) -> bool:
     return community.require_post_review and not policies.is_content_moderator(actor, community)
 
 
-def _notify_mentions(post: Post, users, actor) -> None:
-    if users:
-        notify("mention", users, actor=actor, target=post, community=post.community)
+def _notify_readers(category, post: Post, users, *, actor, target=None) -> None:
+    """Notify those of ``users`` who can open ``post`` (a former member of a private
+    community hears nothing about it)."""
+    readers = [user for user in users if user is not None and policies.can_view_post(user, post)]
+    if readers:
+        notify(category, readers, actor=actor, target=target or post, community=post.community)
+
+
+def _mentioned_users(post: Post) -> list:
+    """Members mentioned in ``post``, resolved now; for a published post, only its readers."""
+    users = resolve_mentions(post.community, post.body)
+    if post.status == Post.Status.PUBLISHED:
+        users = [user for user in users if policies.can_view_post(user, post)]
+    return users
 
 
 def _sync_post_mentions(post: Post, actor) -> list:
     """Store the mentions of ``post``; notify the newly mentioned users if it is published."""
-    new_users = sync_mentions(post, resolve_mentions(post.community, post.body))
+    new_users = sync_mentions(post, _mentioned_users(post))
     if post.status == Post.Status.PUBLISHED:
-        _notify_mentions(post, new_users, actor)
+        _notify_readers("mention", post, new_users, actor=actor)
     return new_users
 
 
-def _go_live(post: Post, actor) -> None:
+def _go_live(post: Post) -> None:
     """Publish ``post`` (already locked): status, dates, community activity, broadcast and
     notification of everyone it mentions."""
     now = timezone.now()
@@ -169,10 +193,11 @@ def _go_live(post: Post, actor) -> None:
     category = "announcement" if post.kind in ANNOUNCEMENT_KINDS else "community_post"
     post_id = post.pk
     transaction.on_commit(lambda: broadcast_post.delay(post_id, category))
-    mentioned = [
-        mention.mentioned_user for mention in post.mentions.select_related("mentioned_user")
-    ]
-    _notify_mentions(post, mentioned, actor)
+    # Mentions stored with the draft may be stale (members left, others joined): resolve them
+    # again. The author mentions, even when a moderator approves the post.
+    mentioned = _mentioned_users(post)
+    sync_mentions(post, mentioned)
+    _notify_readers("mention", post, mentioned, actor=post.author)
 
 
 def _submit(post: Post, actor) -> None:
@@ -189,7 +214,7 @@ def _submit(post: Post, actor) -> None:
             community=post.community,
         )
     else:
-        _go_live(post, actor)
+        _go_live(post)
 
 
 def _ensure_can_create(actor, community, kind) -> None:
@@ -208,7 +233,7 @@ def _create(*, actor, community, kind, title, body, tags, publish, shared_from=N
     post = Post.objects.create(
         community=community,
         author=actor,
-        author_display=_author_display(actor),
+        author_display=author_display_for(actor),
         kind=kind,
         title=title,
         body=body,
@@ -278,21 +303,21 @@ def update_post(*, actor, post, title, body, tags, version) -> Post:
 
     ``version`` is the one the editor started from: a mismatch raises ``edit_conflict``. A
     revision keeps the previous text for published articles and announcements and for any
-    edit by someone other than the author; a moderator's edit is audited and notified.
+    edit by someone other than the author (none when title and body are unchanged); a
+    moderator's edit is audited and notified.
     """
     _lock(post)
     _ensure_live(post.community)
     if not policies.can_edit_post(actor, post):
         raise _forbidden()
-    if int(version) != post.version:
-        raise DomainError(
-            "edit_conflict",
-            _("This post was changed by someone else since you opened it."),
-        )
+    _ensure_version(post, version)
     title, body = _clean_content(title, body)
     tag_objects = None if tags is None else _resolve_tags(actor, post.community, tags)
     by_other = post.author_id != actor.pk
-    if by_other or (post.status == Post.Status.PUBLISHED and post.kind in REVISED_KINDS):
+    text_changed = (title, body) != (post.title, post.body)
+    if text_changed and (
+        by_other or (post.status == Post.Status.PUBLISHED and post.kind in REVISED_KINDS)
+    ):
         PostRevision.objects.create(post=post, editor=actor, title=post.title, body=post.body)
     previous_title = post.title
     post.title = title
@@ -312,19 +337,26 @@ def update_post(*, actor, post, title, body, tags, version) -> Post:
             changes={"title": {"before": previous_title, "after": title}},
             community=post.community,
         )
-        if post.author is not None:
-            notify("system", [post.author], actor=actor, target=post, community=post.community)
+        _notify_readers("system", post, [post.author], actor=actor)
     return post
 
 
 @transaction.atomic
-def set_tags(*, actor, post, names) -> Post:
-    """Replace the tags of ``post``; members below contributor only pick existing tags."""
+def set_tags(*, actor, post, names, version=None) -> Post:
+    """Replace the tags of ``post``; members below contributor only pick existing tags.
+
+    Changing tags is an edit: it bumps ``version``, and ``version`` (when the caller started
+    from a known one) must still be current (``edit_conflict``).
+    """
     _lock(post)
     _ensure_live(post.community)
     if not policies.can_edit_post(actor, post):
         raise _forbidden()
+    if version is not None:
+        _ensure_version(post, version)
     post.tags.set(_resolve_tags(actor, post.community, names))
+    post.version += 1
+    post.save(update_fields=["version", "updated_at"])
     _refresh_search_vector(post)
     return post
 
@@ -345,10 +377,9 @@ def approve_review(*, actor, post) -> Post:
     _lock(post)
     _ensure_pending_review(actor, post)
     _ensure_live(post.community)
-    _go_live(post, actor)
+    _go_live(post)
     record(actor=actor, action="post.review_approved", target=post, community=post.community)
-    if post.author is not None:
-        notify("system", [post.author], actor=actor, target=post, community=post.community)
+    _notify_readers("system", post, [post.author], actor=actor)
     return post
 
 
@@ -370,8 +401,7 @@ def reject_review(*, actor, post, note) -> Post:
         changes={"note": note},
         community=post.community,
     )
-    if post.author is not None:
-        notify("system", [post.author], actor=actor, target=post, community=post.community)
+    _notify_readers("system", post, [post.author], actor=actor)
     return post
 
 
@@ -384,9 +414,11 @@ def pin_post(*, actor, post) -> Post:
     _ensure_live(post.community)
     if not policies.can_pin(actor, post.community):
         raise _forbidden()
-    # Lock the community first: concurrent pins in one community serialise on it.
-    Community.objects.select_for_update().filter(pk=post.community_id).first()
+    # Lock order everywhere: the post, then its community (publishing and commenting update
+    # the community's activity after writing the post). Concurrent pins in one community
+    # serialise on the community lock, taken before counting.
     _lock(post)
+    Community.objects.select_for_update().filter(pk=post.community_id).first()
     if post.status != Post.Status.PUBLISHED or post.pinned_at is not None:
         raise _invalid_state()
     pinned = Post.objects.filter(
@@ -441,8 +473,7 @@ def hide_post(*, actor, post, reason) -> Post:
         raise _invalid_state()
     mark_hidden(post, actor=actor, reason=reason)
     _clear_pin(post)
-    if post.author is not None:
-        notify("system", [post.author], actor=actor, target=post, community=post.community)
+    _notify_readers("system", post, [post.author], actor=actor)
     return post
 
 
@@ -452,8 +483,7 @@ def unhide_post(*, actor, post) -> Post:
     if not policies.can_moderate(actor, post.community):
         raise _forbidden()
     mark_visible(post, actor=actor)
-    if post.author is not None:
-        notify("system", [post.author], actor=actor, target=post, community=post.community)
+    _notify_readers("system", post, [post.author], actor=actor)
     return post
 
 
@@ -477,32 +507,23 @@ def archive_post(*, actor, post) -> Post:
 # --- accepted answers -------------------------------------------------------------------
 
 
-def _can_decide_answer(actor, post) -> bool:
-    """``policies.can_accept_answer`` (question author, moderator+) or an expert+ member."""
-    if policies.can_accept_answer(actor, post):
-        return True
-    membership = membership_of(actor, post.community)
-    return (
-        membership is not None
-        and role_at_least(membership.role, CommunityRole.EXPERT)
-        and post.status == Post.Status.PUBLISHED
-        and policies.can_view_post(actor, post)
-    )
-
-
 def _ensure_answerable(actor, post) -> None:
+    """Rights first (``forbidden`` reveals nothing about the post), then the state."""
     _lock(post)
     _ensure_live(post.community)
-    if post.kind != Post.Kind.QUESTION:
-        raise _invalid_state()
-    if not _can_decide_answer(actor, post):
+    if not policies.may_decide_answers(actor, post):
         raise _forbidden()
+    if not policies.can_accept_answer(actor, post):
+        raise _invalid_state()  # not a question, or not published
 
 
 @transaction.atomic
 def accept_answer(*, actor, post, comment) -> Post:
-    """Mark ``comment`` (a visible top-level comment of ``post``) as the accepted answer."""
+    """Mark ``comment`` (a visible top-level comment of ``post``) as the accepted answer
+    (question author, expert+ or moderator+)."""
     _ensure_answerable(actor, post)
+    # Re-read the comment under a lock (after the post): it may have been hidden meanwhile.
+    comment.refresh_from_db(from_queryset=Comment.objects.select_for_update())
     if (
         comment.post_id != post.pk
         or comment.parent_id is not None
@@ -511,8 +532,7 @@ def accept_answer(*, actor, post, comment) -> Post:
         raise _invalid_state()
     post.accepted_answer = comment
     post.save(update_fields=["accepted_answer", "updated_at"])
-    if comment.author is not None:
-        notify("system", [comment.author], actor=actor, target=post, community=post.community)
+    _notify_readers("system", post, [comment.author], actor=actor)
     return post
 
 
@@ -529,9 +549,12 @@ def clear_accepted_answer(*, actor, post) -> Post:
 
 
 @transaction.atomic
-def share_post(*, actor, post, target_community, comment="") -> Post:
+def share_post(*, actor, post, target_community, title, comment="") -> Post:
     """Publish a ``discussion`` in ``target_community`` pointing to ``post`` (``shared_from``),
-    with ``comment`` as its body. The target's review rule applies as for any new post."""
+    titled ``title`` (required, chosen by the actor; the editor may prefill it with the
+    original's title) with ``comment`` as its body. Nothing of the original (title, body,
+    tags) is copied into the new post or its search vector: the original may be private.
+    The target's review rule applies as for any new post."""
     _ensure_live(target_community)
     if not policies.can_share(actor, post, target_community):
         if (
@@ -546,7 +569,7 @@ def share_post(*, actor, post, target_community, comment="") -> Post:
         actor=actor,
         community=target_community,
         kind=Post.Kind.DISCUSSION,
-        title=post.title,
+        title=title,
         body=comment,
         tags=(),
         publish=True,

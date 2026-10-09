@@ -12,12 +12,13 @@ from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils.cache import patch_vary_headers
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_safe
 
 from communities.models import Community
 from communities.policies import is_functional_admin
-from communities.views import _community_page
+from communities.views import community_page
 
 from . import policies, selectors
 from .models import Post
@@ -55,15 +56,17 @@ def _feed_response(request, template, context, page):
     """The full page, or only the next cards and "Load more" link for an HTMX request."""
     selectors.mark_share_access(request.user, [*page.pinned, *page.items])
     context["page"] = page
-    if _is_htmx(request):
-        return render(request, "posts/_feed_page.html", context)
-    return render(request, template, context)
+    fragment = "posts/_feed_page.html" if _is_htmx(request) else template
+    response = render(request, fragment, context)
+    # The same URL answers a full page or a fragment: caches must keep them apart.
+    patch_vary_headers(response, ["HX-Request"])
+    return response
 
 
 @login_required
 @require_safe
 def feed(request, slug):
-    community, context = _community_page(request, slug, "feed")
+    community, context = community_page(request, slug, "feed")
     if not context["content_visible"]:
         if community.access_mode == Community.AccessMode.OPEN or is_functional_admin(request.user):
             raise PermissionDenied
@@ -118,10 +121,13 @@ def _breadcrumb(post, *current):
 def detail(request, slug, public_id):
     post = selectors.get_visible_post_or_404(request.user, slug, public_id)
     is_moderator = policies.is_content_moderator(request.user, post.community)
-    comments = selectors.comment_thread(request.user, post)
+    comments = selectors.comment_thread(request.user, post, moderator=is_moderator)
     accepted = None
     if post.kind == Post.Kind.QUESTION and post.accepted_answer_id:
-        accepted = next((c for c in comments if c.pk == post.accepted_answer_id), None)
+        # A hidden accepted answer stays a placeholder in the thread, never highlighted.
+        accepted = next(
+            (c for c in comments if c.pk == post.accepted_answer_id and c.body_visible), None
+        )
     selectors.mark_share_access(request.user, [post])
     context = {
         "post": post,
