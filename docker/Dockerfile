@@ -19,21 +19,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 COPY manage.py ./
 COPY src ./src
-# Throwaway values for collectstatic and compilemessages: not kept in the image (no ENV).
-RUN DJANGO_SETTINGS_MODULE=config.settings.prod \
+# Throwaway values for collectstatic and compilemessages: exported in this RUN only,
+# not kept in the image (no ENV) and absent from the runtime stage.
+RUN export DJANGO_SETTINGS_MODULE=config.settings.prod \
     DJANGO_SECRET_KEY=collectstatic-build-only \
     DJANGO_ALLOWED_HOSTS=localhost \
     DATABASE_URL=postgres://build:build@localhost:5432/build \
     REDIS_URL=redis://localhost:6379/0 \
     S3_BUCKET=build \
-    /app/.venv/bin/python manage.py collectstatic --noinput \
-    && cd src && DJANGO_SETTINGS_MODULE=config.settings.prod \
-    DJANGO_SECRET_KEY=collectstatic-build-only \
-    DJANGO_ALLOWED_HOSTS=localhost \
-    DATABASE_URL=postgres://build:build@localhost:5432/build \
-    REDIS_URL=redis://localhost:6379/0 \
-    S3_BUCKET=build \
-    /app/.venv/bin/python ../manage.py compilemessages
+    && /app/.venv/bin/python manage.py collectstatic --noinput \
+    && cd src && /app/.venv/bin/python ../manage.py compilemessages
 
 FROM ${PYTHON_IMAGE} AS runtime
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin app

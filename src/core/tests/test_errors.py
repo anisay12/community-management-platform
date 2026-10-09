@@ -1,5 +1,7 @@
 import pytest
+from django.contrib.auth import get_user_model
 from django.test import RequestFactory
+from django.utils import translation
 
 from core.views_errors import server_error
 
@@ -66,3 +68,35 @@ def test_500_escapes_request_id():
     request.request_id = "<script>"
     response = server_error(request)
     assert b"<script>" not in response.content
+
+
+def test_500_escapes_request_id_markup():
+    request = RequestFactory().get("/boom")
+    request.request_id = "<script>"
+    response = server_error(request)
+    assert b"&lt;script&gt;" in response.content
+
+
+def test_500_french():
+    request = RequestFactory().get("/boom")
+    request.request_id = "req-12345678"
+    with translation.override("fr"):
+        response = server_error(request)
+    assert b'<html lang="fr"' in response.content
+    assert b"Erreur serveur" in response.content
+    assert "Référence".encode() in response.content
+
+
+@pytest.mark.urls("core.tests.urls_errors")
+def test_429_french(client):
+    response = client.get("/too-many/", HTTP_ACCEPT_LANGUAGE="fr")
+    assert response.status_code == 429
+    assert b'<html lang="fr"' in response.content
+    assert "Trop de requêtes".encode() in response.content
+
+
+def test_home_greets_signed_in_user(client):
+    user = get_user_model().objects.create_user(username="alice", password="pw-123456-x")
+    client.force_login(user)
+    response = client.get("/")
+    assert b"Hello, alice." in response.content

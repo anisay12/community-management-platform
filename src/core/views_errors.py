@@ -3,6 +3,7 @@ from pathlib import Path
 
 from django.http import HttpRequest, HttpResponse, HttpResponseServerError
 from django.shortcuts import render
+from django.utils.translation import get_language
 from django.utils.translation import gettext as _
 
 _STATIC_500 = (Path(__file__).resolve().parents[1] / "templates" / "500.html").read_text(
@@ -31,7 +32,7 @@ def server_error(request: HttpRequest) -> HttpResponse:
             escape(_("Reference")), escape(str(request_id))
         )
     replacements = {
-        "@@LANG@@": escape(_("en")),
+        "@@LANG@@": escape(get_language() or "en"),
         "@@TITLE@@": escape(_("Server error")),
         "@@SITE@@": escape(_("Communities")),
         "@@MESSAGE@@": escape(_("Something went wrong on our side. Please try again later.")),

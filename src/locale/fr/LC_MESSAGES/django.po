@@ -60,9 +60,6 @@ msgstr "Trop de tentatives. Veuillez patienter un instant puis réessayer."
 msgid "Reference"
 msgstr "Référence"
 
-msgid "en"
-msgstr "fr"
-
 msgid "Server error"
 msgstr "Erreur serveur"
 
