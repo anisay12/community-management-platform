@@ -2,7 +2,7 @@ import pytest
 
 from accounts.models import User
 
-PASSWORD = "correct-horse-battery-staple"
+PASSWORD = "correct-horse-battery-staple"  # noqa: S105  # test fixture
 
 
 @pytest.fixture

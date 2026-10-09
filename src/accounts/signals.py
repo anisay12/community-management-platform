@@ -1,10 +1,11 @@
 from django.contrib.auth.signals import user_logged_in, user_logged_out, user_login_failed
-from django.db.models.signals import post_save
+from django.db.models.signals import m2m_changed, post_save
 from django.dispatch import receiver
 
 from audit.services import record
 
 from .models import User, UserProfile, UserSession
+from .roles import ROLES_CACHE_ATTR
 
 
 @receiver(post_save, sender=User, dispatch_uid="accounts_create_user_profile")
@@ -39,3 +40,10 @@ def on_login_failed(sender, credentials, request=None, **kwargs):
         action="auth.login_failed",
         target=user if user is not None else ("accounts.user", "unknown"),
     )
+
+
+@receiver(m2m_changed, sender=User.groups.through, dispatch_uid="accounts_reset_role_cache")
+def reset_role_cache(sender, instance, reverse, **kwargs):
+    """Drop the memoised role codes of a user whose groups changed."""
+    if not reverse:
+        instance.__dict__.pop(ROLES_CACHE_ATTR, None)

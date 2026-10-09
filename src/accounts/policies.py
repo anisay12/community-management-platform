@@ -13,6 +13,7 @@ def requires_mfa(user) -> bool:
     break_glass = settings.BREAK_GLASS_EMAIL.strip().lower()
     if break_glass and user.email.lower() == break_glass:
         return True
+    # Last because it needs the user's groups (memoised per user instance).
     return bool(user_roles(user) & {str(role) for role in PRIVILEGED_ROLES})
 
 

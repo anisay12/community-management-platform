@@ -17,9 +17,8 @@ from django.utils import timezone
 from accounts.models import User, UserSession
 from accounts.services import end_all_sessions
 from accounts.tasks import send_email
+from conftest import PASSWORD
 from core.middleware import ActivityMiddleware
-
-from .conftest import PASSWORD
 
 pytestmark = pytest.mark.django_db
 

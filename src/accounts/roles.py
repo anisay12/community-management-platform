@@ -13,12 +13,20 @@ class Role(models.TextChoices):
 PRIVILEGED_ROLES = {Role.FUNCTIONAL_ADMIN, Role.TECHNICAL_ADMIN}
 
 
+# Role codes are memoised on the user instance (one per request); group changes clear it.
+ROLES_CACHE_ATTR = "_role_codes"
+
+
 def user_roles(user) -> set[str]:
     """Return the role codes (group names) held by ``user``."""
     if not getattr(user, "is_authenticated", False):
         return set()
-    codes = {r.value for r in Role}
-    return {g.name for g in user.groups.all() if g.name in codes}
+    cached = user.__dict__.get(ROLES_CACHE_ATTR)
+    if cached is None:
+        codes = {r.value for r in Role}
+        cached = frozenset(g.name for g in user.groups.all() if g.name in codes)
+        setattr(user, ROLES_CACHE_ATTR, cached)
+    return set(cached)
 
 
 def has_role(user, role) -> bool:

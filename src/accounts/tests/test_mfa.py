@@ -11,8 +11,7 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 from accounts.policies import requires_mfa
 from accounts.roles import Role
 from audit.models import AuditEvent
-
-from .conftest import PASSWORD
+from conftest import PASSWORD
 
 pytestmark = pytest.mark.django_db
 
@@ -108,13 +107,19 @@ def test_privileged_user_with_device_is_sent_to_verify(client, admin_user):
 
 
 @pytest.mark.parametrize(
-    "path",
-    ["/healthz", "/readyz", "/static/core/app.css"],
+    ("path", "expected"),
+    [("/healthz", {200}), ("/readyz", {200, 503}), ("/metrics", {404})],
 )
-def test_allow_listed_paths_are_not_redirected(client, admin_user, path):
+def test_allow_listed_paths_are_not_redirected(client, admin_user, path, expected):
+    # /static/ is also allow-listed but served before the middleware, so it cannot be tested here.
     client.force_login(admin_user)
     response = client.get(path)
-    assert not (response.status_code == 302 and "/accounts/mfa/" in response.get("Location", ""))
+    assert response.status_code in expected
+
+
+def test_metrics_without_token_is_404_not_mfa_redirect(client, admin_user):
+    client.force_login(admin_user)
+    assert client.get(reverse("metrics")).status_code == 404
 
 
 def test_unverified_privileged_user_can_log_out_and_switch_language(client, admin_user):
@@ -274,3 +279,59 @@ def test_setup_failures_are_rate_limited_too(client, admin_user):
     for _ in range(5):
         assert client.post(url, {"otp_token": "abc"}).status_code == 200
     assert client.post(url, {"otp_token": "000000"}).status_code == 429
+
+
+def test_mfa_pages_are_404_for_users_not_required_to_use_mfa(client, make_user):
+    employee = make_user("emp@example.com")
+    employee.groups.add(Group.objects.get(name=Role.EMPLOYEE))
+    client.force_login(employee)
+    for name in ("accounts:mfa_setup", "accounts:mfa_verify"):
+        assert client.get(reverse(name)).status_code == 404
+        assert client.post(reverse(name), {"otp_token": "000000"}).status_code == 404
+    assert not TOTPDevice.objects.filter(user=employee).exists()
+
+
+def test_rate_limit_counts_attempts_before_checking_the_code(client, admin_user):
+    from django.conf import settings
+
+    device = confirmed_device(admin_user)
+    client.force_login(admin_user)
+    # Simulate parallel requests that already took the five allowed slots.
+    cache.set(f"mfa-failures:{admin_user.pk}", settings.MFA_MAX_FAILURES, timeout=900)
+    response = client.post(reverse("accounts:mfa_verify"), {"otp_token": code_for(device)})
+    assert response.status_code == 429
+
+
+def test_unverified_privileged_user_gets_404_on_admin_path_like_unknown_paths(client, admin_user):
+    from django.conf import settings
+
+    client.force_login(admin_user)
+    admin_path = "/" + settings.DJANGO_ADMIN_PATH
+    assert client.get(admin_path).status_code == 404
+    assert client.get(admin_path + "accounts/user/").status_code == 404
+    assert client.get("/no-such-page/").status_code == 404
+
+
+def test_employee_page_view_queries_groups_once(client, make_user):
+    employee = make_user("emp@example.com")
+    employee.groups.add(Group.objects.get(name=Role.EMPLOYEE))
+    client.force_login(employee)
+    client.get(reverse("home"))  # warm caches (content types, sessions)
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    with CaptureQueriesContext(connection) as queries:
+        assert client.get(reverse("home")).status_code == 200
+    group_queries = [q for q in queries if "auth_group" in q["sql"]]
+    assert len(group_queries) <= 1, [q["sql"] for q in group_queries]
+
+
+def test_role_codes_memoised_and_reset_when_groups_change(make_user, django_assert_num_queries):
+    from accounts.roles import user_roles
+
+    user = make_user("u@example.com")
+    assert user_roles(user) == set()
+    with django_assert_num_queries(0):
+        assert user_roles(user) == set()
+    user.groups.add(Group.objects.get(name=Role.AUDITOR))
+    assert user_roles(user) == {"auditor"}

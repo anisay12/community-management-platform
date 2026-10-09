@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
 from django.db import transaction
+from django.http import Http404
 from django.shortcuts import redirect, render, resolve_url
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -21,7 +22,7 @@ from audit.services import record
 from core.views_errors import too_many_requests
 
 from .forms import OTPTokenForm
-from .policies import has_confirmed_device
+from .policies import has_confirmed_device, requires_mfa
 
 
 def _next_url(request) -> str:
@@ -43,16 +44,20 @@ def _failures_key(user) -> str:
 
 
 def _rate_limited(user) -> bool:
-    return cache.get(_failures_key(user), 0) >= settings.MFA_MAX_FAILURES
+    """Count this attempt and tell whether the user is over the limit.
 
-
-def _record_failure(user) -> None:
+    The counter is incremented first (atomic in Redis), so parallel requests cannot
+    slip past the limit: the sixth attempt in the window is always refused.
+    """
     key = _failures_key(user)
-    cache.add(key, 0, timeout=int(settings.MFA_FAILURE_WINDOW.total_seconds()))
+    timeout = int(settings.MFA_FAILURE_WINDOW.total_seconds())
+    cache.add(key, 0, timeout=timeout)
     try:
-        cache.incr(key)
+        attempts = cache.incr(key)
     except ValueError:  # Expired between add() and incr().
-        cache.set(key, 1, timeout=int(settings.MFA_FAILURE_WINDOW.total_seconds()))
+        cache.set(key, 1, timeout=timeout)
+        attempts = 1
+    return attempts > settings.MFA_MAX_FAILURES
 
 
 def _qr_svg(device: TOTPDevice) -> str:
@@ -68,6 +73,8 @@ def _qr_svg(device: TOTPDevice) -> str:
 def mfa_setup(request):
     """Enrol a TOTP authenticator: show its QR code, confirm it with a first code."""
     user = request.user
+    if not requires_mfa(user):
+        raise Http404
     next_url = _next_url(request)
     if user.is_verified():
         return redirect(next_url)
@@ -94,7 +101,6 @@ def mfa_setup(request):
             otp_login(request, device)
             cache.delete(_failures_key(user))
             return redirect(next_url)
-        _record_failure(user)
         form.reject()
     context = {
         "form": form,
@@ -111,6 +117,8 @@ def mfa_setup(request):
 def mfa_verify(request):
     """Ask for a code from the user's confirmed authenticator to verify the session."""
     user = request.user
+    if not requires_mfa(user):
+        raise Http404
     next_url = _next_url(request)
     if user.is_verified():
         return redirect(next_url)
@@ -128,7 +136,6 @@ def mfa_verify(request):
             record(actor=user, action="auth.mfa_verified", target=user)
             cache.delete(_failures_key(user))
             return redirect(next_url)
-        _record_failure(user)
         form.reject()
     return render(request, "accounts/mfa_verify.html", {"form": form, "next": next_url})
 

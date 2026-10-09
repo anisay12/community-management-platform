@@ -2,7 +2,7 @@ from collections.abc import Callable
 from urllib.parse import quote
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 
 from .policies import has_confirmed_device, requires_mfa
@@ -36,10 +36,16 @@ class MFARequiredMiddleware:
 
     def process_view(self, request: HttpRequest, view_func, view_args, view_kwargs):
         user = getattr(request, "user", None)
-        if user is None or not requires_mfa(user) or user.is_verified():
+        if user is None or not getattr(user, "is_authenticated", False) or user.is_verified():
             return None
+        if not requires_mfa(user):
+            return None
+        # Static files are normally served before this middleware; harmless safety net.
         if request.path_info.startswith(settings.STATIC_URL):
             return None
+        # The hidden admin must look the same as an unknown path until MFA is done.
+        if request.path_info.startswith("/" + settings.DJANGO_ADMIN_PATH):
+            raise Http404
         match = request.resolver_match
         if match is not None and match.view_name in ALLOWED_URL_NAMES:
             return None

@@ -6,7 +6,6 @@ from django.urls import reverse
 from django_otp.oath import totp
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
-from accounts.models import User
 from accounts.roles import Role
 from core.admin_site import SecureAdminSite
 
@@ -14,12 +13,6 @@ pytestmark = pytest.mark.django_db
 
 ADMIN_INDEX = "/" + settings.DJANGO_ADMIN_PATH
 USER_CHANGELIST = ADMIN_INDEX + "accounts/user/"
-
-
-def make_user(email, **extra):
-    return User.objects.create_user(
-        email, password="correct-horse-battery-staple", status=User.Status.ACTIVE, **extra
-    )
 
 
 def verify(client, user):
@@ -40,7 +33,7 @@ def test_anonymous_gets_404(client, path):
 
 
 @pytest.mark.parametrize("path", [ADMIN_INDEX, USER_CHANGELIST])
-def test_employee_gets_404(client, path):
+def test_employee_gets_404(client, make_user, path):
     employee = make_user("emp@example.com")
     employee.groups.add(Group.objects.get(name=Role.EMPLOYEE))
     client.force_login(employee)
@@ -48,15 +41,15 @@ def test_employee_gets_404(client, path):
 
 
 @pytest.mark.parametrize("path", [ADMIN_INDEX, USER_CHANGELIST])
-def test_staff_without_verified_otp_has_no_access(client, path):
+def test_staff_without_verified_otp_gets_404(client, make_user, path):
     staff = make_user("staff@example.com", is_staff=True, is_superuser=True)
     client.force_login(staff)
-    response = client.get(path)
-    assert response.status_code != 200
-    assert b"Django administration" not in response.content
+    # Same answer as an unknown path: the admin location is not revealed.
+    assert client.get(path).status_code == 404
+    assert client.get(ADMIN_INDEX + "no-such-app/").status_code == 404
 
 
-def test_staff_without_verified_otp_is_refused_by_site_itself(rf):
+def test_staff_without_verified_otp_is_refused_by_site_itself(rf, make_user):
     staff = make_user("staff@example.com", is_staff=True, is_superuser=True)
     request = rf.get(ADMIN_INDEX)
     staff.is_verified = lambda: False
@@ -65,7 +58,7 @@ def test_staff_without_verified_otp_is_refused_by_site_itself(rf):
 
 
 @pytest.mark.parametrize("path", [ADMIN_INDEX, USER_CHANGELIST, ADMIN_INDEX + "audit/auditevent/"])
-def test_verified_staff_gets_200(client, path):
+def test_verified_staff_gets_200(client, make_user, path):
     staff = make_user("staff@example.com", is_staff=True, is_superuser=True)
     client.force_login(staff)
     verify(client, staff)
@@ -73,7 +66,7 @@ def test_verified_staff_gets_200(client, path):
     assert response.status_code == 200
 
 
-def test_verified_non_staff_privileged_user_gets_404(client):
+def test_verified_non_staff_privileged_user_gets_404(client, make_user):
     user = make_user("fa@example.com")
     user.groups.add(Group.objects.get(name=Role.FUNCTIONAL_ADMIN))
     client.force_login(user)

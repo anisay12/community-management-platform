@@ -12,8 +12,7 @@ from django.urls import reverse
 from accounts.backends import EmailBackend, axes_username
 from accounts.models import User
 from audit.models import AuditEvent
-
-from .conftest import PASSWORD
+from conftest import PASSWORD
 
 pytestmark = pytest.mark.django_db
 
