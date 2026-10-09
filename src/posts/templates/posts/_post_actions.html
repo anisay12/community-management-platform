@@ -1,3 +1,84 @@
-{% comment %}
-  Stub created by L4 Task 1; owned and filled by Task 5 (edit, pin, hide, archive, share, accept buttons).
-{% endcomment %}
+{% load i18n static post_actions %}{% comment %}
+  Editor and moderation actions of a post (owned by L4 Task 5). Context: post, comments
+  (optional, for the accepted answer choice), request. Each button is only rendered when the
+  policies allow it; the services check again. Destructive actions confirm in a modal.
+{% endcomment %}{% post_actions request.user post comments is_moderator as actions %}
+{% if actions.edit %}
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'posts:edit' post.community.slug post.public_id %}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>{% translate "Edit" %}</a>
+{% endif %}
+{% if actions.publish %}
+  <form method="post" action="{% url 'posts:publish' post.community.slug post.public_id %}" data-tl-single-submit>{% csrf_token %}
+    <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-send me-1" aria-hidden="true"></i>{{ actions.publish_label }}</button>
+  </form>
+{% endif %}
+{% if actions.delete_draft %}
+  {% url 'posts:delete_draft' post.community.slug post.public_id as delete_url %}
+  <form method="post" action="{{ delete_url }}">{% csrf_token %}
+    <button type="submit" class="btn btn-outline-danger btn-sm" data-tl-confirm="delete-draft-modal"><i class="bi bi-trash me-1" aria-hidden="true"></i>{% translate "Delete the draft" %}</button>
+  </form>
+  {% translate "Delete this draft?" as modal_title %}{% translate "The draft will be permanently deleted." as modal_text %}{% translate "Delete" as modal_confirm %}
+  {% include "posts/_confirm_modal.html" with id="delete-draft-modal" title=modal_title text=modal_text action_url=delete_url confirm_label=modal_confirm %}
+{% endif %}
+{% if actions.review %}
+  {% url 'posts:review_decide' post.community.slug post.public_id as review_url %}
+  <form method="post" action="{{ review_url }}" data-tl-single-submit>{% csrf_token %}
+    <button type="submit" name="decision" value="approve" class="btn btn-success btn-sm"><i class="bi bi-check-lg me-1" aria-hidden="true"></i>{% translate "Approve and publish" %}</button>
+  </form>
+  <form method="post" action="{{ review_url }}">{% csrf_token %}
+    <input type="hidden" name="decision" value="reject">
+    <button type="submit" class="btn btn-outline-danger btn-sm" data-tl-confirm="reject-post-modal"><i class="bi bi-arrow-return-left me-1" aria-hidden="true"></i>{% translate "Send back" %}</button>
+  </form>
+  {% translate "Send the post back" as modal_title %}{% translate "The post returns to its author as a draft, with your note." as modal_text %}{% translate "Send back" as modal_confirm %}{% translate "Note to the author" as modal_label %}
+  {% include "posts/_confirm_modal.html" with id="reject-post-modal" title=modal_title text=modal_text action_url=review_url confirm_label=modal_confirm field="note" field_label=modal_label hidden_name="decision" hidden_value="reject" %}
+{% endif %}
+{% if actions.pin %}
+  <form method="post" action="{% url 'posts:pin' post.community.slug post.public_id %}" data-tl-single-submit>{% csrf_token %}
+    <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pin-angle me-1" aria-hidden="true"></i>{% translate "Pin" %}</button>
+  </form>
+{% elif actions.unpin %}
+  <form method="post" action="{% url 'posts:unpin' post.community.slug post.public_id %}" data-tl-single-submit>{% csrf_token %}
+    <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-pin me-1" aria-hidden="true"></i>{% translate "Unpin" %}</button>
+  </form>
+{% endif %}
+{% if actions.share %}
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'posts:share' post.community.slug post.public_id %}"><i class="bi bi-share me-1" aria-hidden="true"></i>{% translate "Share" %}</a>
+{% endif %}
+{% if actions.hide %}
+  {% url 'posts:hide' post.community.slug post.public_id as hide_url %}
+  <form method="post" action="{{ hide_url }}">{% csrf_token %}
+    <button type="submit" class="btn btn-outline-danger btn-sm" data-tl-confirm="hide-post-modal"><i class="bi bi-eye-slash me-1" aria-hidden="true"></i>{% translate "Hide" %}</button>
+  </form>
+  {% translate "Hide this post?" as modal_title %}{% translate "Readers will no longer see it. Its author keeps reading it, with the reason." as modal_text %}{% translate "Hide" as modal_confirm %}{% translate "Reason" as modal_label %}
+  {% include "posts/_confirm_modal.html" with id="hide-post-modal" title=modal_title text=modal_text action_url=hide_url confirm_label=modal_confirm field="reason" field_label=modal_label %}
+{% elif actions.unhide %}
+  <form method="post" action="{% url 'posts:unhide' post.community.slug post.public_id %}" data-tl-single-submit>{% csrf_token %}
+    <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye me-1" aria-hidden="true"></i>{% translate "Unhide" %}</button>
+  </form>
+{% endif %}
+{% if actions.archive %}
+  {% url 'posts:archive' post.community.slug post.public_id as archive_url %}
+  <form method="post" action="{{ archive_url }}">{% csrf_token %}
+    <button type="submit" class="btn btn-outline-secondary btn-sm" data-tl-confirm="archive-post-modal"><i class="bi bi-archive me-1" aria-hidden="true"></i>{% translate "Archive" %}</button>
+  </form>
+  {% translate "Archive this post?" as modal_title %}{% translate "It stays readable by link but leaves the feeds and can no longer change." as modal_text %}{% translate "Archive" as modal_confirm %}
+  {% include "posts/_confirm_modal.html" with id="archive-post-modal" title=modal_title text=modal_text action_url=archive_url confirm_label=modal_confirm %}
+{% endif %}
+{% if actions.accept %}
+  {% url 'posts:accept_answer' post.community.slug post.public_id as accept_url %}
+  {% if actions.answer_candidates %}
+    <form method="post" action="{{ accept_url }}" class="d-flex flex-wrap align-items-center gap-2" data-tl-single-submit>{% csrf_token %}
+      <label class="form-label small mb-0" for="accept-answer-comment">{% translate "Accepted answer" %}</label>
+      <select class="form-select form-select-sm w-auto" id="accept-answer-comment" name="comment">
+        {% for comment in actions.answer_candidates %}<option value="{{ comment.public_id }}"{% if comment.pk == post.accepted_answer_id %} selected{% endif %}>{{ comment.author_display }}: {{ comment.body|truncatechars:60 }}</option>{% endfor %}
+      </select>
+      <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% translate "Accept this answer" %}</button>
+    </form>
+  {% endif %}
+  {% if post.accepted_answer_id %}
+    <form method="post" action="{{ accept_url }}" data-tl-single-submit>{% csrf_token %}
+      <input type="hidden" name="clear" value="1">
+      <button type="submit" class="btn btn-outline-secondary btn-sm">{% translate "Clear the accepted answer" %}</button>
+    </form>
+  {% endif %}
+{% endif %}
+<script src="{% static 'posts/js/post-editor.js' %}" defer></script>

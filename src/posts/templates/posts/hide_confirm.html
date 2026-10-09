@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}{% comment %}
+  Confirmation page of a destructive post action when JavaScript (and so the modal) is not
+  available: hide (with its reason), archive, delete a draft.
+  Context: post, community, title, text, action_url, confirm_label, form (optional).
+{% endcomment %}
+{% block title %}{{ title }} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h3">{{ title }}</h1>
+  <p>{{ text }}</p>
+  <p>{% translate "Post:" %} <a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a></p>
+  <form method="post" action="{{ action_url }}" class="col-12 col-lg-8" novalidate>{% csrf_token %}
+    <input type="hidden" name="confirmed" value="1">
+    {% if form %}
+      {% if form.is_bound %}{% include "components/form_errors.html" %}{% endif %}
+      {% for field in form %}{% include "components/form_field.html" %}{% endfor %}
+    {% endif %}
+    <button type="submit" class="btn btn-danger">{{ confirm_label }}</button>
+    <a class="btn btn-link" href="{% url 'posts:detail' community.slug post.public_id %}">{% translate "Cancel" %}</a>
+  </form>
+{% endblock %}

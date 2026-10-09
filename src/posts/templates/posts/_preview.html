@@ -1,0 +1,4 @@
+{% load i18n %}{% comment %}
+  Rendered Markdown of the editor's body (also the HTMX response of the preview route).
+  Context: preview (sanitised HTML from posts.rendering.render_body).
+{% endcomment %}{% if preview %}{{ preview|safe }}{% else %}<p class="text-body-secondary mb-0">{% translate "Nothing to preview yet." %}</p>{% endif %}

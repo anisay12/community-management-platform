@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 21:59+0200\n"
+"POT-Creation-Date: 2026-10-09 22:16+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -1862,6 +1862,44 @@ msgstr "Fil"
 msgid "Bookmarks"
 msgstr "Favoris"
 
+msgid "Kind"
+msgstr "Type"
+
+msgid "Title"
+msgstr "Titre"
+
+msgid "Text"
+msgstr "Texte"
+
+msgid ""
+"Markdown is supported: **bold**, *italic*, lists, links and `code`. Mention "
+"a member with @first.last."
+msgstr ""
+"Markdown est pris en charge : **gras**, *italique*, listes, liens et `code`. "
+"Mentionnez un membre avec @prenom.nom."
+
+msgid "Separate tags with commas."
+msgstr "Séparez les étiquettes par des virgules."
+
+msgid "Separate tags with commas. Pick an existing tag or type a new one."
+msgstr ""
+"Séparez les étiquettes par des virgules. Choisissez une étiquette existante "
+"ou saisissez-en une nouvelle."
+
+msgid "Separate tags with commas. Only existing tags can be used."
+msgstr ""
+"Séparez les étiquettes par des virgules. Seules les étiquettes existantes "
+"peuvent être utilisées."
+
+msgid "Note to the author"
+msgstr "Note à l’auteur"
+
+msgid "Community"
+msgstr "Communauté"
+
+msgid "Comment (optional)"
+msgstr "Commentaire (facultatif)"
+
 msgid "Give a reason for hiding this content."
 msgstr "Indiquez la raison du masquage de ce contenu."
 
@@ -2132,11 +2170,84 @@ msgstr "Motif du masquage :"
 msgid "This comment is hidden."
 msgstr "Ce commentaire est masqué."
 
+msgid "New post"
+msgstr "Nouvelle publication"
+
 msgid "Feed filters"
 msgstr "Filtres du fil"
 
 msgid "Load more"
 msgstr "Charger la suite"
+
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "Delete the draft"
+msgstr "Supprimer le brouillon"
+
+msgid "Delete this draft?"
+msgstr "Supprimer ce brouillon ?"
+
+msgid "The draft will be permanently deleted."
+msgstr "Le brouillon sera définitivement supprimé."
+
+msgid "Approve and publish"
+msgstr "Approuver et publier"
+
+msgid "Send back"
+msgstr "Renvoyer"
+
+msgid "Send the post back"
+msgstr "Renvoyer la publication"
+
+msgid "The post returns to its author as a draft, with your note."
+msgstr ""
+"La publication revient à son auteur sous forme de brouillon, avec votre note."
+
+msgid "Pin"
+msgstr "Épingler"
+
+msgid "Unpin"
+msgstr "Désépingler"
+
+msgid "Share"
+msgstr "Partager"
+
+msgid "Hide"
+msgstr "Masquer"
+
+msgid "Hide this post?"
+msgstr "Masquer cette publication ?"
+
+msgid ""
+"Readers will no longer see it. Its author keeps reading it, with the reason."
+msgstr ""
+"Les lecteurs ne la verront plus. Son auteur peut toujours la lire, avec le "
+"motif."
+
+msgid "Unhide"
+msgstr "Rendre visible"
+
+msgid "Archive"
+msgstr "Archiver"
+
+msgid "Archive this post?"
+msgstr "Archiver cette publication ?"
+
+msgid ""
+"It stays readable by link but leaves the feeds and can no longer change."
+msgstr ""
+"Elle reste lisible par lien mais quitte les fils d’actualité et ne peut plus "
+"être modifiée."
+
+msgid "Accept this answer"
+msgstr "Accepter cette réponse"
+
+msgid "Clear the accepted answer"
+msgstr "Retirer la réponse acceptée"
+
+msgid "Nothing to preview yet."
+msgstr "Rien à prévisualiser pour l’instant."
 
 msgid "This post is hidden."
 msgstr "Cette publication est masquée."
@@ -2162,8 +2273,42 @@ msgstr "Conflit de modification"
 msgid "Reload the latest version"
 msgstr "Recharger la dernière version"
 
+msgid "Edit post"
+msgstr "Modifier la publication"
+
+msgid "Join this community to publish in it."
+msgstr "Rejoignez cette communauté pour y publier."
+
+msgid "Your text is kept below: copy it before reloading."
+msgstr "Votre texte est conservé ci-dessous : copiez-le avant de recharger."
+
+msgid "Moderator's note:"
+msgstr "Note du modérateur :"
+
+msgid "__count__ / __max__ characters"
+msgstr "__count__ / __max__ caractères"
+
+#, python-format
+msgid "At most %(max)s characters."
+msgstr "%(max)s caractères au maximum."
+
+msgid "Members to mention"
+msgstr "Membres à mentionner"
+
+msgid "Preview"
+msgstr "Aperçu"
+
+msgid "Use Preview to see how your text will look."
+msgstr "Utilisez « Aperçu » pour voir le rendu de votre texte."
+
+msgid "Save draft"
+msgstr "Enregistrer le brouillon"
+
 msgid "Pinned posts"
 msgstr "Publications épinglées"
+
+msgid "Post:"
+msgstr "Publication :"
 
 msgid "Latest posts of your communities"
 msgstr "Dernières publications de vos communautés"
@@ -2194,6 +2339,29 @@ msgstr "Aucune révision"
 
 msgid "This post has not been edited since it was published."
 msgstr "Cette publication n’a pas été modifiée depuis sa publication."
+
+msgid "Share a post"
+msgstr "Partager une publication"
+
+msgid ""
+"A new discussion pointing to this post is published in the community you "
+"choose. Only readers who can see the original can open it."
+msgstr ""
+"Une nouvelle discussion renvoyant à cette publication est publiée dans la "
+"communauté choisie. Seuls les lecteurs qui peuvent voir l’original peuvent "
+"l’ouvrir."
+
+msgid ""
+"You are not a member of another community where you can publish this post."
+msgstr ""
+"Vous n’êtes membre d’aucune autre communauté où vous pouvez publier cette "
+"publication."
+
+msgid "Submit for review"
+msgstr "Soumettre à validation"
+
+msgid "Publish"
+msgstr "Publier"
 
 msgid "Hidden automatically after several reports"
 msgstr "Masqué automatiquement après plusieurs signalements"
@@ -2239,6 +2407,48 @@ msgstr "Lancez la première conversation de cette communauté."
 
 msgid "Posts matching this filter will appear here."
 msgstr "Les publications correspondant à ce filtre apparaîtront ici."
+
+msgid "Draft saved."
+msgstr "Brouillon enregistré."
+
+msgid "Your post has been submitted for review."
+msgstr "Votre publication a été soumise à validation."
+
+msgid "Your post has been published."
+msgstr "Votre publication a été publiée."
+
+msgid "Your changes have been saved."
+msgstr "Vos modifications ont été enregistrées."
+
+msgid "The draft has been deleted."
+msgstr "Le brouillon a été supprimé."
+
+msgid "The post has been pinned."
+msgstr "La publication a été épinglée."
+
+msgid "The post has been unpinned."
+msgstr "La publication a été désépinglée."
+
+msgid "The post has been hidden."
+msgstr "La publication a été masquée."
+
+msgid "The post is visible again."
+msgstr "La publication est de nouveau visible."
+
+msgid "The post has been archived."
+msgstr "La publication a été archivée."
+
+msgid "The accepted answer has been cleared."
+msgstr "La réponse acceptée a été retirée."
+
+msgid "The answer has been accepted."
+msgstr "La réponse a été acceptée."
+
+msgid "The post has been approved and published."
+msgstr "La publication a été approuvée et publiée."
+
+msgid "The post has been sent back to its author."
+msgstr "La publication a été renvoyée à son auteur."
 
 msgid "key"
 msgstr "clé"

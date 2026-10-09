@@ -1,3 +1,7 @@
-{% comment %}
-  Stub created by L4 Task 1; owned and filled by Task 5 (new post button of the community feed).
-{% endcomment %}
+{% load i18n post_actions %}{% comment %}
+  "New post" button of the community feed (owned by L4 Task 5), for users who may publish at
+  least one kind of post. Context: community, request.
+{% endcomment %}{% creatable_kinds request.user community as kinds %}
+{% if kinds %}
+  <a class="btn btn-primary" href="{% url 'posts:create' community.slug %}"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>{% translate "New post" %}</a>
+{% endif %}

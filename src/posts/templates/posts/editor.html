@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load i18n static %}{% comment %}
+  Post editor (create and edit) and, for a non-member, the prompt to join first.
+  Context: community, form, post (edit only), preview (rendered HTML or None), publish_label,
+  tag_suggestions, conflict (409 message), join_prompt.
+{% endcomment %}
+{% block title %}{% if post %}{% translate "Edit post" %}{% else %}{% translate "New post" %}{% endif %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block breadcrumb %}
+  <nav aria-label="{% translate 'Breadcrumb' %}">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'communities:catalogue' %}">{% translate "Communities" %}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'posts:feed' community.slug %}">{{ community.name }}</a></li>
+      {% if post %}
+        <li class="breadcrumb-item"><a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% translate "Edit" %}</li>
+      {% else %}
+        <li class="breadcrumb-item active" aria-current="page">{% translate "New post" %}</li>
+      {% endif %}
+    </ol>
+  </nav>
+{% endblock %}
+{% block content %}
+  <h1 class="h2">{% if post %}{% translate "Edit post" %}{% else %}{% translate "New post" %}{% endif %}</h1>
+  {% if join_prompt %}
+    <p>{% translate "Join this community to publish in it." %}</p>
+    {% include "communities/_actions.html" %}
+  {% else %}
+    {% if conflict %}
+      <div class="alert alert-danger" role="alert">
+        <p class="mb-2">{{ conflict }} {% translate "Your text is kept below: copy it before reloading." %}</p>
+        <a class="btn btn-outline-danger btn-sm" href="{% url 'posts:edit' community.slug post.public_id %}">{% translate "Reload the latest version" %}</a>
+      </div>
+    {% endif %}
+    {% if post.review_note and post.status == "draft" %}
+      <div class="alert alert-warning" role="status">{% translate "Moderator's note:" %} {{ post.review_note }}</div>
+    {% endif %}
+    <form method="post" class="col-12 col-lg-9 tl-post-editor" novalidate data-tl-single-submit>{% csrf_token %}
+      {% include "components/form_errors.html" %}
+      {% for field in form.visible_fields %}
+        {% include "components/form_field.html" %}
+        {% if field.name == "body" %}
+          <p class="form-text mt-n2" id="post-body-counter" data-tl-counter-template="{% translate '__count__ / __max__ characters' %}">{% blocktranslate with max=body_max_length %}At most {{ max }} characters.{% endblocktranslate %}</p>
+          <ul id="mention-suggestions" class="list-group tl-mention-suggestions mb-3" role="listbox" aria-label="{% translate 'Members to mention' %}" hidden></ul>
+        {% endif %}
+      {% endfor %}
+      {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+      <datalist id="tag-suggestions">{% for name in tag_suggestions %}<option value="{{ name }}">{% endfor %}</datalist>
+      <section class="mb-3" aria-labelledby="post-preview-title">
+        <h2 class="h6" id="post-preview-title">{% translate "Preview" %}</h2>
+        <div id="post-preview" class="tl-markdown border rounded p-3" aria-live="polite">{% if preview is not None %}{% include "posts/_preview.html" %}{% else %}<p class="text-body-secondary mb-0">{% translate "Use Preview to see how your text will look." %}</p>{% endif %}</div>
+      </section>
+      <div class="d-flex flex-wrap gap-2">
+        <button type="submit" name="action" value="preview" class="btn btn-outline-secondary" hx-post="{% url 'posts:preview' community.slug %}" hx-target="#post-preview" hx-swap="innerHTML"><i class="bi bi-eye me-1" aria-hidden="true"></i>{% translate "Preview" %}</button>
+        {% if not post %}
+          <button type="submit" name="action" value="draft" class="btn btn-outline-primary">{% translate "Save draft" %}</button>
+          <button type="submit" name="action" value="publish" class="btn btn-primary">{{ publish_label }}</button>
+        {% elif post.status == "draft" %}
+          <button type="submit" name="action" value="save" class="btn btn-outline-primary">{% translate "Save draft" %}</button>
+          <button type="submit" name="action" value="publish" class="btn btn-primary">{{ publish_label }}</button>
+        {% else %}
+          <button type="submit" name="action" value="save" class="btn btn-primary">{% translate "Save" %}</button>
+        {% endif %}
+        <a class="btn btn-link" href="{% if post %}{% url 'posts:detail' community.slug post.public_id %}{% else %}{% url 'posts:feed' community.slug %}{% endif %}">{% translate "Cancel" %}</a>
+      </div>
+    </form>
+    <script src="{% static 'posts/js/post-editor.js' %}" defer></script>
+    <script src="{% static 'core/js/mention-autocomplete.js' %}" defer></script>
+  {% endif %}
+{% endblock %}

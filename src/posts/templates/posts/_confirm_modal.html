@@ -1,0 +1,30 @@
+{% load i18n %}{% comment %}
+  Confirmation modal of a destructive post action (opened by a button carrying
+  data-tl-confirm="<id>"; without JavaScript that button submits its own form and the server
+  answers a confirmation page). Arguments: id, title, text, action_url, confirm_label,
+  field (optional: name of a required textarea), field_label, hidden_name / hidden_value
+  (optional extra hidden input).
+{% endcomment %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}-title" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ action_url }}" data-tl-single-submit>{% csrf_token %}
+      <input type="hidden" name="confirmed" value="1">
+      {% if hidden_name %}<input type="hidden" name="{{ hidden_name }}" value="{{ hidden_value }}">{% endif %}
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="{{ id }}-title">{{ title }}</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% translate 'Cancel' %}"></button>
+      </div>
+      <div class="modal-body">
+        <p>{{ text }}</p>
+        {% if field %}
+          <label class="form-label" for="{{ id }}-{{ field }}">{{ field_label }}</label>
+          <textarea class="form-control" id="{{ id }}-{{ field }}" name="{{ field }}" rows="3" maxlength="2000" required></textarea>
+        {% endif %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{% translate "Cancel" %}</button>
+        <button type="submit" class="btn btn-danger">{{ confirm_label }}</button>
+      </div>
+    </form>
+  </div>
+</div>
