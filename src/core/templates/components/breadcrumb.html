@@ -1,0 +1,15 @@
+{% load i18n %}{% comment %}
+  Breadcrumb. Arguments: items (list of (label, url) pairs; the last one is the current page and
+  its url is ignored).
+{% endcomment %}
+<nav aria-label="{% translate 'Breadcrumb' %}">
+  <ol class="breadcrumb">
+    {% for label, url in items %}
+      {% if forloop.last %}
+        <li class="breadcrumb-item active" aria-current="page">{{ label }}</li>
+      {% else %}
+        <li class="breadcrumb-item"><a href="{{ url }}">{{ label }}</a></li>
+      {% endif %}
+    {% endfor %}
+  </ol>
+</nav>

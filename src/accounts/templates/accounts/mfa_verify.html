@@ -1,13 +1,13 @@
-{% extends "base.html" %}
+{% extends "base_minimal.html" %}
 {% load i18n %}
 {% block title %}{% translate "Two-step verification" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1>{% translate "Two-step verification" %}</h1>
+  <h1 class="h3 mb-3">{% translate "Two-step verification" %}</h1>
   <p>{% translate "Enter the 6-digit code shown by your authenticator app." %}</p>
   <form method="post" novalidate>
     {% csrf_token %}
     {% include "accounts/_form_fields.html" %}
     <input type="hidden" name="next" value="{{ next }}">
-    <button type="submit">{% translate "Verify" %}</button>
+    <button type="submit" class="btn btn-primary">{% translate "Verify" %}</button>
   </form>
 {% endblock %}

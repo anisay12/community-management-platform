@@ -1,0 +1,1 @@
+<span class="badge text-bg-{% if account.status == 'active' %}success{% elif account.status == 'suspended' %}warning{% elif account.status == 'pending' %}info{% else %}secondary{% endif %}">{{ account.get_status_display }}</span>

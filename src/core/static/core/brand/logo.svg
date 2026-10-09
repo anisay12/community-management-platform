@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="40" viewBox="0 0 180 40" role="img" aria-label="Communities">
+  <title>Communities</title>
+  <rect x="2" y="6" width="28" height="28" rx="6" fill="#0b5cad"/>
+  <circle cx="12" cy="17" r="4" fill="#ffffff"/>
+  <circle cx="22" cy="17" r="4" fill="#ffffff" fill-opacity="0.8"/>
+  <path d="M7 27c1-4 4-5 5-5s4 1 5 5zM17 27c1-4 4-5 5-5s4 1 5 5z" fill="#ffffff"/>
+  <text x="40" y="26" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" font-size="17" font-weight="600" fill="#1a1a1a">Communities</text>
+</svg>

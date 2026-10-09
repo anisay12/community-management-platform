@@ -2,13 +2,11 @@
 {% load i18n %}
 {% block title %}{% translate "Edit my profile" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1>{% translate "Edit my profile" %}</h1>
+  <h1 class="h3 mb-4">{% translate "Edit my profile" %}</h1>
   <form method="post" novalidate>
     {% csrf_token %}
-    {% include "manage/_fields.html" %}
-    <div class="actions">
-      <button type="submit">{% translate "Save" %}</button>
-      <a href="{% url 'accounts:profile_me' %}">{% translate "Cancel" %}</a>
-    </div>
+    {% include "accounts/_form_fields.html" %}
+    <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+    <a class="btn btn-outline-secondary" href="{% url 'accounts:profile_me' %}">{% translate "Cancel" %}</a>
   </form>
 {% endblock %}

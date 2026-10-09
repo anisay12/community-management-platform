@@ -1,0 +1,45 @@
+// Entry point: tokens first, then Bootstrap configured from them, then icons and our base layer.
+@use "sass:map";
+@import "tokens";
+
+$color-mode-type: media-query;
+$enable-dark-mode: true;
+
+$primary: map.get($tl-light, "color-primary");
+$secondary: map.get($tl-light, "color-secondary");
+$success: map.get($tl-light, "color-success");
+$warning: map.get($tl-light, "color-warning");
+$danger: map.get($tl-light, "color-danger");
+$info: map.get($tl-light, "color-info");
+$body-bg: map.get($tl-light, "color-bg");
+$body-color: map.get($tl-light, "color-text");
+$body-secondary-color: map.get($tl-light, "color-text-muted");
+$body-tertiary-bg: map.get($tl-light, "color-surface");
+$border-color: map.get($tl-light, "color-border");
+$font-family-sans-serif: $tl-font-sans;
+$font-family-monospace: $tl-font-mono;
+$border-radius: $tl-radius;
+$link-color: $primary;
+$focus-ring-width: 3px;
+$focus-ring-opacity: 1;
+$focus-ring-color: map.get($tl-light, "color-focus");
+$input-btn-focus-width: 3px;
+$input-btn-focus-color-opacity: 1;
+$input-btn-focus-color: map.get($tl-light, "color-focus");
+$btn-focus-width: 3px;
+$min-contrast-ratio: 4.5;
+
+$primary-text-emphasis-dark: map.get($tl-dark, "color-primary");
+$body-bg-dark: map.get($tl-dark, "color-bg");
+$body-color-dark: map.get($tl-dark, "color-text");
+$body-secondary-color-dark: map.get($tl-dark, "color-text-muted");
+$body-tertiary-bg-dark: map.get($tl-dark, "color-surface");
+$border-color-dark: map.get($tl-dark, "color-border");
+$link-color-dark: map.get($tl-dark, "color-primary");
+$link-hover-color-dark: map.get($tl-dark, "color-primary");
+
+$bootstrap-icons-font-dir: "fonts";
+
+@import "bootstrap/scss/bootstrap";
+@import "bootstrap-icons/font/bootstrap-icons";
+@import "base";

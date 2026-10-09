@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "base_minimal.html" %}
 {% load i18n %}
 {% block title %}{% translate "Set up two-step verification" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1>{% translate "Set up two-step verification" %}</h1>
+  <h1 class="h3 mb-3">{% translate "Set up two-step verification" %}</h1>
   <p>{% translate "Your role gives you access to sensitive features, so your account must be protected by a second factor." %}</p>
   <ol>
     <li>{% translate "Scan this QR code with an authenticator app (for example Microsoft Authenticator or FreeOTP)." %}</li>
@@ -19,6 +19,6 @@
     {% csrf_token %}
     {% include "accounts/_form_fields.html" %}
     <input type="hidden" name="next" value="{{ next }}">
-    <button type="submit">{% translate "Confirm" %}</button>
+    <button type="submit" class="btn btn-primary">{% translate "Confirm" %}</button>
   </form>
 {% endblock %}

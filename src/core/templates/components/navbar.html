@@ -1,0 +1,43 @@
+{% load i18n static navigation_tags %}
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom" aria-label="{% translate 'Main navigation' %}">
+  <div class="container">
+    <a class="navbar-brand d-inline-flex align-items-center gap-2" href="{% url 'home' %}">
+      <img src="{% static 'core/brand/logo-mark.svg' %}" alt="" width="32" height="32">
+      <span>{% translate "Communities" %}</span>
+    </a>
+    {% if minimal %}
+      <div class="ms-auto">{% include "components/language_switcher.html" %}</div>
+    {% elif user.is_authenticated %}
+      {% main_navigation as nav_items %}
+      <button class="navbar-toggler d-lg-none ms-auto gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#main-menu" aria-controls="main-menu" aria-expanded="false">
+        <i class="bi bi-list" aria-hidden="true"></i><span>{% translate "Menu" %}</span>
+      </button>
+      <div class="offcanvas-lg offcanvas-end flex-grow-1" tabindex="-1" id="main-menu" aria-labelledby="main-menu-title">
+        <div class="offcanvas-header">
+          <h2 class="offcanvas-title h5" id="main-menu-title">{% translate "Menu" %}</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#main-menu" aria-label="{% translate 'Close' %}"></button>
+        </div>
+        <div class="offcanvas-body align-items-lg-center">
+          <ul class="navbar-nav me-auto">
+            {% for item in nav_items %}
+              <li class="nav-item">
+                <a class="nav-link{% if item.is_current %} active{% endif %}" href="{{ item.url }}" data-nav-key="{{ item.key }}"{% if item.is_current %} aria-current="page"{% endif %}>
+                  <i class="bi bi-{{ item.icon }} me-2" aria-hidden="true"></i>{{ item.label }}
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+          <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mt-3 mt-lg-0">
+            {% include "components/language_switcher.html" %}
+            {% include "components/user_menu.html" %}
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <div class="d-flex align-items-center gap-3 ms-auto">
+        {% include "components/language_switcher.html" %}
+        <a class="btn btn-primary" href="{% url 'accounts:login' %}">{% translate "Sign in" %}</a>
+      </div>
+    {% endif %}
+  </div>
+</nav>

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n audit_tags component_tags %}
+{% block title %}{% translate "Audit log" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h2">{% translate "Audit log" %}</h1>
+  {% include "components/form_errors.html" with form=form %}
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" action="{% url 'audit:event_list' %}" role="search" class="row g-3 align-items-end">
+        {% for field in form %}
+          <div class="col-12 col-md-6 col-lg-4">{% include "components/form_field.html" with field=field %}</div>
+        {% endfor %}
+        <div class="col-12 mb-3"><button type="submit" class="btn btn-primary">{% translate "Filter" %}</button></div>
+      </form>
+    </div>
+  </div>
+  <p>{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} event{% plural %}{{ counter }} events{% endblocktranslate %}</p>
+  {% if page_obj.object_list %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <caption class="visually-hidden">{% translate "Audit log" %}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Date" %}</th>
+            <th scope="col">{% translate "Action" %}</th>
+            <th scope="col">{% translate "Category" %}</th>
+            <th scope="col">{% translate "Actor" %}</th>
+            <th scope="col">{% translate "Target" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in page_obj %}
+            <tr>
+              <td><a href="{% url 'audit:event_detail' event.pk %}">{{ event.created_at|date:"DATETIME_FORMAT" }}</a></td>
+              <td>{{ event.action }}</td>
+              <td>{{ event.action|action_category }}</td>
+              <td>{% if event.actor %}{{ event.actor.get_full_name|default:event.actor.email }}{% else %}{% translate "System" %}{% endif %}</td>
+              <td>{{ event.target_type }} {{ event.target_id }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% translate "No audit event matches these filters." as empty_title %}
+    {% include "components/empty_state.html" with icon="journal-text" title=empty_title %}
+  {% endif %}
+  {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
+{% endblock %}

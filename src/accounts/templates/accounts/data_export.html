@@ -2,24 +2,32 @@
 {% load i18n %}
 {% block title %}{% translate "My data" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1>{% translate "My data" %}</h1>
+  <h1 class="h3 mb-3">{% translate "My data" %}</h1>
   <p>{% translate "You can download a copy of the personal data the platform holds about you, as a JSON file." %}</p>
   {% if export %}
     {% if downloadable %}
-      <p>{% blocktranslate with expires=export.expires_at %}Your copy is ready. It can be downloaded until {{ expires }}.{% endblocktranslate %}</p>
-      <p><a class="button" href="{% url 'accounts:data_export_download' export.public_id %}">{% translate "Download my data" %}</a></p>
+      {% blocktranslate with expires=export.expires_at asvar ready_text %}Your copy is ready. It can be downloaded until {{ expires }}.{% endblocktranslate %}
+      {% include "components/alert.html" with level="success" text=ready_text %}
+      <p><a class="btn btn-primary" href="{% url 'accounts:data_export_download' export.public_id %}"><i class="bi bi-download" aria-hidden="true"></i> {% translate "Download my data" %}</a></p>
     {% elif export.status == "pending" %}
-      <p>{% translate "Your copy is being prepared. Come back to this page in a few minutes." %}</p>
+      {% translate "Your copy is being prepared. Come back to this page in a few minutes." as message %}
+      {% include "components/alert.html" with level="info" text=message %}
     {% elif export.status == "failed" %}
-      <p class="message message-error">{% translate "Your copy could not be prepared. Please try again." %}</p>
+      {% translate "Your copy could not be prepared. Please try again." as message %}
+      {% include "components/alert.html" with level="danger" text=message %}
     {% else %}
-      <p>{% translate "Your previous copy has expired." %}</p>
+      {% translate "Your previous copy has expired." as message %}
+      {% include "components/alert.html" with level="warning" text=message %}
     {% endif %}
+  {% else %}
+    {% translate "No copy requested yet" as empty_title %}
+    {% translate "Request a copy to download everything the platform holds about you." as empty_text %}
+    {% include "components/empty_state.html" with icon="file-earmark-arrow-down" title=empty_title text=empty_text %}
   {% endif %}
   {% if can_request %}
     <form method="post" action="{% url 'accounts:data_export' %}">
       {% csrf_token %}
-      <button type="submit">{% translate "Request a copy of my data" %}</button>
+      <button type="submit" class="btn btn-primary">{% translate "Request a copy of my data" %}</button>
     </form>
   {% endif %}
 {% endblock %}

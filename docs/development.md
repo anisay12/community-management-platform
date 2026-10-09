@@ -92,7 +92,7 @@ It creates an active superuser with the `technical_admin` role, checks the passw
 
 In the Django admin, account status, the activation/deactivation/anonymization dates and the `is_staff`/`is_superuser` flags are read-only: status changes go through `/manage/` (audited, and they end the account's sessions), superusers through `create_admin`. Accounts added from the Django admin are created like those of `/manage/users/new/`: pending, `employee` role, audited and invited by e-mail.
 
-**MFA enrollment.** A second factor (TOTP, any authenticator app) is mandatory for staff and superusers, for holders of the `functional_admin` and `technical_admin` roles, and for the break-glass account. At the first sign-in such a user is redirected to `/accounts/mfa/setup/` (QR code, then confirmation of a first code); afterwards each session goes through `/accounts/mfa/verify/` (five failures within 15 minutes lock the form). Until the session is verified, every page redirects to the setup or verification form, and the Django admin answers 404. The Django admin lives at `DJANGO_ADMIN_PATH` and is reachable only by verified staff.
+**MFA enrollment.** A second factor (TOTP, any authenticator app) is mandatory for staff and superusers, for holders of the `functional_admin`, `technical_admin` and `auditor` roles, and for the break-glass account. At the first sign-in such a user is redirected to `/accounts/mfa/setup/` (QR code, then confirmation of a first code); afterwards each session goes through `/accounts/mfa/verify/` (five failures within 15 minutes lock the form). Until the session is verified, every page redirects to the setup or verification form, and the Django admin answers 404. The Django admin lives at `DJANGO_ADMIN_PATH` and is reachable only by verified staff.
 
 ## Authentication modes and single sign-on
 
@@ -120,6 +120,12 @@ Local sign-in is protected by django-axes: five failures for an (e-mail, IP) pai
 
 **Disabling local passwords.** Once `AUTH_MODE=sso_only` is in place, `python manage.py disable_local_passwords [--dry-run]` sets an unusable password on every account except the break-glass one (it refuses to run in other modes), signs the affected users out and writes an audit event.
 
+## Front-end assets and design tokens
+
+Styles are written in Sass under `src/core/static/core/scss/`. All brand values (colours, fonts, radius, spacing, touch target size) live in `tokens.scss`: they become `--tl-*` CSS custom properties, with a dark set under `prefers-color-scheme: dark`, and they also feed the Bootstrap Sass variables in `app.scss`. Changing the brand charter means editing that one file (keep the contrast ratios documented at its top valid).
+
+Bootstrap, Bootstrap Icons and HTMX are npm dev dependencies pinned to exact versions (`package.json`, `package-lock.json`). Rebuild with `make assets` (Node and npm required; `npm ci` runs when `node_modules/` is missing). The output in `src/core/static/core/dist/` (`app.css`, `bootstrap.bundle.min.js`, `htmx.min.js`, `fonts/`, `LICENSES.txt`) is committed on purpose: the Docker image and the Python test environment need no Node toolchain, and the build is deterministic for a given Node/Sass version (the committed output was built with Node 22.22.0, `engines` requires Node 20 or later). `make assets-check` (run in CI) rebuilds and fails if the committed output differs (including when a runner change alters the output), so always commit regenerated files together with the source change.
+
 ## Languages and internationalization
 
 The interface is available in English and French. The language is resolved from the saved preference (`UserProfile.language`, empty = automatic), then the `django_language` cookie, then `Accept-Language`, then English; URLs carry no language prefix. The language switcher in the layout and the preferences page (`/me/preferences/`) set it. To try the French interface: open `/me/preferences/` and pick "Français", use the switcher in the header, or send `Accept-Language: fr`.
@@ -137,6 +143,8 @@ Compiled `.mo` files are not committed: `make messages`, `make test`, CI and the
 ## Audit log
 
 Every account, role or status change, every sign-in anomaly and every privacy operation writes an `AuditEvent` in the same transaction as the change (`audit.services.record`). Events store the actor, the action code, the target, a non-sensitive change summary, the request ID and an HMAC of the client IP (`AUDIT_IP_HASH_KEY`), never the IP. The model refuses updates and deletions; the Django admin shows them read-only. Events older than `AUDIT_RETENTION_DAYS` are purged by a nightly job.
+
+**Audit log page.** The read-only page lives at `/audit/` (detail at `/audit/<id>/`, GET only, 50 events per page, filters by action, actor, target and dates). Superusers and `auditor` see every event; `technical_admin` sees technical and security events (`auth.*`); `functional_admin` sees functional events (every other action); a user holding several roles sees the union. Everyone else, including anonymous visitors, gets a 404, as does an event outside the viewer's scope. Auditors and administrators need a verified MFA session like on the other administration pages. Nothing can be edited, deleted or exported from the page.
 
 **Production database role.** The application-level guard is not enough against a compromised application: in production the role used by `DATABASE_URL` should hold only `SELECT` and `INSERT` on `audit_auditevent` (no `UPDATE`, no `DELETE`; the `actor` foreign key is `ON DELETE SET NULL` and is not exercised since accounts are anonymized, not deleted). `DELETE` is needed only by the purge job (`audit.tasks.purge_audit_events`): grant it to a separate maintenance role, or grant it for the duration of the job. The platform does not yet run the purge under a second database connection, so this split is an operational decision to take with the hosting team before go-live.
 
@@ -181,6 +189,7 @@ Never applied automatically at startup. In development: `docker compose run --rm
 
 - `make i18n-check` : French catalogue up to date and complete.
 - `make test` : Django unit and integration tests on a real PostgreSQL, minimum coverage 85%.
+- `make test-a11y` : browser accessibility and keyboard checks (see below). Excluded from `make test`.
 - `make test-integration` : checks that the bucket is private (anonymous read denied) against a real S3-compatible storage. Locally, with Compose started:
 
   ```bash
@@ -188,6 +197,15 @@ Never applied automatically at startup. In development: `docker compose run --rm
     S3_INTEGRATION_ACCESS_KEY=dev-only-s3 S3_INTEGRATION_SECRET_KEY=dev-only-s3-secret \
     make test-integration
   ```
+
+### Accessibility checks (axe-core and keyboard)
+
+`make test-a11y` runs the tests marked `a11y` (`src/core/tests/a11y/`) with Playwright and Chromium against a live server, on the same PostgreSQL database as `make test`. It installs `node_modules/` (`npm ci`) when axe-core is missing. Chromium is installed once with `uv run playwright install --with-deps chromium` (CI does it; set `PLAYWRIGHT_BROWSERS_PATH` to use an existing browser cache, whose build must match the pinned `playwright` version). No network access is needed at test time.
+
+- `test_axe.py` scans login, password reset, 404, home, profile, profile edit, preferences, data export, user list, user detail, audit log, audit event and the style guide, each in light and dark colour scheme at 1280x800 and 390x844, with the axe tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`. Any `serious` or `critical` violation fails the test; `moderate` and `minor` findings are printed (visible with `-s` or in the failure report).
+- `test_keyboard.py` checks, on the mobile viewport, the skip link, the offcanvas menu (open, Escape, focus return), the user menu (Enter, Space, arrow keys), the visible focus indicator on navbar controls and 44x44 px touch targets in the navigation and pagination.
+
+Reading a violation: each line gives the rule id, its impact, the CSS selectors of the offending elements (with the measured colours and ratio for `color-contrast`) and the Deque help URL explaining the fix. The test name tells the page, colour scheme and viewport. Fix the template or the tokens (`tokens.scss`, then `make assets`), never disable a rule.
 
 ## Observability
 

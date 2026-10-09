@@ -16,6 +16,7 @@ from core.i18n import delete_language_cookie, set_language_cookie
 from .forms import PreferencesForm, ProfileForm
 from .models import User
 from .policies import can_view_profile, can_view_profile_details
+from .roles import Role, user_roles
 
 
 def _own_profile_url(user) -> str:
@@ -37,13 +38,16 @@ def profile_detail(request, public_id):
     if not can_view_profile(request.user, owner):
         raise Http404
     show_details = can_view_profile_details(request.user, owner)
+    is_self = owner.pk == request.user.pk
     context = {
         "owner": owner,
         "profile": owner.profile,
-        "is_self": owner.pk == request.user.pk,
+        "is_self": is_self,
         "is_active": owner.status == User.Status.ACTIVE,
         "show_details": show_details,
         "interests": list(owner.profile.interests.all()) if show_details else [],
+        # Roles are only shown to their holder.
+        "roles": [r.value for r in Role if r.value in user_roles(owner)] if is_self else [],
     }
     return render(request, "accounts/profile_detail.html", context)
 

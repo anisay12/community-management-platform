@@ -1,22 +1,29 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n accounts_tags %}
 {% block title %}{% translate "Anonymize the account" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  {% include "manage/_nav.html" %}
-  <h1>{% translate "Anonymize the account" %}</h1>
-  {% if can_anonymize %}
-    <p>{% blocktranslate with name=account.get_full_name|default:account.email email=account.email %}You are about to anonymize the account of {{ name }} ({{ email }}).{% endblocktranslate %}</p>
-    <ul>
-      <li>{% translate "The name, email address, profile, organization details, sign-in methods and data exports of the account are erased." %}</li>
-      <li>{% translate "The person appears as “Former employee” wherever their contributions remain." %}</li>
-      <li>{% translate "Anonymization cannot be undone." %}</li>
-    </ul>
-    <form method="post" action="{% url 'manage:user_anonymize' account.public_id %}" class="inline-form">
-      {% csrf_token %}
-      <button type="submit">{% translate "Anonymize the account" %}</button>
-    </form>
-  {% else %}
-    <p role="alert">{{ status_message }}</p>
-  {% endif %}
-  <a href="{% url 'manage:user_detail' account.public_id %}">{% translate "Cancel" %}</a>
+  {% translate "Anonymize the account" as page_title %}
+  {% manage_breadcrumb account page_title as crumbs %}
+  {% include "components/breadcrumb.html" with items=crumbs %}
+  <h1 class="h2">{{ page_title }}</h1>
+  {% include "manage/_tabs.html" with active="" %}
+  <div class="card tl-narrow mt-3">
+    <div class="card-body">
+      {% if can_anonymize %}
+        <p>{% blocktranslate with name=account.get_full_name|default:account.email email=account.email %}You are about to anonymize the account of {{ name }} ({{ email }}).{% endblocktranslate %}</p>
+        <ul>
+          <li>{% translate "The name, email address, profile, organization details, sign-in methods and data exports of the account are erased." %}</li>
+          <li>{% translate "The person appears as “Former employee” wherever their contributions remain." %}</li>
+          <li>{% translate "Anonymization cannot be undone." %}</li>
+        </ul>
+        <form method="post" action="{% url 'manage:user_anonymize' account.public_id %}" class="d-inline">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">{% translate "Anonymize the account" %}</button>
+        </form>
+      {% else %}
+        <div class="alert alert-warning" role="alert">{{ status_message }}</div>
+      {% endif %}
+      <a class="btn btn-outline-secondary" href="{% url 'manage:user_detail' account.public_id %}">{% translate "Cancel" %}</a>
+    </div>
+  </div>
 {% endblock %}

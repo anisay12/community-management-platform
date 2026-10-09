@@ -1,0 +1,81 @@
+// Design tokens: the single place to edit when the brand charter changes.
+// They feed both the CSS custom properties (--tl-*) and the Bootstrap Sass variables (see app.scss).
+//
+// Contrast ratios (WCAG 2.1, computed numerically from the hex values below; AA needs 4.5:1 for
+// text, 3:1 for large text and UI borders):
+//
+//   pair                       light    dark
+//   primary / primary-contrast  6.67     8.92
+//   text / bg                  17.40    16.17
+//   text-muted / bg             6.83     8.56
+//   text / surface             16.22    14.30
+//   text-muted / surface        6.36     7.57
+//   primary / bg                6.67     8.73
+//   success, warning, danger, info as text on bg:
+//     light: 5.07, 5.93, 7.33, 6.10    dark: 9.58, 10.08, 8.17, 9.26
+//   secondary / bg              6.15     8.56
+//   focus / bg                  5.02    10.39   (3:1 needed for the focus ring)
+//   border / bg                 3.39     4.90   (3:1 needed for UI borders)
+//   border / surface            3.16     4.33
+//
+// No Talan charter is available yet: these are neutral placeholder values.
+
+$tl-font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+$tl-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+$tl-radius: 0.375rem;
+$tl-space-unit: 0.25rem;
+$tl-touch-target: 44px;
+
+$tl-light: (
+  "color-primary": #0b5cad,
+  "color-primary-contrast": #ffffff,
+  "color-secondary": #5a6270,
+  "color-success": #1b7f3b,
+  "color-warning": #8a5a00,
+  "color-danger": #b00020,
+  "color-info": #0a6a8a,
+  "color-bg": #ffffff,
+  "color-surface": #f5f7fa,
+  "color-text": #1a1a1a,
+  "color-text-muted": #555b66,
+  "color-border": #858c97,
+  "color-focus": #b45309,
+);
+
+$tl-dark: (
+  "color-primary": #7db8f2,
+  "color-primary-contrast": #0b1220,
+  "color-secondary": #a9b2bf,
+  "color-success": #5fd18a,
+  "color-warning": #f0b740,
+  "color-danger": #ff8a9b,
+  "color-info": #62c5e3,
+  "color-bg": #10151c,
+  "color-surface": #1a212b,
+  "color-text": #eef1f5,
+  "color-text-muted": #a9b2bf,
+  "color-border": #7a8594,
+  "color-focus": #ffb454,
+);
+
+@mixin tl-emit-colors($palette) {
+  @each $name, $value in $palette {
+    --tl-#{$name}: #{$value};
+  }
+}
+
+:root {
+  @include tl-emit-colors($tl-light);
+  --tl-font-sans: #{$tl-font-sans};
+  --tl-font-mono: #{$tl-font-mono};
+  --tl-radius: #{$tl-radius};
+  --tl-space-unit: #{$tl-space-unit};
+  --tl-touch-target: #{$tl-touch-target};
+  --tl-focus-ring-width: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    @include tl-emit-colors($tl-dark);
+  }
+}

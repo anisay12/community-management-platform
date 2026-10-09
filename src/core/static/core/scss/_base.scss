@@ -1,0 +1,187 @@
+// Base layer on top of Bootstrap: focus ring, skip link, touch targets and small utilities.
+@use "sass:color";
+@use "sass:map";
+
+$tl-theme-colors: primary, secondary, success, warning, danger, info;
+
+// RGB triplet of a dark palette colour, derived from tokens.scss so the tokens stay the single source.
+@function tl-dark-rgb($name) {
+  $value: map.get($tl-dark, "color-#{$name}");
+  @return #{color.channel($value, "red", $space: rgb)}, #{color.channel($value, "green", $space: rgb)},
+    #{color.channel($value, "blue", $space: rgb)};
+}
+
+:root {
+  --bs-focus-ring-color: var(--tl-color-focus);
+  --bs-border-color: var(--tl-color-border);
+}
+
+// Bootstrap compiles its theme colours once, from the light palette: in dark mode the theme
+// variables, outline buttons and filled badges are re-pointed at the dark tokens.
+@media (prefers-color-scheme: dark) {
+  :root {
+    @each $name in $tl-theme-colors {
+      --bs-#{$name}: var(--tl-color-#{$name});
+      --bs-#{$name}-rgb: #{tl-dark-rgb($name)};
+    }
+    --bs-link-color-rgb: #{tl-dark-rgb(primary)};
+    --bs-link-hover-color-rgb: #{tl-dark-rgb(primary)};
+  }
+
+  @each $name in $tl-theme-colors {
+    .btn-outline-#{$name} {
+      --bs-btn-color: var(--tl-color-#{$name});
+      --bs-btn-border-color: var(--tl-color-#{$name});
+      --bs-btn-hover-bg: var(--tl-color-#{$name});
+      --bs-btn-hover-border-color: var(--tl-color-#{$name});
+      --bs-btn-hover-color: var(--tl-color-bg);
+      --bs-btn-active-bg: var(--tl-color-#{$name});
+      --bs-btn-active-border-color: var(--tl-color-#{$name});
+      --bs-btn-active-color: var(--tl-color-bg);
+      --bs-btn-disabled-color: var(--tl-color-#{$name});
+      --bs-btn-disabled-border-color: var(--tl-color-#{$name});
+    }
+
+    .text-bg-#{$name} {
+      color: var(--tl-color-bg) !important;
+      background-color: var(--tl-color-#{$name}) !important;
+    }
+  }
+}
+
+// Primary buttons follow the primary / primary-contrast pair in both modes.
+.btn-primary {
+  --bs-btn-bg: var(--tl-color-primary);
+  --bs-btn-border-color: var(--tl-color-primary);
+  --bs-btn-color: var(--tl-color-primary-contrast);
+  --bs-btn-hover-bg: var(--tl-color-primary);
+  --bs-btn-hover-border-color: var(--tl-color-primary);
+  --bs-btn-hover-color: var(--tl-color-primary-contrast);
+  --bs-btn-active-bg: var(--tl-color-primary);
+  --bs-btn-active-border-color: var(--tl-color-primary);
+  --bs-btn-active-color: var(--tl-color-primary-contrast);
+  --bs-btn-focus-shadow-rgb: 0, 0, 0;
+}
+
+// Visible focus on every interactive element, never removed without replacement.
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible,
+main:focus-visible {
+  outline: var(--tl-focus-ring-width) solid var(--tl-color-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+// Skip link: first focusable element, revealed on focus.
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  z-index: 2000;
+  padding: 0.75rem 1rem;
+  background: var(--tl-color-bg);
+  color: var(--tl-color-text);
+  border: 2px solid var(--tl-color-primary);
+  border-radius: var(--tl-radius);
+
+  &:focus {
+    top: 0.5rem;
+  }
+}
+
+// Touch targets of at least 44x44 px.
+.btn,
+.form-control,
+.form-select,
+.nav-link,
+.dropdown-item,
+.page-link,
+.navbar-toggler {
+  min-height: var(--tl-touch-target);
+}
+
+.btn,
+.nav-link,
+.dropdown-item,
+.page-link,
+.navbar-toggler {
+  display: inline-flex;
+  align-items: center;
+  min-width: var(--tl-touch-target);
+}
+
+// The icon keeps its 1em size (background-size); only the clickable area grows.
+.btn-close {
+  box-sizing: border-box;
+  width: var(--tl-touch-target);
+  height: var(--tl-touch-target);
+  padding: 0;
+}
+
+.form-check-input {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.text-muted-tl {
+  color: var(--tl-color-text-muted);
+}
+
+.surface-tl {
+  background: var(--tl-color-surface);
+  border: 1px solid var(--tl-color-border);
+  border-radius: var(--tl-radius);
+}
+
+// Layout: brand, avatar initials, narrow pages and message toasts.
+.navbar-brand {
+  min-height: var(--tl-touch-target);
+  font-weight: 600;
+}
+
+.avatar-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--tl-color-primary);
+  color: var(--tl-color-primary-contrast);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.tl-avatar {
+  @extend .avatar-initials;
+  flex: none;
+}
+
+.tl-avatar-sm { width: 1.5rem; height: 1.5rem; font-size: 0.625rem; }
+.tl-avatar-md { width: 2.25rem; height: 2.25rem; font-size: 0.875rem; }
+.tl-avatar-lg { width: 3.5rem; height: 3.5rem; font-size: 1.25rem; }
+
+.tl-card { --bs-card-bg: var(--tl-color-surface); }
+
+.tl-community-card .badge { font-size: 0.8125rem; }
+
+.page-link { min-width: var(--tl-touch-target); min-height: var(--tl-touch-target); display: inline-flex; align-items: center; justify-content: center; }
+
+.tl-narrow {
+  max-width: 32rem;
+}
+
+.toast-container {
+  z-index: 1090;
+}
+
+.tl-toast {
+  --bs-toast-bg: var(--tl-color-surface);
+  --bs-toast-color: var(--tl-color-text);
+  --bs-toast-border-color: var(--tl-color-border);
+  border-left: 6px solid var(--tl-color-info);
+  width: min(24rem, calc(100vw - 2rem));
+}
+
+.tl-toast-success { border-left-color: var(--tl-color-success); }
+.tl-toast-warning { border-left-color: var(--tl-color-warning); }
+.tl-toast-error { border-left-color: var(--tl-color-danger); }

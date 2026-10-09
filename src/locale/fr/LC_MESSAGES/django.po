@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 14:52+0200\n"
+"POT-Creation-Date: 2026-10-09 16:18+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -28,6 +28,9 @@ msgstr "Dates"
 
 msgid "A user with this email address already exists."
 msgstr "Un utilisateur avec cette adresse e-mail existe déjà."
+
+msgid "Administration"
+msgstr "Administration"
 
 msgid "Email"
 msgstr "E-mail"
@@ -447,6 +450,14 @@ msgstr "Votre copie n’a pas pu être préparée. Veuillez réessayer."
 msgid "Your previous copy has expired."
 msgstr "Votre copie précédente a expiré."
 
+msgid "No copy requested yet"
+msgstr "Aucune copie demandée pour le moment"
+
+msgid "Request a copy to download everything the platform holds about you."
+msgstr ""
+"Demandez une copie pour télécharger tout ce que la plateforme détient sur "
+"vous."
+
 msgid "Request a copy of my data"
 msgstr "Demander une copie de mes données"
 
@@ -611,21 +622,6 @@ msgstr ""
 "vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot "
 "de passe ne sera pas modifié."
 
-msgid "There is a problem"
-msgstr "Il y a un problème"
-
-msgid "Administration"
-msgstr "Administration"
-
-msgid "Users"
-msgstr "Utilisateurs"
-
-msgid "Create a user"
-msgstr "Créer un utilisateur"
-
-msgid "Import users"
-msgstr "Importer des utilisateurs"
-
 msgid "Anonymize the account"
 msgstr "Anonymiser le compte"
 
@@ -691,8 +687,14 @@ msgid "Only a superuser can change the status or the roles of this account."
 msgstr ""
 "Seul un superutilisateur peut modifier le statut ou les rôles de ce compte."
 
+msgid "Create a user"
+msgstr "Créer un utilisateur"
+
 msgid "Create and send the activation email"
 msgstr "Créer et envoyer l’e-mail d’activation"
+
+msgid "Import users"
+msgstr "Importer des utilisateurs"
 
 msgid ""
 "Every line is checked first: if any line is invalid, no account is created."
@@ -713,6 +715,9 @@ msgid "No account was created. Fix the lines below and import the file again."
 msgstr ""
 "Aucun compte n’a été créé. Corrigez les lignes ci-dessous puis importez de "
 "nouveau le fichier."
+
+msgid "Problems found in the file"
+msgstr "Problèmes détectés dans le fichier"
 
 msgid "Line"
 msgstr "Ligne"
@@ -735,6 +740,9 @@ msgstr[1] "%(counter)s comptes ont été créés et invités par e-mail."
 msgid "Import another file"
 msgstr "Importer un autre fichier"
 
+msgid "Users"
+msgstr "Utilisateurs"
+
 msgid "Search"
 msgstr "Rechercher"
 
@@ -753,18 +761,8 @@ msgstr[1] "%(counter)s utilisateurs"
 msgid "Name"
 msgstr "Nom"
 
-msgid "Pagination"
-msgstr "Pagination"
-
-msgid "Previous"
-msgstr "Précédent"
-
-#, python-format
-msgid "Page %(number)s of %(total)s"
-msgstr "Page %(number)s sur %(total)s"
-
-msgid "Next"
-msgstr "Suivant"
+msgid "No user matches these filters."
+msgstr "Aucun utilisateur ne correspond à ces filtres."
 
 msgid "Your account is active. You can now sign in."
 msgstr "Votre compte est actif. Vous pouvez maintenant vous connecter."
@@ -816,6 +814,34 @@ msgstr "Votre profil a été mis à jour."
 msgid "Your preferences have been saved."
 msgstr "Vos préférences ont été enregistrées."
 
+msgid "Audit log"
+msgstr "Journal d'audit"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "Actor"
+msgstr "Acteur"
+
+msgid "Target"
+msgstr "Cible"
+
+msgid "From"
+msgstr "Du"
+
+msgid "To"
+msgstr "Au"
+
+msgid "All actions"
+msgstr "Toutes les actions"
+
+#, python-format
+msgid "Enter a date between %(min)s and %(max)s."
+msgstr "Saisissez une date comprise entre le %(min)s et le %(max)s."
+
+msgid "The start date must not be after the end date."
+msgstr "La date de début ne doit pas être postérieure à la date de fin."
+
 msgid "actor"
 msgstr "acteur"
 
@@ -846,14 +872,78 @@ msgstr "événement d'audit"
 msgid "audit events"
 msgstr "événements d'audit"
 
+msgid "Audit event"
+msgstr "Événement d'audit"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Category"
+msgstr "Catégorie"
+
+msgid "System"
+msgstr "Système"
+
+msgid "Target type"
+msgstr "Type de cible"
+
+msgid "Target identifier"
+msgstr "Identifiant de la cible"
+
+msgid "Community identifier"
+msgstr "Identifiant de la communauté"
+
+msgid "Request identifier"
+msgstr "Identifiant de requête"
+
+msgctxt "audit detail label"
+msgid "IP hash"
+msgstr "Empreinte de l'adresse IP"
+
+msgid "Changes"
+msgstr "Modifications"
+
+#, python-format
+msgid "%(counter)s event"
+msgid_plural "%(counter)s events"
+msgstr[0] "%(counter)s événement"
+msgstr[1] "%(counter)s événements"
+
+msgid "No audit event matches these filters."
+msgstr "Aucun événement d'audit ne correspond à ces filtres."
+
+msgid "Technical and security"
+msgstr "Technique et sécurité"
+
+msgid "Functional"
+msgstr "Fonctionnel"
+
+msgid "Event"
+msgstr "Événement"
+
+msgid "Home"
+msgstr "Accueil"
+
 msgid "Skip to main content"
 msgstr "Aller au contenu principal"
 
-msgid "My profile"
-msgstr "Mon profil"
+msgid "Communities — internal platform"
+msgstr "Communautés — plateforme interne"
 
-msgid "Sign out"
-msgstr "Se déconnecter"
+msgid "Close"
+msgstr "Fermer"
+
+msgid "Breadcrumb"
+msgstr "Fil d’Ariane"
+
+#, python-format
+msgid "%(counter)s member"
+msgid_plural "%(counter)s members"
+msgstr[0] "%(counter)s membre"
+msgstr[1] "%(counter)s membres"
+
+msgid "There is a problem"
+msgstr "Il y a un problème"
 
 msgid "Language"
 msgstr "Langue"
@@ -861,12 +951,138 @@ msgstr "Langue"
 msgid "Change"
 msgstr "Changer"
 
+msgid "Main navigation"
+msgstr "Navigation principale"
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "Pagination"
+msgstr "Pagination"
+
+msgid "Previous"
+msgstr "Précédent"
+
+msgid "Next"
+msgstr "Suivant"
+
+msgid "Sections"
+msgstr "Sections"
+
+msgid "My profile"
+msgstr "Mon profil"
+
+msgid "Sign out"
+msgstr "Se déconnecter"
+
 #, python-format
 msgid "Hello, %(name)s."
 msgstr "Bonjour, %(name)s."
 
+msgid "No communities yet"
+msgstr "Aucune communauté pour le moment"
+
+msgid ""
+"Communities will appear here as soon as they exist. In the meantime, "
+"complete your profile so colleagues can find you."
+msgstr ""
+"Les communautés apparaîtront ici dès qu’elles existeront. En attendant, "
+"complétez votre profil pour que vos collègues puissent vous trouver."
+
+msgid "Go to my profile"
+msgstr "Aller à mon profil"
+
 msgid "Welcome to the Talan communities platform."
 msgstr "Bienvenue sur la plateforme des communautés Talan."
+
+msgid "Style guide"
+msgstr "Guide de style"
+
+msgid "Every shared component, rendered with sample data. Development only."
+msgstr ""
+"Tous les composants partagés, affichés avec des données d’exemple. Réservé "
+"au développement."
+
+msgid "Cards"
+msgstr "Cartes"
+
+msgid "Welcome guide"
+msgstr "Guide de bienvenue"
+
+msgid "Updated yesterday"
+msgstr "Mis à jour hier"
+
+msgid "A short introduction to the platform."
+msgstr "Une courte introduction à la plateforme."
+
+msgid "3 comments"
+msgstr "3 commentaires"
+
+msgid "Everything about Python at Talan."
+msgstr "Tout sur Python chez Talan."
+
+msgid "Technology"
+msgstr "Technologie"
+
+msgid "Open"
+msgstr "Ouverte"
+
+msgid "Feedback"
+msgstr "Retours"
+
+msgid "Information"
+msgstr "Information"
+
+msgid "Something worth knowing."
+msgstr "Une information utile à connaître."
+
+msgid "Error"
+msgstr "Erreur"
+
+msgid "Something went wrong."
+msgstr "Une erreur s’est produite."
+
+msgid "Your changes were saved."
+msgstr "Vos modifications ont été enregistrées."
+
+msgid "Create the first one to get started."
+msgstr "Créez la première pour commencer."
+
+msgid "Create a community"
+msgstr "Créer une communauté"
+
+msgid "Badges and avatars"
+msgstr "Badges et avatars"
+
+msgid "Eve F."
+msgstr "Eve F."
+
+msgid "Navigation"
+msgstr "Navigation"
+
+msgid "Community sections"
+msgstr "Rubriques de la communauté"
+
+msgid "Modal"
+msgstr "Fenêtre modale"
+
+msgid "Open confirmation"
+msgstr "Ouvrir la confirmation"
+
+msgid "Delete this item?"
+msgstr "Supprimer cet élément ?"
+
+msgid "This cannot be undone."
+msgstr "Cette action est irréversible."
+
+msgid "Delete"
+msgstr "Supprimer"
+
+msgid "Form"
+msgstr "Formulaire"
+
+msgid "Submit"
+msgstr "Envoyer"
 
 msgid "Access denied"
 msgstr "Accès refusé"
@@ -897,6 +1113,36 @@ msgstr "Erreur serveur"
 
 msgid "Something went wrong on our side. Please try again later."
 msgstr "Une erreur est survenue de notre côté. Veuillez réessayer plus tard."
+
+msgid "Full name"
+msgstr "Nom complet"
+
+msgid "As it appears on your badge."
+msgstr "Tel qu’il figure sur votre badge."
+
+msgid "Role"
+msgstr "Rôle"
+
+msgid "I accept the code of conduct"
+msgstr "J’accepte le code de conduite"
+
+msgid "A second problem on the same field."
+msgstr "Un second problème sur le même champ."
+
+msgid "Components"
+msgstr "Composants"
+
+msgid "Current page"
+msgstr "Page courante"
+
+msgid "Overview"
+msgstr "Vue d’ensemble"
+
+msgid "Members"
+msgstr "Membres"
+
+msgid "Settings"
+msgstr "Paramètres"
 
 msgid "name"
 msgstr "nom"

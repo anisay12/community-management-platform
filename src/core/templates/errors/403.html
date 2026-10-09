@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "base_minimal.html" %}
 {% load i18n %}
 {% block title %}{% translate "Access denied" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1>{% translate "Access denied" %}</h1>
+  <h1 class="h3 mb-3">{% translate "Access denied" %}</h1>
   <p>{% translate "You do not have permission to view this page." %}</p>
-  <p><a href="{% url 'home' %}">{% translate "Back to the home page" %}</a></p>
+  <a class="btn btn-primary" href="{% url 'home' %}">{% translate "Back to the home page" %}</a>
 {% endblock %}

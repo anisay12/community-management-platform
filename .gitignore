@@ -10,3 +10,4 @@ htmlcov/
 .audit-requirements.txt
 .internal/sdd/
 *.mo
+node_modules/
