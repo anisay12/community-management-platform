@@ -266,14 +266,84 @@ def test_functional_admin_cannot_revoke_technical_admin(functional_admin, make_u
     target.groups.add(Group.objects.get(name=Role.TECHNICAL_ADMIN))
     with pytest.raises(DomainError) as exc:
         set_roles(actor=functional_admin, user=target, roles=["employee"])
-    assert exc.value.code == "forbidden_role"
+    # A technical admin is a protected account: the hierarchy rule refuses first.
+    assert exc.value.code == "forbidden_target"
+    assert user_roles(User.objects.get(pk=target.pk)) == {"technical_admin"}
 
 
-def test_functional_admin_may_keep_existing_technical_admin(functional_admin, make_user):
+def test_superuser_can_revoke_technical_admin(superuser, make_user):
     target = make_user("bob@example.com")
     target.groups.add(Group.objects.get(name=Role.TECHNICAL_ADMIN))
-    set_roles(actor=functional_admin, user=target, roles=["technical_admin", "auditor"])
-    assert user_roles(User.objects.get(pk=target.pk)) == {"technical_admin", "auditor"}
+    set_roles(actor=superuser, user=target, roles=["auditor"])
+    assert user_roles(User.objects.get(pk=target.pk)) == {"auditor"}
+
+
+# Account hierarchy: only a superuser may act on protected accounts -----------------
+
+
+def protected_target(make_user, kind):
+    if kind == "superuser":
+        return make_user("bob@example.com", is_superuser=True)
+    if kind == "staff":
+        return make_user("bob@example.com", is_staff=True)
+    target = make_user("bob@example.com")
+    target.groups.add(Group.objects.get(name=Role.TECHNICAL_ADMIN))
+    return target
+
+
+STATUS_SERVICES = [
+    (suspend_user, User.Status.ACTIVE),
+    (deactivate_user, User.Status.ACTIVE),
+    (reactivate_user, User.Status.SUSPENDED),
+    (resend_activation, User.Status.PENDING),
+]
+
+
+@pytest.mark.parametrize("kind", ["superuser", "staff", "technical_admin"])
+@pytest.mark.parametrize(("service", "status"), STATUS_SERVICES)
+def test_functional_admin_cannot_change_status_of_protected_account(
+    functional_admin, make_user, kind, service, status
+):
+    target = protected_target(make_user, kind)
+    User.objects.filter(pk=target.pk).update(status=status)
+    audited = AuditEvent.objects.count()
+    with pytest.raises(DomainError) as exc:
+        service(actor=functional_admin, user=target)
+    assert exc.value.code == "forbidden_target"
+    assert User.objects.get(pk=target.pk).status == status
+    assert AuditEvent.objects.count() == audited
+
+
+@pytest.mark.parametrize("kind", ["superuser", "staff", "technical_admin"])
+@pytest.mark.parametrize(("service", "status"), STATUS_SERVICES)
+def test_superuser_can_change_status_of_protected_account(
+    superuser, make_user, kind, service, status
+):
+    target = protected_target(make_user, kind)
+    User.objects.filter(pk=target.pk).update(status=status)
+    audited = AuditEvent.objects.count()
+    service(actor=superuser, user=target)
+    assert AuditEvent.objects.count() == audited + 1
+
+
+@pytest.mark.parametrize("kind", ["superuser", "staff", "technical_admin"])
+def test_functional_admin_cannot_change_roles_of_protected_account(
+    functional_admin, make_user, kind
+):
+    target = protected_target(make_user, kind)
+    before = user_roles(User.objects.get(pk=target.pk))
+    with pytest.raises(DomainError) as exc:
+        set_roles(actor=functional_admin, user=target, roles=sorted(before | {"auditor"}))
+    assert exc.value.code == "forbidden_target"
+    assert user_roles(User.objects.get(pk=target.pk)) == before
+
+
+@pytest.mark.parametrize("kind", ["superuser", "staff", "technical_admin"])
+def test_superuser_can_change_roles_of_protected_account(superuser, make_user, kind):
+    target = protected_target(make_user, kind)
+    before = user_roles(User.objects.get(pk=target.pk))
+    set_roles(actor=superuser, user=target, roles=sorted(before | {"auditor"}))
+    assert "auditor" in user_roles(User.objects.get(pk=target.pk))
 
 
 def test_superuser_can_grant_technical_admin(superuser, make_user):

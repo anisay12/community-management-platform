@@ -14,24 +14,28 @@
     <dt>{% translate "Last seen" %}</dt><dd>{{ account.last_seen_at|default:"—" }}</dd>
   </dl>
 
-  <h2>{% translate "Status" %}</h2>
-  <div class="actions">
-    {% if account.status == "active" %}
-      {% include "manage/_status_button.html" with action="suspend" label=_("Suspend") %}
-    {% elif account.status == "suspended" %}
-      {% include "manage/_status_button.html" with action="reactivate" label=_("Reactivate") %}
-    {% elif account.status == "pending" %}
-      {% include "manage/_status_button.html" with action="resend_activation" label=_("Resend activation email") %}
-    {% endif %}
-    {% if account.status != "deactivated" %}
-      {% include "manage/_status_button.html" with action="deactivate" label=_("Deactivate") %}
-    {% endif %}
-  </div>
+  {% if can_administer %}
+    <h2>{% translate "Status" %}</h2>
+    <div class="actions">
+      {% if account.status == "active" %}
+        {% include "manage/_status_button.html" with action="suspend" label=_("Suspend") %}
+      {% elif account.status == "suspended" %}
+        {% include "manage/_status_button.html" with action="reactivate" label=_("Reactivate") %}
+      {% elif account.status == "pending" %}
+        {% include "manage/_status_button.html" with action="resend_activation" label=_("Resend activation email") %}
+      {% endif %}
+      {% if account.status != "deactivated" %}
+        <a class="button" href="{% url 'manage:user_deactivate_confirm' account.public_id %}">{% translate "Deactivate" %}</a>
+      {% endif %}
+    </div>
 
-  <h2>{% translate "Roles" %}</h2>
-  <form method="post" action="{% url 'manage:user_roles' account.public_id %}">
-    {% csrf_token %}
-    {% include "manage/_fields.html" with form=roles_form %}
-    <button type="submit">{% translate "Save roles" %}</button>
-  </form>
+    <h2>{% translate "Roles" %}</h2>
+    <form method="post" action="{% url 'manage:user_roles' account.public_id %}">
+      {% csrf_token %}
+      {% include "manage/_fields.html" with form=roles_form %}
+      <button type="submit">{% translate "Save roles" %}</button>
+    </form>
+  {% else %}
+    <p class="message">{% translate "Only a superuser can change the status or the roles of this account." %}</p>
+  {% endif %}
 {% endblock %}

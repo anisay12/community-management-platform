@@ -26,3 +26,18 @@ def can_manage_users(user) -> bool:
     if not getattr(user, "is_authenticated", False) or not user.is_active:
         return False
     return user.is_superuser or has_role(user, Role.FUNCTIONAL_ADMIN)
+
+
+def is_protected_account(user) -> bool:
+    """Accounts only a superuser may administer: superusers, staff and technical admins."""
+    return bool(user.is_superuser or user.is_staff or has_role(user, Role.TECHNICAL_ADMIN))
+
+
+def hierarchy_allows(actor, target) -> bool:
+    """The account hierarchy rule: only a superuser may act on a protected account."""
+    return bool(getattr(actor, "is_superuser", False)) or not is_protected_account(target)
+
+
+def can_administer_user(actor, target) -> bool:
+    """Whether ``actor`` may change the status or the roles of ``target``."""
+    return can_manage_users(actor) and hierarchy_allows(actor, target)

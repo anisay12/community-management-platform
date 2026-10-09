@@ -35,9 +35,15 @@ manage_patterns = (
         path("users/", views_manage.user_list, name="user_list"),
         path("users/new/", views_manage.user_create, name="user_create"),
         path("users/import/", views_manage.user_import, name="user_import"),
+        path("users/import/result/", views_manage.user_import_result, name="user_import_result"),
         path("users/<uuid:public_id>/", views_manage.user_detail, name="user_detail"),
         path("users/<uuid:public_id>/status/", views_manage.user_status, name="user_status"),
         path("users/<uuid:public_id>/roles/", views_manage.user_roles_update, name="user_roles"),
+        path(
+            "users/<uuid:public_id>/deactivate/",
+            views_manage.user_deactivate_confirm,
+            name="user_deactivate_confirm",
+        ),
     ],
     "manage",
 )

@@ -17,7 +17,15 @@ from organizations.models import OrganizationUnit
 from .backends import local_password_login_allowed
 from .models import User
 from .roles import Role
-from .services import enqueue_email, site_url, user_language
+from .services import (
+    EMAIL_MAX_LENGTH,
+    NAME_MAX_LENGTH,
+    SUPERUSER_ONLY_ROLES,
+    enqueue_email,
+    site_url,
+    user_language,
+    validate_new_user_fields,
+)
 from .tokens import password_reset_token_generator
 
 
@@ -125,6 +133,13 @@ class OTPTokenForm(forms.Form):
 # Account administration ---------------------------------------------------------
 
 
+def role_choices_for(actor) -> list[tuple[str, str]]:
+    """Roles ``actor`` may tick: only superusers are offered the superuser-only roles."""
+    if getattr(actor, "is_superuser", False):
+        return list(Role.choices)
+    return [(code, label) for code, label in Role.choices if code not in SUPERUSER_ONLY_ROLES]
+
+
 class RolesField(forms.MultipleChoiceField):
     widget = forms.CheckboxSelectMultiple
 
@@ -133,10 +148,32 @@ class RolesField(forms.MultipleChoiceField):
         super().__init__(choices=Role.choices, **kwargs)
 
 
-class UserCreateForm(forms.Form):
-    email = forms.EmailField(label=_("Email"), max_length=254)
-    first_name = forms.CharField(label=_("First name"), max_length=150)
-    last_name = forms.CharField(label=_("Last name"), max_length=150)
+class ActorRolesMixin:
+    """Restrict the role choices to those the acting user may grant (re-checked server side)."""
+
+    def __init__(self, *args, actor, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.actor = actor
+        self.fields["roles"].choices = role_choices_for(actor)
+
+
+class UserCreateForm(ActorRolesMixin, forms.Form):
+    # Field for each problem code of ``validate_new_user_fields``.
+    PROBLEM_FIELDS: ClassVar[dict[str, str]] = {
+        "invalid_email": "email",
+        "email_taken": "email",
+        "first_name_required": "first_name",
+        "first_name_too_long": "first_name",
+        "last_name_required": "last_name",
+        "last_name_too_long": "last_name",
+        "manager_self": "manager_email",
+        "manager_requires_unit": "unit",
+        "unknown_manager": "manager_email",
+    }
+
+    email = forms.EmailField(label=_("Email"), max_length=EMAIL_MAX_LENGTH)
+    first_name = forms.CharField(label=_("First name"), max_length=NAME_MAX_LENGTH)
+    last_name = forms.CharField(label=_("Last name"), max_length=NAME_MAX_LENGTH)
     unit = forms.ModelChoiceField(
         label=_("Unit"), queryset=OrganizationUnit.objects.all(), required=False
     )
@@ -147,31 +184,27 @@ class UserCreateForm(forms.Form):
     )
     roles = RolesField(initial=[Role.EMPLOYEE.value])
 
-    def clean_email(self):
-        email = self.cleaned_data["email"].lower()
-        if User.objects.filter(email__iexact=email).exists():
-            raise ValidationError(
-                _("An account already exists with this email address."), code="email_taken"
-            )
-        return email
-
-    def clean_manager_email(self):
-        email = self.cleaned_data["manager_email"].lower()
-        if not email:
-            return None
-        manager = User.objects.filter(email__iexact=email).first()
-        if manager is None:
-            raise ValidationError(_("No account uses this email address."), code="unknown")
-        return manager
-
     def clean(self):
         cleaned = super().clean()
-        if cleaned.get("manager_email") and not cleaned.get("unit"):
-            self.add_error("unit", _("A manager can only be set with a unit."))
+        problems = validate_new_user_fields(
+            email=cleaned.get("email") or self.data.get("email", ""),
+            first_name=cleaned.get("first_name"),
+            last_name=cleaned.get("last_name"),
+            unit=cleaned.get("unit"),
+            manager_email=cleaned.get("manager_email"),
+        )
+        for code, message in problems:
+            field = self.PROBLEM_FIELDS[code]
+            if field not in self.errors:
+                self.add_error(field, message)
+        manager_email = self.cleaned_data.get("manager_email")
+        cleaned["manager"] = (
+            User.objects.filter(email__iexact=manager_email).first() if manager_email else None
+        )
         return cleaned
 
 
-class UserRolesForm(forms.Form):
+class UserRolesForm(ActorRolesMixin, forms.Form):
     roles = RolesField(required=False)
 
 
@@ -180,7 +213,6 @@ class UserStatusForm(forms.Form):
         choices=[
             ("suspend", _("Suspend")),
             ("reactivate", _("Reactivate")),
-            ("deactivate", _("Deactivate")),
             ("resend_activation", _("Resend activation email")),
         ]
     )

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 13:32+0200\n"
+"POT-Creation-Date: 2026-10-09 13:40+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -69,23 +69,11 @@ msgstr "E-mail du manager"
 msgid "Requires a unit. The manager must already have an account."
 msgstr "Nécessite une unité. Le manager doit déjà avoir un compte."
 
-msgid "An account already exists with this email address."
-msgstr "Un compte existe déjà avec cette adresse e-mail."
-
-msgid "No account uses this email address."
-msgstr "Aucun compte n’utilise cette adresse e-mail."
-
-msgid "A manager can only be set with a unit."
-msgstr "Un manager ne peut être indiqué qu’avec une unité."
-
 msgid "Suspend"
 msgstr "Suspendre"
 
 msgid "Reactivate"
 msgstr "Réactiver"
-
-msgid "Deactivate"
-msgstr "Désactiver"
 
 msgid "Resend activation email"
 msgstr "Renvoyer l’e-mail d’activation"
@@ -253,6 +241,40 @@ msgstr ""
 "Seul un superutilisateur peut attribuer ou retirer le rôle d’administrateur "
 "technique."
 
+msgid ""
+"Only a superuser can change the status or the roles of a superuser, a staff "
+"member or a technical administrator."
+msgstr ""
+"Seul un superutilisateur peut modifier le statut ou les rôles d’un "
+"superutilisateur, d’un membre du staff ou d’un administrateur technique."
+
+#, python-format
+msgid "Invalid email address: “%s”."
+msgstr "Adresse e-mail invalide : « %s »."
+
+#, python-format
+msgid "An account already exists for %s."
+msgstr "Un compte existe déjà pour %s."
+
+msgid "The first name is required."
+msgstr "Le prénom est obligatoire."
+
+msgid "The last name is required."
+msgstr "Le nom est obligatoire."
+
+msgid "Names are limited to 150 characters."
+msgstr "Les noms sont limités à 150 caractères."
+
+msgid "A user cannot be their own manager."
+msgstr "Un utilisateur ne peut pas être son propre manager."
+
+msgid "A manager can only be set with a unit."
+msgstr "Un manager ne peut être indiqué qu’avec une unité."
+
+#, python-format
+msgid "Unknown manager: %s."
+msgstr "Manager inconnu : %s."
+
 msgid "You cannot do this to your own account."
 msgstr "Vous ne pouvez pas effectuer cette action sur votre propre compte."
 
@@ -285,36 +307,12 @@ msgid "The file contains no users."
 msgstr "Le fichier ne contient aucun utilisateur."
 
 #, python-format
-msgid "Invalid email address: “%s”."
-msgstr "Adresse e-mail invalide : « %s »."
-
-#, python-format
 msgid "%(email)s is already listed on line %(line)d."
 msgstr "%(email)s figure déjà à la ligne %(line)d."
 
 #, python-format
-msgid "An account already exists for %s."
-msgstr "Un compte existe déjà pour %s."
-
-msgid "The first name is required."
-msgstr "Le prénom est obligatoire."
-
-msgid "The last name is required."
-msgstr "Le nom est obligatoire."
-
-msgid "Names are limited to 150 characters."
-msgstr "Les noms sont limités à 150 caractères."
-
-#, python-format
 msgid "Unknown unit code: “%s”."
 msgstr "Code d’unité inconnu : « %s »."
-
-msgid "A user cannot be their own manager."
-msgstr "Un utilisateur ne peut pas être son propre manager."
-
-#, python-format
-msgid "Unknown manager: %s."
-msgstr "Manager inconnu : %s."
 
 msgid "Activate your account"
 msgstr "Activer votre compte"
@@ -486,6 +484,32 @@ msgstr "Créer un utilisateur"
 msgid "Import users"
 msgstr "Importer des utilisateurs"
 
+msgid "Deactivate the account"
+msgstr "Désactiver le compte"
+
+#, python-format
+msgid "You are about to deactivate the account of %(name)s (%(email)s)."
+msgstr ""
+"Vous êtes sur le point de désactiver le compte de %(name)s (%(email)s)."
+
+msgid ""
+"All of the person's sessions end immediately and they can no longer sign in."
+msgstr ""
+"Toutes les sessions de la personne prennent fin immédiatement et elle ne "
+"peut plus se connecter."
+
+msgid "Deactivation cannot be undone in the application."
+msgstr "La désactivation ne peut pas être annulée dans l’application."
+
+msgid ""
+"The account's personal data will be anonymized after the retention period."
+msgstr ""
+"Les données personnelles du compte seront anonymisées à l’issue de la durée "
+"de conservation."
+
+msgid "Cancel"
+msgstr "Annuler"
+
 msgid "Manager"
 msgstr "Manager"
 
@@ -495,8 +519,15 @@ msgstr "Créé le"
 msgid "Last seen"
 msgstr "Dernière activité"
 
+msgid "Deactivate"
+msgstr "Désactiver"
+
 msgid "Save roles"
 msgstr "Enregistrer les rôles"
+
+msgid "Only a superuser can change the status or the roles of this account."
+msgstr ""
+"Seul un superutilisateur peut modifier le statut ou les rôles de ce compte."
 
 msgid "Create and send the activation email"
 msgstr "Créer et envoyer l’e-mail d’activation"
@@ -526,6 +557,12 @@ msgstr "Ligne"
 
 msgid "Problem"
 msgstr "Problème"
+
+#, python-format
+msgid "%(counter)s more problem is not shown."
+msgid_plural "%(counter)s more problems are not shown."
+msgstr[0] "%(counter)s autre problème n’est pas affiché."
+msgstr[1] "%(counter)s autres problèmes ne sont pas affichés."
 
 #, python-format
 msgid "%(counter)s account was created and invited by email."
@@ -579,9 +616,6 @@ msgstr "Le compte a été suspendu."
 msgid "The account has been reactivated."
 msgstr "Le compte a été réactivé."
 
-msgid "The account has been deactivated."
-msgstr "Le compte a été désactivé."
-
 msgid "A new activation email has been sent."
 msgstr "Un nouvel e-mail d’activation a été envoyé."
 
@@ -593,6 +627,12 @@ msgstr "Sélectionnez des rôles valides."
 
 msgid "The roles have been updated."
 msgstr "Les rôles ont été mis à jour."
+
+msgid "This account is already deactivated."
+msgstr "Ce compte est déjà désactivé."
+
+msgid "The account has been deactivated."
+msgstr "Le compte a été désactivé."
 
 msgid "QR code"
 msgstr "Code QR"

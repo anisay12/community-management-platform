@@ -3,6 +3,7 @@
 from functools import wraps
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.http import Http404, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
@@ -16,16 +17,18 @@ from core.errors import DomainError
 from . import services
 from .forms import UserCreateForm, UserImportForm, UserRolesForm, UserStatusForm
 from .models import User
-from .policies import can_manage_users
+from .policies import can_administer_user, can_manage_users
 from .roles import user_roles
 from .selectors import users_for_admin
 
 PAGE_SIZE = 20
+# The import result travels to the result page through the session (Post/Redirect/Get).
+IMPORT_RESULT_SESSION_KEY = "manage_import_result"
+MAX_STORED_IMPORT_ERRORS = 100
 
 STATUS_ACTIONS = {
     "suspend": (services.suspend_user, gettext_lazy("The account has been suspended.")),
     "reactivate": (services.reactivate_user, gettext_lazy("The account has been reactivated.")),
-    "deactivate": (services.deactivate_user, gettext_lazy("The account has been deactivated.")),
     "resend_activation": (
         services.resend_activation,
         gettext_lazy("A new activation email has been sent."),
@@ -65,7 +68,7 @@ def user_list(request):
 
 @manage_required
 def user_create(request):
-    form = UserCreateForm(request.POST if request.method == "POST" else None)
+    form = UserCreateForm(request.POST if request.method == "POST" else None, actor=request.user)
     if request.method == "POST" and form.is_valid():
         data = form.cleaned_data
         try:
@@ -75,11 +78,11 @@ def user_create(request):
                 first_name=data["first_name"],
                 last_name=data["last_name"],
                 unit=data["unit"],
-                manager=data["manager_email"],
+                manager=data["manager"],
                 roles=data["roles"],
             )
         except DomainError as error:
-            form.add_error("email" if error.code == "email_taken" else None, error.message)
+            form.add_error(form.PROBLEM_FIELDS.get(error.code), error.message)
         else:
             messages.success(
                 request, _("The account has been created and an activation email sent.")
@@ -96,7 +99,10 @@ def user_detail(request, public_id):
     )
     context = {
         "account": account,
-        "roles_form": UserRolesForm(initial={"roles": sorted(user_roles(account))}),
+        "can_administer": can_administer_user(request.user, account),
+        "roles_form": UserRolesForm(
+            initial={"roles": sorted(user_roles(account))}, actor=request.user
+        ),
     }
     return render(request, "manage/user_detail.html", context)
 
@@ -122,7 +128,7 @@ def user_status(request, public_id):
 @require_POST
 def user_roles_update(request, public_id):
     account = _account(public_id)
-    form = UserRolesForm(request.POST)
+    form = UserRolesForm(request.POST, actor=request.user)
     if not form.is_valid():
         messages.error(request, _("Select valid roles."))
         return redirect("manage:user_detail", public_id=account.public_id)
@@ -136,6 +142,26 @@ def user_roles_update(request, public_id):
 
 
 @manage_required
+def user_deactivate_confirm(request, public_id):
+    """Deactivation cannot be undone in the application: confirm it on its own page."""
+    account = _account(public_id)
+    if not can_administer_user(request.user, account):
+        raise PermissionDenied
+    if account.status == User.Status.DEACTIVATED:
+        messages.error(request, _("This account is already deactivated."))
+        return redirect("manage:user_detail", public_id=account.public_id)
+    if request.method == "POST":
+        try:
+            services.deactivate_user(actor=request.user, user=account)
+        except DomainError as error:
+            messages.error(request, error.message)
+        else:
+            messages.success(request, _("The account has been deactivated."))
+        return redirect("manage:user_detail", public_id=account.public_id)
+    return render(request, "manage/user_deactivate_confirm.html", {"account": account})
+
+
+@manage_required
 def user_import(request):
     if request.method == "POST":
         form = UserImportForm(request.POST, request.FILES)
@@ -143,5 +169,27 @@ def user_import(request):
         form = UserImportForm()
     if request.method == "POST" and form.is_valid():
         result = services.import_users_csv(actor=request.user, file=form.cleaned_data["file"])
-        return render(request, "manage/user_import_result.html", {"result": result})
+        request.session[IMPORT_RESULT_SESSION_KEY] = {
+            "created": result.created,
+            "error_count": len(result.errors),
+            "errors": [
+                [error.line, str(error.message)]
+                for error in result.errors[:MAX_STORED_IMPORT_ERRORS]
+            ],
+        }
+        return redirect("manage:user_import_result")
     return render(request, "manage/user_import.html", {"form": form})
+
+
+@manage_required
+def user_import_result(request):
+    summary = request.session.pop(IMPORT_RESULT_SESSION_KEY, None)
+    if summary is None:
+        return redirect("manage:user_import")
+    errors = [{"line": line, "message": message} for line, message in summary["errors"]]
+    context = {
+        "created": summary["created"],
+        "errors": errors,
+        "hidden_error_count": summary["error_count"] - len(errors),
+    }
+    return render(request, "manage/user_import_result.html", context)

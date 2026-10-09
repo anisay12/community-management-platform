@@ -22,6 +22,7 @@ from core.errors import DomainError
 from organizations.models import Employment, OrganizationUnit
 
 from .models import User, UserProfile
+from .policies import hierarchy_allows
 from .roles import Role
 from .tasks import send_email
 from .tokens import activation_token_generator
@@ -102,6 +103,79 @@ def _check_roles(*, actor, before: Iterable[str], after: Iterable[str]) -> list[
     return after
 
 
+def _ensure_can_administer(*, actor, user) -> None:
+    """Only a superuser may change the status or roles of a protected account."""
+    if not hierarchy_allows(actor, user):
+        raise DomainError(
+            "forbidden_target",
+            _(
+                "Only a superuser can change the status or the roles of a superuser, "
+                "a staff member or a technical administrator."
+            ),
+        )
+
+
+EMAIL_MAX_LENGTH = 254
+NAME_MAX_LENGTH = 150
+MANAGER_PROBLEMS = frozenset({"manager_self", "manager_requires_unit", "unknown_manager"})
+
+
+def validate_new_user_fields(
+    *,
+    email: str,
+    first_name: str | None = None,
+    last_name: str | None = None,
+    unit=None,
+    manager_email: str | None = None,
+    email_taken: bool | None = None,
+    manager_known: bool | None = None,
+) -> list[tuple[str, str]]:
+    """Return the problems with a new account's fields as ``(code, message)`` pairs.
+
+    Shared by the creation form, ``create_user`` and the CSV import so that the rules
+    and their messages live in one place. ``None`` names are not checked; ``unit`` is
+    only tested for presence. ``email_taken`` and ``manager_known`` are looked up in the
+    database unless the caller already knows the answer.
+    """
+    problems: list[tuple[str, str]] = []
+    email = (email or "").strip().lower()
+    try:
+        if len(email) > EMAIL_MAX_LENGTH:
+            raise ValidationError("too long")
+        validate_email(email)
+    except ValidationError:
+        problems.append(("invalid_email", _("Invalid email address: “%s”.") % email))
+    else:
+        if email_taken is None:
+            email_taken = User.objects.filter(email__iexact=email).exists()
+        if email_taken:
+            problems.append(("email_taken", _("An account already exists for %s.") % email))
+    for prefix, value, required in (
+        ("first_name", first_name, _("The first name is required.")),
+        ("last_name", last_name, _("The last name is required.")),
+    ):
+        if value is None:
+            continue
+        if not value.strip():
+            problems.append((f"{prefix}_required", required))
+        elif len(value.strip()) > NAME_MAX_LENGTH:
+            problems.append((f"{prefix}_too_long", _("Names are limited to 150 characters.")))
+    manager_email = (manager_email or "").strip().lower()
+    if manager_email:
+        if manager_email == email:
+            problems.append(("manager_self", _("A user cannot be their own manager.")))
+        else:
+            if not unit:
+                problems.append(
+                    ("manager_requires_unit", _("A manager can only be set with a unit."))
+                )
+            if manager_known is None:
+                manager_known = User.objects.filter(email__iexact=manager_email).exists()
+            if not manager_known:
+                problems.append(("unknown_manager", _("Unknown manager: %s.") % manager_email))
+    return problems
+
+
 def _replace_role_groups(user, codes: list[str]) -> None:
     with suppress_m2m_audit():
         user.groups.remove(*user.groups.filter(name__in=ROLE_CODES))
@@ -124,10 +198,16 @@ def create_user(
     """Create a pending account (no usable password) and invite its owner by email."""
     email = User.objects.normalize_email(email.strip()).lower()
     codes = _check_roles(actor=actor, before=(), after=roles)
-    if manager is not None and unit is None:
-        raise DomainError("manager_requires_unit", _("A manager can only be set with a unit."))
-    if User.objects.filter(email__iexact=email).exists():
-        raise DomainError("email_taken", _("An account already exists with this email address."))
+    problems = validate_new_user_fields(
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        unit=unit,
+        manager_email=manager.email if manager is not None else None,
+        manager_known=True,
+    )
+    if problems:
+        raise DomainError(*problems[0])
     user = User.objects.create_user(
         email, first_name=first_name.strip(), last_name=last_name.strip()
     )
@@ -153,6 +233,7 @@ def _change_status(*, actor, user, allowed_from, new_status: str, action: str, b
     if blocks_access and actor is not None and actor.pk == user.pk:
         raise DomainError("self_action", _("You cannot do this to your own account."))
     locked = User.objects.select_for_update().get(pk=user.pk)
+    _ensure_can_administer(actor=actor, user=locked)
     old_status = locked.status
     if old_status not in allowed_from:
         raise DomainError(
@@ -231,7 +312,8 @@ def resend_activation(*, actor, user) -> None:
 def set_roles(*, actor, user, roles: Iterable[str]) -> None:
     """Replace the role groups of ``user`` (other groups are kept) and audit it once."""
     # Serialise concurrent role edits of the same user.
-    User.objects.select_for_update().get(pk=user.pk)
+    locked = User.objects.select_for_update().get(pk=user.pk)
+    _ensure_can_administer(actor=actor, user=locked)
     before = _role_codes(user)
     after = _check_roles(actor=actor, before=before, after=roles)
     if before == after:
@@ -362,35 +444,27 @@ def _validate_rows(rows: list[_ImportRow]) -> tuple[list[ImportLineError], dict,
 
 
 def _row_problem(row, file_lines, taken, units, existing_managers) -> str | None:
-    try:
-        if len(row.email) > 254:
-            raise ValidationError("too long")
-        validate_email(row.email)
-    except ValidationError:
-        return _("Invalid email address: “%s”.") % row.email
+    problems = validate_new_user_fields(
+        email=row.email,
+        first_name=row.first_name,
+        last_name=row.last_name,
+        unit=row.unit_code,
+        manager_email=row.manager_email,
+        email_taken=row.email in taken,
+        manager_known=row.manager_email in file_lines or row.manager_email in existing_managers,
+    )
+    if problems and problems[0][0] == "invalid_email":
+        return problems[0][1]
     if file_lines[row.email] != row.line:
         return _("%(email)s is already listed on line %(line)d.") % {
             "email": row.email,
             "line": file_lines[row.email],
         }
-    if row.email in taken:
-        return _("An account already exists for %s.") % row.email
-    if not row.first_name:
-        return _("The first name is required.")
-    if not row.last_name:
-        return _("The last name is required.")
-    if len(row.first_name) > 150 or len(row.last_name) > 150:
-        return _("Names are limited to 150 characters.")
+    ordered = [message for code, message in problems if code not in MANAGER_PROBLEMS]
     if row.unit_code and row.unit_code not in units:
-        return _("Unknown unit code: “%s”.") % row.unit_code
-    if row.manager_email:
-        if row.manager_email == row.email:
-            return _("A user cannot be their own manager.")
-        if not row.unit_code:
-            return _("A manager can only be set with a unit.")
-        if row.manager_email not in file_lines and row.manager_email not in existing_managers:
-            return _("Unknown manager: %s.") % row.manager_email
-    return None
+        ordered.append(_("Unknown unit code: “%s”.") % row.unit_code)
+    ordered += [message for code, message in problems if code in MANAGER_PROBLEMS]
+    return ordered[0] if ordered else None
 
 
 @transaction.atomic
@@ -403,24 +477,32 @@ def import_users_csv(*, actor, file) -> ImportResult:
     if errors:
         return ImportResult(errors=errors)
     created = {}
-    for row in rows:
-        created[row.email] = create_user(
-            actor=actor,
-            email=row.email,
-            first_name=row.first_name,
-            last_name=row.last_name,
-            unit=units.get(row.unit_code),
-            audit_action="user.imported",
-        )
-    # Managers are resolved once everyone exists, so they may appear anywhere in the file.
-    for row in rows:
-        if row.manager_email:
-            manager = created.get(row.manager_email) or managers[row.manager_email]
-            Employment.objects.filter(user=created[row.email]).update(manager=manager)
-    record(
-        actor=actor,
-        action="users.csv_import",
-        target=("accounts.user", "csv_import"),
-        changes={"created": len(created)},
-    )
+    row = None
+    try:
+        # A savepoint: if a row fails now (e.g. its email was taken concurrently since
+        # the validation pass), every account, audit event and email of this import is
+        # rolled back.
+        with transaction.atomic():
+            for row in rows:
+                created[row.email] = create_user(
+                    actor=actor,
+                    email=row.email,
+                    first_name=row.first_name,
+                    last_name=row.last_name,
+                    unit=units.get(row.unit_code),
+                    audit_action="user.imported",
+                )
+            # Managers are resolved once everyone exists, so they may appear anywhere.
+            for row in rows:
+                if row.manager_email:
+                    manager = created.get(row.manager_email) or managers[row.manager_email]
+                    Employment.objects.filter(user=created[row.email]).update(manager=manager)
+            record(
+                actor=actor,
+                action="users.csv_import",
+                target=("accounts.user", "csv_import"),
+                changes={"created": len(created)},
+            )
+    except DomainError as error:
+        return ImportResult(errors=[ImportLineError(row.line if row else 0, error.message)])
     return ImportResult(created=len(created))

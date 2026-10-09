@@ -1,11 +1,16 @@
 import io
+from unittest import mock
 
 import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 
+from accounts import services
 from accounts.models import User
 from accounts.roles import user_roles
 from accounts.services import MAX_IMPORT_BYTES, MAX_IMPORT_ROWS, import_users_csv
 from audit.models import AuditEvent
+from core.errors import DomainError
 from organizations.models import OrganizationUnit
 
 pytestmark = pytest.mark.django_db
@@ -196,4 +201,48 @@ def test_oversized_field_is_rejected(functional_admin):
     result = run(functional_admin, f"{HEADER}\nann@example.com,{'A' * 200_000},B,ENG,\n")
     assert result.created == 0
     assert result.errors
+    assert imported_count() == 0
+
+
+def email_taken_on_second_row():
+    """Let the first row through, then fail as if its email had been taken concurrently."""
+    real = services.create_user
+    calls = []
+
+    def fake(**kwargs):
+        calls.append(kwargs["email"])
+        if len(calls) == 2:
+            raise DomainError("email_taken", "An account already exists for b@example.com.")
+        return real(**kwargs)
+
+    return mock.patch.object(services, "create_user", side_effect=fake)
+
+
+def test_concurrent_email_taken_during_creation_rolls_everything_back(
+    functional_admin, mailoutbox, django_capture_on_commit_callbacks
+):
+    text = f"{HEADER}\na@example.com,A,B,ENG,\nb@example.com,A,B,ENG,\n"
+    with email_taken_on_second_row(), django_capture_on_commit_callbacks(execute=True):
+        result = run(functional_admin, text)
+    assert result.created == 0
+    assert [(e.line, e.message) for e in result.errors] == [
+        (3, "An account already exists for b@example.com.")
+    ]
+    assert imported_count() == 0
+    assert not AuditEvent.objects.filter(action__in=["user.imported", "users.csv_import"]).exists()
+    assert mailoutbox == []
+
+
+def test_concurrent_email_taken_is_shown_on_the_result_page(
+    client, functional_admin, verified_login
+):
+    verified_login(client, functional_admin)
+    text = f"{HEADER}\na@example.com,A,B,ENG,\nb@example.com,A,B,ENG,\n"
+    upload_file = SimpleUploadedFile("users.csv", text.encode(), content_type="text/csv")
+    with email_taken_on_second_row():
+        response = client.post(reverse("manage:user_import"), {"file": upload_file}, follow=True)
+    assert response.status_code == 200
+    assert response.context["errors"] == [
+        {"line": 3, "message": "An account already exists for b@example.com."}
+    ]
     assert imported_count() == 0

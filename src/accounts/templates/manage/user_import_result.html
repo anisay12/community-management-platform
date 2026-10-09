@@ -4,7 +4,7 @@
 {% block content %}
   {% include "manage/_nav.html" %}
   <h1>{% translate "Import result" %}</h1>
-  {% if result.errors %}
+  {% if errors %}
     <div class="error-summary" role="alert">
       <h2>{% translate "The file was not imported" %}</h2>
       <p>{% translate "No account was created. Fix the lines below and import the file again." %}</p>
@@ -14,13 +14,16 @@
         <tr><th scope="col">{% translate "Line" %}</th><th scope="col">{% translate "Problem" %}</th></tr>
       </thead>
       <tbody>
-        {% for error in result.errors %}
+        {% for error in errors %}
           <tr><td>{{ error.line|default:"—" }}</td><td>{{ error.message }}</td></tr>
         {% endfor %}
       </tbody>
     </table>
+    {% if hidden_error_count %}
+      <p>{% blocktranslate count counter=hidden_error_count %}{{ counter }} more problem is not shown.{% plural %}{{ counter }} more problems are not shown.{% endblocktranslate %}</p>
+    {% endif %}
   {% else %}
-    <p class="message message-success">{% blocktranslate count counter=result.created %}{{ counter }} account was created and invited by email.{% plural %}{{ counter }} accounts were created and invited by email.{% endblocktranslate %}</p>
+    <p class="message message-success">{% blocktranslate count counter=created %}{{ counter }} account was created and invited by email.{% plural %}{{ counter }} accounts were created and invited by email.{% endblocktranslate %}</p>
   {% endif %}
   <p><a href="{% url 'manage:user_import' %}">{% translate "Import another file" %}</a></p>
 {% endblock %}
