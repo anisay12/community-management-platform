@@ -2,6 +2,8 @@ from pathlib import Path
 
 import environ
 
+from core.logging import build_logging, configure_structlog
+
 BASE_DIR = Path(__file__).resolve().parents[3]
 SRC_DIR = BASE_DIR / "src"
 
@@ -24,6 +26,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "core.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -101,3 +104,8 @@ vars().update(env.email_url("EMAIL_URL", default="consolemail://"))
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="communautes@localhost")
 
 METRICS_TOKEN = env("METRICS_TOKEN", default="")
+
+LOG_LEVEL = env("LOG_LEVEL", default="INFO")
+LOG_JSON = env.bool("LOG_JSON", default=True)
+LOGGING = build_logging(level=LOG_LEVEL, json=LOG_JSON)
+configure_structlog()
