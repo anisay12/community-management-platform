@@ -1,4 +1,5 @@
 import json
+import threading
 from datetime import timedelta
 
 import pytest
@@ -8,6 +9,7 @@ from django.contrib.auth.models import Group
 from django.contrib.sessions.backends.cache import SessionStore
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+from django.db import connection, transaction
 from django.urls import reverse
 from django.utils import timezone, translation
 from django_otp.plugins.otp_static.models import StaticDevice
@@ -251,6 +253,29 @@ def test_build_ignores_missing_or_already_built_export(owner, django_capture_on_
     tasks.build_data_export(export.pk)
     export.refresh_from_db()
     assert export.file.name == name
+
+
+def test_build_removes_the_file_when_the_account_was_anonymized_meanwhile(owner, monkeypatch):
+    export = DataExport.objects.create(user=owner)
+    written = []
+    real_save = default_storage.save
+
+    def spying_save(name, content, *args, **kwargs):
+        written.append(real_save(name, content, *args, **kwargs))
+        return written[-1]
+
+    def anonymizing_exporter(user):
+        User.objects.filter(pk=user.pk).update(anonymized_at=timezone.now())
+        return {}
+
+    monkeypatch.setitem(privacy._exporters, "anonymizing", anonymizing_exporter)
+    monkeypatch.setattr(default_storage, "save", spying_save)
+    tasks.build_data_export(export.pk)  # no exception
+    assert len(written) == 1
+    assert not default_storage.exists(written[0])
+    export.refresh_from_db()
+    assert export.status == DataExport.Status.PENDING
+    assert not export.file
 
 
 def test_registered_exporter_adds_a_section(owner, monkeypatch):
@@ -643,3 +668,75 @@ def test_discarding_a_stored_file_never_raises(monkeypatch):
             raise OSError("storage unavailable")
 
     tasks._discard_stored_file(BrokenStorage(), "exports/x.json")
+
+
+def _wait_for_a_lock_waiter(timeout: float = 10.0) -> None:
+    """Return once another connection of the test database waits for a row lock."""
+    deadline = threading.Event()
+    timer = threading.Timer(timeout, deadline.set)
+    timer.start()
+    try:
+        with connection.cursor() as cursor:
+            while not deadline.is_set():
+                cursor.execute(
+                    "SELECT count(*) FROM pg_stat_activity "
+                    "WHERE datname = current_database() AND wait_event_type = 'Lock'"
+                )
+                if cursor.fetchone()[0]:
+                    return
+                deadline.wait(0.01)
+    finally:
+        timer.cancel()
+    raise AssertionError("no connection is waiting for a lock")
+
+
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
+def test_anonymize_waits_for_a_build_saving_its_file_and_deletes_that_file(make_user):
+    """A build commits its file while anonymize_user runs: the file must not survive."""
+    user = make_user("race@example.com", status=User.Status.DEACTIVATED)
+    export = DataExport.objects.create(user=user)
+    name = default_storage.save(f"exports/{export.public_id}.json", ContentFile(b"{}"))
+    saved, go = threading.Event(), threading.Event()
+    errors = []
+
+    def build_commits_its_file():
+        # The final step of build_data_export, held open until anonymize_user waits.
+        try:
+            with transaction.atomic():
+                row = DataExport.objects.select_for_update().get(pk=export.pk)
+                row.file.name = name
+                row.status = DataExport.Status.READY
+                row.save(update_fields=["file", "status"])
+                saved.set()
+                assert go.wait(10)
+        except Exception as error:  # reported by the main thread
+            errors.append(error)
+        finally:
+            saved.set()
+            connection.close()
+
+    def anonymize():
+        try:
+            privacy.anonymize_user(actor=None, user=User.objects.get(pk=user.pk))
+        except Exception as error:  # reported by the main thread
+            errors.append(error)
+        finally:
+            connection.close()
+
+    builder = threading.Thread(target=build_commits_its_file)
+    anonymizer = threading.Thread(target=anonymize)
+    builder.start()
+    assert saved.wait(10)
+    anonymizer.start()
+    try:
+        _wait_for_a_lock_waiter()
+    finally:
+        go.set()
+        builder.join(10)
+        anonymizer.join(10)
+
+    assert not builder.is_alive() and not anonymizer.is_alive()
+    assert errors == []
+    assert not DataExport.objects.filter(pk=export.pk).exists()
+    assert not default_storage.exists(name)
+    assert User.objects.get(pk=user.pk).anonymized_at is not None

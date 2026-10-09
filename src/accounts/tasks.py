@@ -64,13 +64,22 @@ def build_data_export(self, export_id: int) -> None:
             field.generate_filename(export, f"{export.public_id}.json"), ContentFile(content)
         )
         with transaction.atomic():
-            # The export may have been deleted (account anonymized) while it was built.
+            # Same lock order as anonymize_user (account, then its exports), so the two
+            # run one after the other. The account may have been anonymized, and the
+            # export deleted, while the file was being built: then the file goes.
+            account_open = (
+                User.objects.select_for_update()
+                .filter(pk=export.user_id, anonymized_at__isnull=True)
+                .values_list("pk", flat=True)
+                .first()
+                is not None
+            )
             locked = (
                 DataExport.objects.select_for_update()
                 .filter(pk=export.pk, status=DataExport.Status.PENDING)
                 .first()
             )
-            if locked is None:
+            if not account_open or locked is None:
                 _discard_stored_file(storage, name)
                 return
             locked.file.name = name

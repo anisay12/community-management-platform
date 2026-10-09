@@ -189,7 +189,9 @@ def anonymize_user(*, actor, user: User) -> None:
     Employment.objects.filter(user=locked).delete()
     ExternalIdentity.objects.filter(user=locked).delete()
     end_all_sessions(locked)
-    exports = list(DataExport.objects.filter(user=locked))
+    # Locked before their file names are read: a build that is saving its file holds
+    # the row, and once it commits the file name it stored is read here and deleted.
+    exports = list(DataExport.objects.select_for_update().filter(user=locked))
     delete_export_files(exports)
     DataExport.objects.filter(pk__in=[export.pk for export in exports]).delete()
     for device in devices_for_user(locked, confirmed=None):
