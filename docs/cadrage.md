@@ -32,7 +32,7 @@ Hypothèses prises par défaut pour avancer ; chacune est réversible sauf menti
 | H3 | Un collaborateur appartient à **une unité organisationnelle** et a **au plus un manager direct** (relation hiérarchique simple, importée plus tard depuis l'annuaire). | Suffisant pour les droits manager ; matrices complexes plus tard. | Oui |
 | H4 | Trois **modes d'accès** de communauté : *ouverte* (adhésion libre), *sur demande* (validation), *sur invitation* (privée, invisible des non-membres sauf titre si configuré). | Couvre le § 4.1. | Oui |
 | H5 | Le **contenu publié** (post, REX, document) appartient à une communauté ; il hérite de sa visibilité, sauf restriction plus forte au niveau de l'objet. | Modèle d'autorisation lisible et testable. | Coûteux à changer |
-| H6 | Les fichiers sont dans un **stockage objet privé** (MinIO en dev, S3-compatible managé en prod). Aucune URL publique ; téléchargement via l'application qui vérifie le droit puis délivre une **URL présignée de 60 s**. | Exigence § 5. | Oui |
+| H6 | Les fichiers sont dans un **stockage objet privé** (MinIO en dev, S3-compatible managé en prod). Aucune URL publique ; téléchargement via l'application qui vérifie le droit puis délègue l'envoi à Nginx (**X-Accel-Redirect**, emplacement interne) : aucune URL de stockage n'est exposée. | Exigence § 5. | Oui |
 | H7 | Les **résultats détaillés** de quiz et l'autoévaluation sont **privés par défaut** ; le manager voit les données **agrégées** de son équipe et, individuellement, uniquement ce que le collaborateur a choisi de partager (compétences déclarées, objectifs, formations suivies). | Exigence § 3.3 + RGPD (minimisation). | Oui (D6) |
 | H8 | **Pas de temps réel (WebSocket)** au MVP : notifications in-app rafraîchies par HTMX (polling léger 60 s) + e-mails asynchrones. Django Channels seulement si un besoin réel apparaît. | § 15 « temps réel uniquement si justifié ». | Oui |
 | H9 | Le **mentorat**, l'IA, l'intégration Teams et la synchronisation annuaire sont **hors MVP**. | Valeur à confirmer (§ 23). | Oui |
@@ -95,7 +95,7 @@ Membre < Contributeur < Expert < Modérateur < Animateur < Responsable (chaque r
 
 | Action | Non-membre | Membre | Contributeur | Expert | Modérateur | Animateur | Responsable | Manager | Admin fonct. | Admin tech. | Auditeur |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Voir une communauté ouverte | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ (méta) |
+| Voir une communauté ouverte et son contenu | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ (méta) |
 | Voir le contenu d'une communauté privée | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | ◐ ¹ | — | — |
 | Adhérer / demander l'adhésion | ✓ | — | — | — | — | — | — | — | — | — | — |
 | Publier un post / poser une question | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — | — | — | — |
@@ -173,7 +173,7 @@ flowchart LR
     C --> PGB
     C --> AV[ClamAV clamd]
     C --> SMTP[Relais SMTP entreprise]
-    W1 & W2 -->|URL présignée 60 s après contrôle d'accès| S3[(Stockage objet privé<br/>MinIO / S3 / Blob)]
+    W1 & W2 -->|contrôle d'accès puis X-Accel-Redirect via Nginx| S3[(Stockage objet privé<br/>MinIO / S3 / Blob)]
     C --> S3
     W1 & W2 -.->|OIDC, plus tard| IDP[IdP entreprise<br/>Entra ID ?]
     W1 & W2 & C -.-> OBS[Prometheus / Grafana<br/>GlitchTip / logs JSON]
@@ -307,7 +307,7 @@ talan-communities/
 | **L2 Design system** | Gabarit de base, navigation adaptée au rôle, composants (cartes, états vides, toasts, formulaires accessibles), tokens de marque | Navigation clavier complète ; contraste AA vérifié (axe-core en CI) | L1 | Charte absente (D4) |
 | **L3 Communautés** | Catégories administrables, catalogue filtrable, création/configuration, 3 modes d'accès, adhésion / demande / invitation / départ, rôles internes, page d'accueil communauté | Matrice § 4.4 testée ; une communauté privée n'apparaît jamais dans un résultat pour un non-membre | L1, L2 | — |
 | **L4 Publications** | Posts (discussion, question, annonce), commentaires sur 2 niveaux, réactions, mentions, épinglage, historique des révisions, signalement, file de modération, favoris | Le masquage par un modérateur est audité ; un non-membre reçoit 404 sur un post privé | L3 | Spam / bruit |
-| **L5 Documents** | Dépôt (taille max, liste blanche MIME vérifiée sur le contenu), scan ClamAV, quarantaine, versions + version de référence, métadonnées, tags, téléchargement par URL présignée 60 s, expiration, signalement « obsolète » | Un fichier infecté (EICAR) n'est jamais téléchargeable ; une URL présignée expirée renvoie 403 | L3 | Volume stockage |
+| **L5 Documents** | Dépôt (taille max, liste blanche MIME vérifiée sur le contenu), scan ClamAV, quarantaine, versions + version de référence, métadonnées, tags, téléchargement via X-Accel-Redirect (Nginx), expiration, signalement « obsolète » | Un fichier infecté (EICAR) n'est jamais téléchargeable ; l'emplacement interne de Nginx n'est pas joignable de l'extérieur | L3 | Volume stockage |
 | **L6 REX & articles** | Modèles de REX, brouillon auto-sauvegardé, détection de secrets/PII avant soumission, workflow revue → publication | Un REX contenant une clé AWS factice est bloqué en revue avec un message explicite | L4, L5 | Faux positifs du détecteur |
 | **L7 Événements** | Calendrier global et par communauté, capacité, liste d'attente avec promotion automatique, annulation, rappels, export .ics, lien visio, fuseaux horaires | 2 inscriptions simultanées sur la dernière place → 1 inscrit + 1 en attente (test concurrent) | L3 | — |
 | **L8 Notifications** | Centre in-app, préférences par catégorie, e-mails asynchrones, digest quotidien | Une requête web n'attend jamais l'envoi SMTP ; préférence « désactivé » respectée | L4, L7 | Délivrabilité SMTP |
@@ -389,7 +389,7 @@ Le MVP est accepté quand, **preuves à l'appui (tests automatisés ou procédur
 1. Un utilisateur se connecte, et n'accède qu'aux fonctions autorisées ; la matrice § 4.4 (périmètre MVP) est couverte par des tests HTTP.
 2. Communautés : création, configuration, 3 modes d'accès, adhésion/demande/invitation/départ, rôles internes : persistés et testés.
 3. Publications, commentaires, réactions, épinglage, signalement et modération fonctionnent et sont audités.
-4. Documents stockés dans un bucket privé, scannés, versionnés ; aucun accès direct sans contrôle (test sur URL forgée et URL expirée).
+4. Documents stockés dans un bucket privé, scannés, versionnés ; aucun accès direct sans contrôle (test d'accès direct au bucket et à l'emplacement interne Nginx).
 5. REX avec workflow de revue et détection de secrets.
 6. Événements : capacité, liste d'attente, promotion automatique, annulation, .ics ; test de concurrence vert.
 7. Notifications in-app et e-mails asynchrones selon les préférences.

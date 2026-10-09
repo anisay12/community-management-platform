@@ -30,6 +30,10 @@ Le modèle de données MVP **réserve** les points d'extension (ex. `Event.kind 
 | Texte riche | Markdown restreint (titres, listes, liens, code, citations, tableaux), rendu serveur puis nettoyé par `nh3` ; pas d'HTML brut |
 | Pagination | Curseur (`?cursor=`) pour les flux ; numérotée pour catalogues et résultats de recherche (taille 20, max 50) |
 | Audit | Toute action listée § 11 crée un `AuditEvent` dans la même transaction |
+| Compteurs dénormalisés | **Exacts et transactionnels** (`F()` dans la transaction métier) : `member_count`, `registered_count`. **Différés** (tâche Celery regroupée, dédoublonnée par cible via verrou Redis, retard de quelques secondes accepté) : `comment_count`, `reaction_counts`, `download_count`. Tâche nocturne de vérification/correction de tous les compteurs |
+| Idempotence des formulaires sensibles | Champ caché `idempotency_key` (UUID) sur adhésion, inscription/désinscription à un événement, soumission en revue, dépôt de document ; clé mémorisée 24 h dans Redis avec le résultat ; un double envoi renvoie le même résultat sans retraitement |
+| HTMX et CSRF | Jeton CSRF transmis par en-tête `X-CSRFToken` (attribut `hx-headers` sur `<body>`) ; aucune requête modifiante en GET |
+| Liens dans le Markdown | Schémas autorisés : `https`, `http`, `mailto` ; liens externes avec `rel="noopener noreferrer nofollow"` ; images externes non chargées (seulement les images stockées dans la plateforme) |
 | i18n | Toutes les chaînes passent par `gettext` ; locale `fr` seule activée |
 
 ---
@@ -63,8 +67,18 @@ Le modèle de données MVP **réserve** les points d'extension (ex. `Event.kind 
 - Réinitialisation par e-mail (jeton Django, 1 h), réponse identique que le compte existe ou non.
 - MFA TOTP (`django-otp`) obligatoire pour `admin_fonctionnel`, `admin_technique`, `is_staff` ; l'admin Django est servi sur un chemin configurable et exige MFA.
 - Sessions : stockage `cached_db`, expiration d'inactivité 8 h, `SESSION_COOKIE_SECURE`, `HttpOnly`, `SameSite=Lax`, rotation à la connexion ; suspension → suppression des sessions de l'utilisateur.
-- OIDC : `mozilla-django-oidc` configuré mais désactivé (`OIDC_ENABLED=false`) ; rapprochement par e-mail ; création de compte `pending` si inconnu.
+- OIDC : `mozilla-django-oidc` intégré, piloté par le réglage `AUTH_MODE` ∈ {`local` (défaut MVP), `mixed` (transition : SSO proposé, mot de passe encore accepté), `sso_only`}.
+  - Modèle `ExternalIdentity` (`user`, `provider`, `subject` immuable — claim `oid`/`sub` —, unique (`provider`, `subject`)). L'e-mail ne sert qu'à la **première liaison** d'un compte existant ; ensuite seul `subject` fait foi (un e-mail réattribué ne donne pas accès à l'ancien compte). Utilisateur inconnu → compte `pending`.
+  - En `sso_only` : mots de passe locaux inutilisables (`set_unusable_password` par commande de migration), formulaire local masqué et refusé côté serveur, **sauf un compte d'urgence** (« bris de glace ») désigné, MFA obligatoire, chaque connexion auditée et alertée.
+  - Désactivation alignée sur l'IdP : contrôle à chaque connexion et synchronisation nocturne (R4) ; un compte désactivé dans l'IdP perd ses sessions.
 - Création des comptes au MVP : par l'admin fonctionnel (formulaire + import CSV contrôlé : e-mail, prénom, nom, unité, e-mail manager), e-mail d'activation (lien 72 h). Pas d'inscription libre.
+
+### Cycle de vie des comptes et RGPD
+
+- **Départ** (statut `deactivated`) : sessions supprimées, compte non connectable ; nom conservé sur les contributions (intérêt légitime de l'entreprise, **à confirmer avec le DPO**) ; retiré des listes de membres, des suggestions et de la recherche de personnes.
+- **Anonymisation** (sur demande d'effacement acceptée, ou automatiquement 3 ans après la désactivation par tâche planifiée) : suppression du profil, de l'avatar, des intérêts, des favoris, des préférences, des notifications, de `UserDailyActivity` et des `DownloadLog` ; e-mail remplacé par une valeur technique unique ; `author_display` remplacé par « Ancien collaborateur » sur tous les contenus ; mentions réécrites ; contenus conservés. Les `AuditEvent` ne gardent que l'identifiant technique jusqu'à leur purge (1 an).
+- **Export** de ses propres données (droit d'accès) : archive JSON générée par tâche Celery, téléchargeable par l'utilisateur seul pendant 7 jours.
+- Un collaborateur peut supprimer (archiver) ses propres contenus à tout moment.
 
 ### Pages
 
@@ -94,7 +108,7 @@ Compte `pending` ou `suspended` → redirection connexion avec message ; collabo
 
 - `CommunityCategory` : `name` unique, `slug`, `description`, `icon` (nom d'icône Bootstrap Icons), `order`, `is_active`. Données initiales : les 12 catégories du prompt (migration de données, modifiables ensuite).
 - `Community` : `name` (unique parmi non archivées), `slug` unique, `category` (FK `PROTECT`), `tagline` (≤ 160), `description` (Markdown), `rules` (Markdown), `objectives` (Markdown), `cover_image` (optionnel), `access_mode` ∈ {`open`, `request`, `invite`}, `listed` (bool ; pour `invite`, afficher ou non le titre dans le catalogue), `allow_member_uploads` (bool), `require_post_review` (bool, défaut faux), `status` ∈ {`active`, `suspended`, `archived`}, `created_by`, `tags` (M2M), `search_vector`, `member_count` (dénormalisé, mis à jour par service).
-- `CommunityMembership` : `community`, `user`, `role` ∈ {`member`, `contributor`, `expert`, `moderator`, `animator`, `owner`} ; unique (`community`, `user`) ; `joined_at` ; `notification_level` ∈ {`all`, `highlights`, `none`}.
+- `CommunityMembership` : `community`, `user`, `role` ∈ {`member`, `contributor`, `expert`, `moderator`, `animator`, `owner`} ; unique (`community`, `user`) ; `joined_at` ; `notification_level` ∈ {`all`, `highlights`, `none`}, **défaut `highlights`** (annonces, REX et articles publiés, nouveaux documents, événements de la communauté ; les réponses et mentions personnelles sont toujours notifiées quel que soit le niveau). Les simples discussions et questions apparaissent dans le fil, pas dans la cloche, sauf niveau `all`.
 - `MembershipRequest` : `community`, `user`, `message` (≤ 500), `status` ∈ {`pending`, `accepted`, `rejected`, `cancelled`}, `decided_by`, `decided_at`, `decision_note` ; index unique partiel sur (`community`, `user`) où `status = pending`.
 - `CommunityInvitation` : `community`, `invited_user`, `invited_by`, `role` (≤ `animator`), `status` ∈ {`pending`, `accepted`, `declined`, `revoked`, `expired`}, `expires_at` (14 j).
 - `CommunityCreationRequest` (pour les collaborateurs sans le rôle `createur_communautes`) : nom, catégorie, justification, statut, décideur.
@@ -112,8 +126,8 @@ Compte `pending` ou `suspended` → redirection connexion avec message ; collabo
 
 ### Visibilité (`Community.objects.visible_to(user)`)
 
-- `open` et `request` : visibles (métadonnées) par tout collaborateur actif ; contenu de `request` visible des membres seulement.
-- Clarification : une communauté `open` expose son contenu à tout collaborateur actif (lecture), l'écriture exige l'adhésion.
+- `open` : métadonnées **et contenu** lisibles par tout collaborateur actif (y compris dans la recherche) ; publier, commenter, réagir, déposer un document et s'inscrire à un événement exigent l'adhésion (un clic, proposé au moment de l'action).
+- `request` : métadonnées (titre, description, règles, responsables, nombre de membres) visibles par tout collaborateur actif ; contenu réservé aux membres.
 - `invite` : visible des membres ; titre seul visible des autres si `listed`, sinon 404.
 - Admin fonctionnel : métadonnées de toutes ; contenu privé seulement via l'action « Accéder en tant qu'administrateur » avec motif obligatoire, auditée.
 
@@ -176,9 +190,9 @@ Fil de communauté (épinglés en tête, filtres par type, « questions sans ré
 
 ### Téléchargement
 
-`GET /documents/<public_id>/download/[<version>]` → `policies.can_download` → `DownloadLog` → **302 vers URL présignée 60 s** avec `ResponseContentDisposition=attachment; filename*=…` et `ResponseContentType` forcé. Prévisualisation au MVP : images et PDF uniquement, via même mécanisme avec `inline` et en-tête CSP `sandbox` côté stockage (ou proxy Nginx) ; autres formats : téléchargement uniquement.
+`GET /documents/<public_id>/download/[<version>]` → `policies.can_download` → `DownloadLog` → réponse Django vide avec en-tête **`X-Accel-Redirect: /_protected/<storage_key>`** ; Nginx sert le fichier depuis un emplacement `internal` qui relaie vers le stockage objet privé (authentification Nginx → stockage par identifiants de service ou URL signée générée côté serveur et jamais renvoyée au client). L'application fixe `Content-Disposition: attachment; filename*=…`, `Content-Type` détecté, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`. Prévisualisation au MVP : images et PDF uniquement, même mécanisme avec `inline` et `Content-Security-Policy: sandbox; default-src 'none'` ; autres formats : téléchargement uniquement. En dev (sans Nginx devant `runserver`), un repli `FileResponse` en streaming est utilisé, activé uniquement si `DEBUG`.
 
-Le bucket n'a **aucune politique publique** ; l'URL présignée contient une clé aléatoire non devinable ; une URL expirée renvoie 403 (testé contre MinIO en CI).
+Aucune URL du stockage n'est jamais exposée au navigateur ; le bucket n'a **aucune politique publique** ; chaque téléchargement est réautorisé. Tests : accès direct au bucket refusé, chemin `/_protected/` appelé directement depuis l'extérieur → 404 (emplacement `internal`), utilisateur retiré de la communauté → 404 au téléchargement suivant.
 
 ### Cycle de vie
 
@@ -199,9 +213,13 @@ Tâche quotidienne : `expires_at` dépassée → `expired` (masqué des listes, 
 ### Règles
 
 - Brouillon auto-sauvegardé (HTMX, toutes les 15 s si modifié, champ `version` pour éviter l'écrasement concurrent → 409 + message).
-- Soumission → **scan de sensibilité** synchrone (règles locales, aucune donnée envoyée à l'extérieur) : motifs de secrets (clés AWS/Azure/GCP, jetons GitHub, JWT, chaînes de connexion, clés privées PEM), e-mails, téléphones, IBAN, termes `SensitiveTerm`. Résultat : liste de constats affichée à l'auteur avec emplacement ; secrets → **soumission bloquée** ; autres constats → soumission possible mais signalés au relecteur.
+- Soumission → **scan de sensibilité** synchrone (règles locales, aucune donnée envoyée à l'extérieur) : motifs de secrets (clés AWS/Azure/GCP, jetons GitHub, JWT, chaînes de connexion, clés privées PEM), e-mails, téléphones, IBAN, termes `SensitiveTerm`. Résultat : liste de constats affichée à l'auteur avec emplacement ; secrets → **soumission bloquée**, sauf demande de levée (voir ci-dessous) ; autres constats → soumission possible mais signalés au relecteur.
+- Valeurs d'exemple ignorées : liste administrable de valeurs connues (ex. `AKIAIOSFODNN7EXAMPLE`, clés de documentation des fournisseurs) et marqueurs explicites dans la valeur (`EXAMPLE`, `changeme`, `xxxx`, `<your-key>`).
+- **Levée de blocage** : l'auteur peut demander une levée motivée (`SensitivityWaiver` : cible, constat, motif, demandeur, décideur, décision, date) ; un modérateur+ de la communauté (autre que l'auteur) l'accepte ou la refuse ; décision auditée ; le contenu reste non publié tant que la levée n'est pas acceptée.
+- Le scan s'exécute uniquement à la soumission/publication et à l'édition d'un contenu publié ; il ne modifie jamais un contenu en silence et n'envoie aucune donnée à un service externe.
+- Le guide administrateur rappelle qu'un vrai secret publié doit être **révoqué à la source**, le masquage dans la plateforme ne suffisant pas.
 - Revue : expert+ de la communauté (pas l'auteur ni un contributeur) ; `approve` → `published` + notification aux membres (niveau `all`) ; `request_changes` → retour à l'auteur.
-- Les articles techniques, tutoriels et guides du MVP sont des `Post(kind=article)` ; même scan de sensibilité appliqué à tout `Post` et `Comment` (secrets → blocage, reste → avertissement).
+- Les articles techniques, tutoriels et guides du MVP sont des `Post(kind=article)` ; même scan de sensibilité appliqué à tout `Post` et `Comment` (secrets → blocage avec levée possible, reste → avertissement).
 
 ---
 
@@ -213,6 +231,8 @@ Tâche quotidienne : `expires_at` dépassée → `expired` (masqué des listes, 
 - `EventRegistration` : `event`, `user`, `status` ∈ {`registered`, `waitlisted`, `cancelled`}, `waitlist_position` (nullable), `created_at`, `cancelled_at` ; unique (`event`, `user`).
 
 ### Règles (toutes sous `transaction.atomic` + `select_for_update` sur l'`Event`)
+
+- Le verrou sur la ligne `Event` sérialise les inscriptions d'un même événement (capacité estimée bien supérieure au pic de 1 000 inscriptions en 2 min) ; idempotence par `idempotency_key` contre les doubles clics ; scénario Locust « ouverture d'inscriptions » dédié.
 
 - Inscription : événement publié, fenêtre ouverte, lecteur autorisé (membre si communauté non `open`) ; place libre → `registered` ; sinon → `waitlisted` avec position ; réinscription après annulation réutilise la ligne.
 - Désinscription d'un `registered` → promotion du premier `waitlisted` (FIFO) → notification + e-mail.
@@ -238,10 +258,10 @@ Calendrier global (vue mois/liste, filtres communauté et type), calendrier de c
 ### Fonctionnement
 
 - Service `notify(category, recipients, actor, target)` appelé **après commit** (`transaction.on_commit`) ; insertion en masse (`bulk_create`) ; l'auteur de l'action n'est jamais notifié.
-- Diffusion en masse (nouvelle publication dans une communauté de 2 000 membres) : faite par une tâche Celery par lots de 500.
+- Diffusion en masse (publication « temps fort » dans une communauté de 2 000 membres) : faite par une tâche Celery par lots de 500, destinataires filtrés selon `notification_level`.
 - E-mails : tâche Celery (retries × 5, backoff), `immediate` regroupés par fenêtre de 5 min par destinataire ; digest quotidien à 8 h (fuseau utilisateur) ; lien de désabonnement par catégorie.
 - Interface : cloche avec compteur (rafraîchi par HTMX toutes les 60 s et à chaque navigation), page de notifications (filtrable, « tout marquer lu »), page de préférences.
-- Purge : notifications lues > 90 j supprimées par tâche nocturne.
+- Purge : **toutes** les notifications de plus de 90 j (lues ou non) supprimées par tâche nocturne, par lots.
 
 ---
 
@@ -249,7 +269,8 @@ Calendrier global (vue mois/liste, filtres communauté et type), calendrier de c
 
 - Chaque modèle cherchable (`Community`, `Post`, `Comment` via son post, `Document`, `RexArticle`, `Event`, `User` découvrable, `Tag`) possède un `search_vector` (`SearchVectorField`) mis à jour par le service d'écriture (pondération : titre A, tags B, corps C) avec la configuration `french` + extension `unaccent` (configuration texte personnalisée `fr_unaccent`) ; index GIN.
 - Suggestions : `pg_trgm` sur titres de communautés, tags et noms d'utilisateurs découvrables (index GIN trigram), à partir de 2 caractères, 8 résultats, debounce 250 ms (HTMX).
-- Page de recherche : requête `websearch_to_tsquery`, onglets par type avec compteurs, filtres (communauté, type, tag, période), tri (pertinence `ts_rank_cd` + fraîcheur, ou date), surlignage `ts_headline` sur un extrait ; pagination 20.
+- Onglet **« Tout »** : les 3 meilleurs résultats de chaque type, en sections, avec lien « voir les N résultats » vers l'onglet du type ; pas de liste fusionnée ni de pagination croisée (scores non comparables entre types). Un besoin avéré de classement unifié déclencherait l'évaluation d'un moteur dédié (OpenSearch).
+- Onglets par type : requête `websearch_to_tsquery`, compteurs (plafonnés à « 1 000+ » pour borner le coût), filtres (communauté, type, tag, période), tri (pertinence `ts_rank_cd` + fraîcheur, ou date), surlignage `ts_headline` sur un extrait ; pagination 20.
 - **Droits** : chaque type est interrogé via `visible_to(user)` puis classé ; jamais de post-filtrage. Les contenus `hidden`, `draft`, `pending_review`, archivés et les documents non `clean` sont exclus.
 - Historique de recherche : non conservé au MVP (pas de valeur prouvée, donnée personnelle évitée).
 
@@ -327,3 +348,30 @@ API REST DRF en lecture/écriture limitée, authentifiée par session (même ori
 ## 18. Ordre d'implémentation
 
 L0 → L1 → L2 → L3 → L4 → L5 → L6 → L7 → L8 → L9 → L10 → L11. Chaque lot est livré avec tests, migration, documentation et instructions de vérification, et laisse l'application fonctionnelle. L8 (notifications) expose `notify()` dès L3 sous forme minimale (in-app) pour éviter de revenir sur les lots précédents.
+
+---
+
+## Stress Test Results: spécification MVP
+
+### Resolved Decisions
+- Fichiers privés : servis par Nginx via `X-Accel-Redirect` après contrôle d'accès, au lieu d'URL présignées de 60 s ; aucune URL de stockage exposée (§ 8).
+- Communautés ouvertes : contenu lisible par tout collaborateur actif, y compris en recherche ; écriture réservée aux membres ; communautés sur demande : métadonnées visibles, contenu réservé (§ 6).
+- Détecteur de secrets : valeurs d'exemple ignorées, blocage maintenu avec levée motivée validée par un modérateur et auditée (§ 9).
+- Notifications : niveau par défaut « temps forts » ; discussions dans le fil seulement ; purge de toutes les notifications de plus de 90 jours (§ 6, § 11).
+- Recherche : onglet « Tout » en sections (3 résultats par type) ; pagination et tri par type uniquement (§ 12).
+- Comptes : nom conservé après le départ ; anonymisation complète sur demande ou 3 ans après la désactivation ; export de ses données (§ 4).
+- SSO : modes `local` / `mixed` / `sso_only`, liaison par identifiant immuable de l'IdP, compte d'urgence unique en SSO seul (§ 4).
+- Concurrence : compteurs exacts pour membres et inscrits, différés pour réactions/commentaires/téléchargements ; clé d'idempotence sur les formulaires sensibles ; scénario de pic testé (§ 2, § 10).
+
+### Changes Made
+- Sections 2, 4, 6, 8, 9, 10, 11 et 12 modifiées en conséquence ; le document de cadrage (`docs/cadrage.md`) aligné sur le téléchargement via Nginx et la visibilité des communautés ouvertes.
+- Ajouts issus de l'auto-revue : CSRF pour HTMX par en-tête, schémas de liens autorisés dans le Markdown, images externes non chargées.
+
+### Deferred / Parking Lot
+- Base légale de la conservation du nom après départ et durées de conservation : à confirmer avec le DPO de Talan (D8).
+- Hébergement cible (D1), charte graphique (D4), IdP effectif (D2) : valeurs par défaut conservées, sans blocage du lot L0.
+- Classement unifié multi-types : à réévaluer avec un moteur dédié si le besoin est avéré.
+
+### Confidence Assessment
+- Overall: High pour le modèle d'autorisation, les flux de fichiers et la concurrence ; Medium pour la pertinence de la recherche PostgreSQL (à mesurer sur données réelles).
+- Areas of concern: adoption (dépend des communautés pilotes), taux de faux positifs du détecteur de secrets, validation RGPD.
