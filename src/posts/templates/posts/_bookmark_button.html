@@ -1,0 +1,9 @@
+{% load i18n %}{% comment %}
+  Bookmark toggle of a post (L4 Task 6), also the HTMX response of ``posts:bookmark_toggle``.
+  Context: post, bookmarked (bool).
+{% endcomment %}
+{% url 'posts:bookmark_toggle' post.community.slug post.public_id as bookmark_url %}
+<form class="d-inline" method="post" action="{{ bookmark_url }}" hx-post="{{ bookmark_url }}" hx-target="this" hx-swap="outerHTML">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-sm {% if bookmarked %}btn-primary{% else %}btn-outline-secondary{% endif %}" aria-pressed="{% if bookmarked %}true{% else %}false{% endif %}"><i class="bi {% if bookmarked %}bi-bookmark-fill{% else %}bi-bookmark{% endif %} me-1" aria-hidden="true"></i>{% translate "Bookmark" %}</button>
+</form>

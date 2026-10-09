@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Bookmarks" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h2 mb-3">{% translate "Bookmarks" %}</h1>
+  <div class="row g-4">
+    <div class="col-12 col-lg-4">
+      <section aria-labelledby="collections-title">
+        <h2 class="h5" id="collections-title">{% translate "Collections" %}</h2>
+        <ul class="nav nav-pills flex-column mb-3">
+          <li class="nav-item"><a class="nav-link{% if not selected %} active{% endif %}" href="{% url 'posts:bookmarks' %}"{% if not selected %} aria-current="page"{% endif %}>{% translate "All bookmarks" %}</a></li>
+          <li class="nav-item"><a class="nav-link{% if selected == 'none' %} active{% endif %}" href="?collection=none"{% if selected == 'none' %} aria-current="page"{% endif %}>{% translate "Not in a collection" %}</a></li>
+          {% for collection in collections %}
+            <li class="nav-item"><a class="nav-link d-flex justify-content-between{% if collection == current %} active{% endif %}" href="?collection={{ collection.public_id }}"{% if collection == current %} aria-current="page"{% endif %}><span>{{ collection.name }}</span> <span class="badge text-bg-light">{{ collection.entry_count }}</span></a></li>
+          {% endfor %}
+        </ul>
+        <form method="post" action="{% url 'posts:collection_create' %}" class="mb-3">{% csrf_token %}
+          <label class="form-label" for="new-collection">{% translate "New collection" %}</label>
+          <div class="input-group">
+            <input class="form-control" id="new-collection" name="name" maxlength="{{ max_name_length }}" required>
+            <button type="submit" class="btn btn-outline-primary">{% translate "Create" %}</button>
+          </div>
+        </form>
+        {% if current %}
+          <details class="mb-2">
+            <summary class="btn btn-sm btn-link">{% translate "Rename this collection" %}</summary>
+            <form method="post" action="{% url 'posts:collection_rename' current.public_id %}" class="mt-2">{% csrf_token %}
+              <label class="form-label" for="rename-collection">{% translate "Collection name" %}</label>
+              <div class="input-group">
+                <input class="form-control" id="rename-collection" name="name" value="{{ current.name }}" maxlength="{{ max_name_length }}" required>
+                <button type="submit" class="btn btn-outline-primary">{% translate "Rename" %}</button>
+              </div>
+            </form>
+          </details>
+          <form method="post" action="{% url 'posts:collection_delete' current.public_id %}">{% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-outline-danger">{% translate "Delete this collection" %}</button>
+            <p class="form-text">{% translate "Its bookmarks are kept, outside any collection." %}</p>
+          </form>
+        {% endif %}
+      </section>
+    </div>
+    <div class="col-12 col-lg-8">
+      <h2 class="h5">{% if current %}{{ current.name }}{% elif selected == "none" %}{% translate "Not in a collection" %}{% else %}{% translate "All bookmarks" %}{% endif %}</h2>
+      {% if page_obj.object_list %}
+        <ul class="list-unstyled">
+          {% for entry in page_obj %}
+            <li class="card tl-card mb-3 tl-bookmark-entry">
+              <div class="card-body">
+                {% if entry.accessible %}
+                  <h3 class="h6 mb-1"><a href="{% url 'posts:detail' entry.post.community.slug entry.post.public_id %}">{{ entry.post.title }}</a></h3>
+                  <p class="small text-body-secondary mb-2">{{ entry.post.community.name }}{% if entry.collection %} <span aria-hidden="true">·</span> {{ entry.collection.name }}{% endif %}</p>
+                {% else %}
+                  <p class="mb-2 text-body-secondary fst-italic">{% translate "Content not accessible" %}</p>
+                {% endif %}
+                <div class="d-flex flex-wrap gap-2 align-items-end">
+                  {% if collections %}
+                    <form method="post" action="{% url 'posts:collection_move' entry.post.public_id %}" class="d-flex gap-2 align-items-end">{% csrf_token %}
+                      <div>
+                        <label class="form-label small mb-0" for="move-{{ entry.pk }}">{% translate "Collection" %}</label>
+                        <select class="form-select form-select-sm" id="move-{{ entry.pk }}" name="collection">
+                          <option value="">{% translate "None" %}</option>
+                          {% for collection in collections %}<option value="{{ collection.public_id }}"{% if collection.pk == entry.collection_id %} selected{% endif %}>{{ collection.name }}</option>{% endfor %}
+                        </select>
+                      </div>
+                      <button type="submit" class="btn btn-sm btn-outline-secondary">{% translate "Move" %}</button>
+                    </form>
+                  {% endif %}
+                  <form method="post" action="{% url 'posts:bookmark_remove' entry.post.public_id %}">{% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">{% translate "Remove" %}</button>
+                  </form>
+                </div>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+        {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
+      {% else %}
+        {% translate "No bookmarks yet" as empty_title %}
+        {% translate "Use the Bookmark button of a post to find it here later." as empty_text %}
+        <div class="tl-empty-state text-center py-5">
+          <i class="bi bi-bookmark display-4 text-body-secondary" aria-hidden="true"></i>
+          <p class="h4 mt-3">{{ empty_title }}</p>
+          <p class="text-body-secondary">{{ empty_text }}</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

@@ -2455,3 +2455,148 @@ msgstr "clé"
 
 msgid "tag"
 msgstr "tag"
+
+msgid "Your comment"
+msgstr "Votre commentaire"
+
+msgid "Markdown is supported. Mention a member with @first.last."
+msgstr "Le Markdown est pris en charge. Mentionnez un membre avec @prenom.nom."
+
+msgid "Reason for hiding"
+msgstr "Motif du masquage"
+
+msgid "Details"
+msgstr "Détails"
+
+msgid "Optional: what should the moderators look at?"
+msgstr "Facultatif : que doivent examiner les modérateurs ?"
+
+msgid "Collection name"
+msgstr "Nom de la collection"
+
+msgid "Bookmark"
+msgstr "Favori"
+
+msgid "Reply"
+msgstr "Répondre"
+
+msgid "Your reply"
+msgstr "Votre réponse"
+
+msgid "Report"
+msgstr "Signaler"
+
+msgid "Hide comment"
+msgstr "Masquer le commentaire"
+
+msgid "Show comment again"
+msgstr "Afficher à nouveau le commentaire"
+
+msgid "Publish the comment"
+msgstr "Publier le commentaire"
+
+msgid "Join this community to comment and react."
+msgstr "Rejoignez cette communauté pour commenter et réagir."
+
+msgid "Reactions to the post"
+msgstr "Réactions à la publication"
+
+msgid "Reactions to the comment"
+msgstr "Réactions au commentaire"
+
+msgid "Thank you, moderators have been informed."
+msgstr "Merci, les modérateurs ont été informés."
+
+msgid "Back to the content"
+msgstr "Retour au contenu"
+
+msgid "Collections"
+msgstr "Collections"
+
+msgid "All bookmarks"
+msgstr "Tous les favoris"
+
+msgid "Not in a collection"
+msgstr "Hors collection"
+
+msgid "New collection"
+msgstr "Nouvelle collection"
+
+msgid "Rename this collection"
+msgstr "Renommer cette collection"
+
+msgid "Rename"
+msgstr "Renommer"
+
+msgid "Delete this collection"
+msgstr "Supprimer cette collection"
+
+msgid "Its bookmarks are kept, outside any collection."
+msgstr "Ses favoris sont conservés, hors de toute collection."
+
+msgid "Collection"
+msgstr "Collection"
+
+msgid "Move"
+msgstr "Déplacer"
+
+msgid "Remove"
+msgstr "Retirer"
+
+msgid "No bookmarks yet"
+msgstr "Aucun favori pour l’instant"
+
+msgid "Use the Bookmark button of a post to find it here later."
+msgstr ""
+"Utilisez le bouton Favori d’une publication pour la retrouver ici plus tard."
+
+msgid "Report content"
+msgstr "Signaler un contenu"
+
+#, python-format
+msgid "Comment by %(author)s on “%(title)s”"
+msgstr "Commentaire de %(author)s sur « %(title)s »"
+
+#, python-format
+msgid "Post “%(title)s” by %(author)s"
+msgstr "Publication « %(title)s » de %(author)s"
+
+msgid ""
+"Moderators of the community will review your report. Your name is not shown "
+"to the author."
+msgstr ""
+"Les modérateurs de la communauté examineront votre signalement. Votre nom "
+"n’est pas montré à l’auteur."
+
+msgid "Send the report"
+msgstr "Envoyer le signalement"
+
+msgid "Your comment has been published."
+msgstr "Votre commentaire a été publié."
+
+msgid "Your comment has been updated."
+msgstr "Votre commentaire a été modifié."
+
+msgid "The comment is hidden."
+msgstr "Le commentaire est masqué."
+
+msgid "The comment is visible again."
+msgstr "Le commentaire est de nouveau visible."
+
+msgid "Bookmark added."
+msgstr "Favori ajouté."
+
+msgid "Bookmark removed."
+msgstr "Favori retiré."
+
+msgid "The collection has been created."
+msgstr "La collection a été créée."
+
+msgid "The collection has been renamed."
+msgstr "La collection a été renommée."
+
+msgid "The collection has been deleted."
+msgstr "La collection a été supprimée."
+
+msgid "The bookmark has been moved."
+msgstr "Le favori a été déplacé."

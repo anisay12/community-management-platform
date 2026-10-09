@@ -1,3 +1,49 @@
-{% comment %}
-  Stub created by L4 Task 1; owned and filled by Task 6 (comment edit, hide, reply, report).
+{% load i18n post_interaction_tags %}{% comment %}
+  Actions on one comment (L4 Task 6): reactions, reply, edit, report, hide or unhide.
+  Context: comment, post. The HTMX forms replace the top-level comment (with its replies).
 {% endcomment %}
+{% post_interactions post as ix %}
+{% comment_interactions ix comment as cx %}
+<div class="d-flex flex-wrap align-items-start gap-2 small tl-comment-actions">
+  {% include "posts/_reaction_bar_inner.html" with target=comment target_type="comment" mine=cx.reactions interactive=cx.can_react counts=None %}
+  {% if cx.can_reply %}
+    <details class="tl-inline-form">
+      <summary class="btn btn-sm btn-link">{% translate "Reply" %}</summary>
+      <form method="post" action="{% url 'posts:comment_create' post.community.slug post.public_id %}" hx-post="{% url 'posts:comment_create' post.community.slug post.public_id %}" hx-target="#comment-{{ cx.top_public_id }}" hx-swap="outerHTML" hx-disabled-elt="find button" class="mt-2">
+        {% csrf_token %}
+        <input type="hidden" name="parent" value="{{ comment.public_id }}">
+        <label class="form-label" for="reply-{{ comment.public_id }}">{% translate "Your reply" %}</label>
+        <textarea class="form-control" id="reply-{{ comment.public_id }}" name="body" rows="3" maxlength="10000" required></textarea>
+        <button type="submit" class="btn btn-primary btn-sm mt-2">{% translate "Reply" %}</button>
+      </form>
+    </details>
+  {% endif %}
+  {% if cx.can_edit %}
+    <details class="tl-inline-form">
+      <summary class="btn btn-sm btn-link">{% translate "Edit" %}</summary>
+      <form method="post" action="{% url 'posts:comment_edit' comment.public_id %}" hx-post="{% url 'posts:comment_edit' comment.public_id %}" hx-target="#comment-{{ cx.top_public_id }}" hx-swap="outerHTML" hx-disabled-elt="find button" class="mt-2">
+        {% csrf_token %}
+        <label class="form-label" for="edit-{{ comment.public_id }}">{% translate "Your comment" %}</label>
+        <textarea class="form-control" id="edit-{{ comment.public_id }}" name="body" rows="4" maxlength="10000" required>{{ comment.body }}</textarea>
+        <button type="submit" class="btn btn-primary btn-sm mt-2">{% translate "Save" %}</button>
+      </form>
+    </details>
+  {% endif %}
+  {% if cx.can_report %}<a class="btn btn-sm btn-link text-body-secondary" href="{% url 'posts:report' 'comment' comment.public_id %}">{% translate "Report" %}</a>{% endif %}
+  {% if cx.can_hide %}
+    <details class="tl-inline-form">
+      <summary class="btn btn-sm btn-link text-danger">{% translate "Hide" %}</summary>
+      <form method="post" action="{% url 'posts:comment_hide' comment.public_id %}" hx-post="{% url 'posts:comment_hide' comment.public_id %}" hx-target="#comment-{{ cx.top_public_id }}" hx-swap="outerHTML" hx-disabled-elt="find button" class="mt-2">
+        {% csrf_token %}
+        <label class="form-label" for="hide-{{ comment.public_id }}">{% translate "Reason for hiding" %}</label>
+        <textarea class="form-control" id="hide-{{ comment.public_id }}" name="reason" rows="2" maxlength="500" required></textarea>
+        <button type="submit" class="btn btn-danger btn-sm mt-2">{% translate "Hide comment" %}</button>
+      </form>
+    </details>
+  {% elif cx.can_unhide %}
+    <form method="post" action="{% url 'posts:comment_unhide' comment.public_id %}" hx-post="{% url 'posts:comment_unhide' comment.public_id %}" hx-target="#comment-{{ cx.top_public_id }}" hx-swap="outerHTML">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-link">{% translate "Show comment again" %}</button>
+    </form>
+  {% endif %}
+</div>

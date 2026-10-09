@@ -49,7 +49,7 @@ def test_navigation_entries_shown_once_routes_exist(rf, active_user):
     request.user = active_user
     keys = [item.key for item in navigation.items_for(request)]
     assert keys.index("home_feed") == keys.index("communities") + 1
-    assert "bookmarks" not in keys  # Until Task 6 ships the bookmarks page.
+    assert keys.index("bookmarks") > keys.index("home_feed")
 
 
 def _request(method="get", **headers):

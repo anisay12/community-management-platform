@@ -1,3 +1,18 @@
-{% comment %}
-  Stub created by L4 Task 1; owned and filled by Task 6 (reaction buttons and counts).
+{% load i18n %}{% comment %}
+  Reaction bar (L4 Task 6): three toggle buttons with their counts.
+  Arguments: items (list of (kind, label, count, pressed)); url (POST target, the form also
+  works without JavaScript); interactive (bool: false shows the non-zero counts as text only);
+  label (accessible name of the group). With HTMX the whole bar is replaced by the response.
 {% endcomment %}
+{% if interactive %}
+  <form class="tl-reaction-bar d-inline-flex flex-wrap gap-1" method="post" action="{{ url }}" hx-post="{{ url }}" hx-target="this" hx-swap="outerHTML" role="group" aria-label="{{ label }}">
+    {% csrf_token %}
+    {% for kind, kind_label, count, pressed in items %}
+      <button type="submit" name="kind" value="{{ kind }}" class="btn btn-sm {% if pressed %}btn-primary{% else %}btn-outline-secondary{% endif %}" aria-pressed="{% if pressed %}true{% else %}false{% endif %}">{{ kind_label }} <span class="badge text-bg-light tl-reaction-count">{{ count }}</span></button>
+    {% endfor %}
+  </form>
+{% else %}
+  <div class="tl-reaction-bar d-inline-flex flex-wrap gap-2 small text-body-secondary" role="group" aria-label="{{ label }}">
+    {% for kind, kind_label, count, pressed in items %}{% if count %}<span class="tl-reaction-count">{{ kind_label }}&nbsp;{{ count }}</span>{% endif %}{% endfor %}
+  </div>
+{% endif %}
