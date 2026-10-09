@@ -7,7 +7,7 @@ DOCKER_BUILD_OPTS ?=
 # Extra options for the Trivy scan (e.g. proxy: --network host -e HTTPS_PROXY -e SSL_CERT_FILE=...).
 TRIVY_RUN_OPTS ?=
 
-.PHONY: lint test test-integration security image ci messages i18n-check dev-admin assets assets-check
+.PHONY: lint test test-integration security image ci messages i18n-check dev-admin assets assets-check test-a11y
 
 lint:
 	uv run ruff check .
@@ -38,6 +38,11 @@ test:
 	uv run python manage.py migrate --noinput --settings=config.settings.test
 	uv run pytest --cov --cov-report=term-missing --cov-fail-under=85
 
+# Browser accessibility checks (axe-core + keyboard) with Chromium; needs `playwright install chromium` once.
+test-a11y:
+	@test -d node_modules/axe-core || npm ci --no-audit --no-fund
+	uv run pytest -m a11y -p no:cacheprovider --no-cov
+
 test-integration:
 	uv run pytest -m integration -v
 
@@ -57,4 +62,4 @@ dev-admin:
 	@test -n "$(EMAIL)" || { echo 'Usage: EMAIL=you@example.com make dev-admin'; exit 1; }
 	docker compose exec web python manage.py create_dev_admin --email "$(EMAIL)"
 
-ci: lint i18n-check assets-check test security image
+ci: lint i18n-check assets-check test test-a11y security image

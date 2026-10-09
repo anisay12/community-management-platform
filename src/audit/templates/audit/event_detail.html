@@ -2,15 +2,8 @@
 {% load i18n audit_tags %}
 {% block title %}{% translate "Audit event" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  {% url 'audit:event_list' as list_url %}
-  {% translate "Audit log" as list_label %}
-  {% translate "Event" as event_label %}
-  <nav aria-label="{% translate 'Breadcrumb' %}">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="{{ list_url }}">{{ list_label }}</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ event_label }}</li>
-    </ol>
-  </nav>
+  {% audit_event_breadcrumb as crumbs %}
+  {% include "components/breadcrumb.html" with items=crumbs %}
   <h1 class="h2">{% translate "Audit event" %}</h1>
   <div class="card mb-3">
     <div class="card-body">

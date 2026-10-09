@@ -57,6 +57,9 @@ jobs:
         run: npm ci --no-audit --no-fund
       - run: make assets-check
       - run: make test
+      - name: Install Chromium for the accessibility tests
+        run: uv run playwright install --with-deps chromium
+      - run: make test-a11y
       - name: Storage integration test
         env:
           S3_INTEGRATION_ENDPOINT: http://localhost:8333

@@ -1,4 +1,5 @@
 from django import template
+from django.urls import reverse
 from django.utils.translation import gettext
 
 from audit import policies
@@ -17,3 +18,9 @@ def action_category(action: str) -> str:
     if policies.is_technical_action(action):
         return gettext("Technical and security")
     return gettext("Functional")
+
+
+@register.simple_tag
+def audit_event_breadcrumb() -> list[tuple[str, str]]:
+    """Breadcrumb items (``components/breadcrumb.html``) of the audit event page."""
+    return [(gettext("Audit log"), reverse("audit:event_list")), (gettext("Event"), "")]

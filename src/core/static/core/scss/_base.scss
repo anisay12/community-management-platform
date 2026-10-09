@@ -2,22 +2,50 @@
 @use "sass:color";
 @use "sass:map";
 
-// RGB triplet of the dark primary, derived from tokens.scss so the token stays the single source.
-$tl-dark-primary-rgb: #{color.channel(map.get($tl-dark, "color-primary"), "red", $space: rgb)},
-  #{color.channel(map.get($tl-dark, "color-primary"), "green", $space: rgb)},
-  #{color.channel(map.get($tl-dark, "color-primary"), "blue", $space: rgb)};
+$tl-theme-colors: primary, secondary, success, warning, danger, info;
+
+// RGB triplet of a dark palette colour, derived from tokens.scss so the tokens stay the single source.
+@function tl-dark-rgb($name) {
+  $value: map.get($tl-dark, "color-#{$name}");
+  @return #{color.channel($value, "red", $space: rgb)}, #{color.channel($value, "green", $space: rgb)},
+    #{color.channel($value, "blue", $space: rgb)};
+}
 
 :root {
   --bs-focus-ring-color: var(--tl-color-focus);
   --bs-border-color: var(--tl-color-border);
 }
 
+// Bootstrap compiles its theme colours once, from the light palette: in dark mode the theme
+// variables, outline buttons and filled badges are re-pointed at the dark tokens.
 @media (prefers-color-scheme: dark) {
   :root {
-    --bs-primary: var(--tl-color-primary);
-    --bs-primary-rgb: #{$tl-dark-primary-rgb};
-    --bs-link-color-rgb: #{$tl-dark-primary-rgb};
-    --bs-link-hover-color-rgb: #{$tl-dark-primary-rgb};
+    @each $name in $tl-theme-colors {
+      --bs-#{$name}: var(--tl-color-#{$name});
+      --bs-#{$name}-rgb: #{tl-dark-rgb($name)};
+    }
+    --bs-link-color-rgb: #{tl-dark-rgb(primary)};
+    --bs-link-hover-color-rgb: #{tl-dark-rgb(primary)};
+  }
+
+  @each $name in $tl-theme-colors {
+    .btn-outline-#{$name} {
+      --bs-btn-color: var(--tl-color-#{$name});
+      --bs-btn-border-color: var(--tl-color-#{$name});
+      --bs-btn-hover-bg: var(--tl-color-#{$name});
+      --bs-btn-hover-border-color: var(--tl-color-#{$name});
+      --bs-btn-hover-color: var(--tl-color-bg);
+      --bs-btn-active-bg: var(--tl-color-#{$name});
+      --bs-btn-active-border-color: var(--tl-color-#{$name});
+      --bs-btn-active-color: var(--tl-color-bg);
+      --bs-btn-disabled-color: var(--tl-color-#{$name});
+      --bs-btn-disabled-border-color: var(--tl-color-#{$name});
+    }
+
+    .text-bg-#{$name} {
+      color: var(--tl-color-bg) !important;
+      background-color: var(--tl-color-#{$name}) !important;
+    }
   }
 }
 
@@ -79,6 +107,14 @@ main:focus-visible {
   display: inline-flex;
   align-items: center;
   min-width: var(--tl-touch-target);
+}
+
+// The icon keeps its 1em size (background-size); only the clickable area grows.
+.btn-close {
+  box-sizing: border-box;
+  width: var(--tl-touch-target);
+  height: var(--tl-touch-target);
+  padding: 0;
 }
 
 .form-check-input {

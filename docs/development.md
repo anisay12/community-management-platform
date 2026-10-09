@@ -189,6 +189,7 @@ Never applied automatically at startup. In development: `docker compose run --rm
 
 - `make i18n-check` : French catalogue up to date and complete.
 - `make test` : Django unit and integration tests on a real PostgreSQL, minimum coverage 85%.
+- `make test-a11y` : browser accessibility and keyboard checks (see below). Excluded from `make test`.
 - `make test-integration` : checks that the bucket is private (anonymous read denied) against a real S3-compatible storage. Locally, with Compose started:
 
   ```bash
@@ -196,6 +197,15 @@ Never applied automatically at startup. In development: `docker compose run --rm
     S3_INTEGRATION_ACCESS_KEY=dev-only-s3 S3_INTEGRATION_SECRET_KEY=dev-only-s3-secret \
     make test-integration
   ```
+
+### Accessibility checks (axe-core and keyboard)
+
+`make test-a11y` runs the tests marked `a11y` (`src/core/tests/a11y/`) with Playwright and Chromium against a live server, on the same PostgreSQL database as `make test`. It installs `node_modules/` (`npm ci`) when axe-core is missing. Chromium is installed once with `uv run playwright install --with-deps chromium` (CI does it; set `PLAYWRIGHT_BROWSERS_PATH` to use an existing browser cache, whose build must match the pinned `playwright` version). No network access is needed at test time.
+
+- `test_axe.py` scans login, password reset, 404, home, profile, profile edit, preferences, data export, user list, user detail, audit log, audit event and the style guide, each in light and dark colour scheme at 1280x800 and 390x844, with the axe tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`. Any `serious` or `critical` violation fails the test; `moderate` and `minor` findings are printed (visible with `-s` or in the failure report).
+- `test_keyboard.py` checks, on the mobile viewport, the skip link, the offcanvas menu (open, Escape, focus return), the user menu (Enter, Space, arrow keys), the visible focus indicator on navbar controls and 44x44 px touch targets in the navigation and pagination.
+
+Reading a violation: each line gives the rule id, its impact, the CSS selectors of the offending elements (with the measured colours and ratio for `color-contrast`) and the Deque help URL explaining the fix. The test name tells the page, colour scheme and viewport. Fix the template or the tokens (`tokens.scss`, then `make assets`), never disable a rule.
 
 ## Observability
 

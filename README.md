@@ -39,6 +39,7 @@ docker compose up -d --no-build --wait
 | `make assets-check` | Fails if the committed compiled assets are out of date |
 | `make messages` | Extracts and compiles translations |
 | `make dev-admin` | Creates a development administrator (`EMAIL=you@example.com`) |
+| `make test-a11y` | Browser accessibility checks: axe-core on every page (light and dark, desktop and mobile) and keyboard tests (Playwright, Chromium) |
 | `make test-integration` | Private S3 storage test (`S3_INTEGRATION_*` variables required) |
 | `make security` | Dependency audit, Bandit, secret scanning (gitleaks) |
 | `make image` | Image build, Trivy scan, Nginx configuration validation |
