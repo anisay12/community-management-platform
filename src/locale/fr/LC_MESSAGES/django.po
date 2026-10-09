@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 18:55+0200\n"
+"POT-Creation-Date: 2026-10-09 21:30+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -2035,6 +2035,39 @@ msgstr "signalements de contenu"
 msgid "You are doing this too often. Please try again later."
 msgstr ""
 "Vous effectuez cette action trop souvent. Veuillez réessayer plus tard."
+
+msgid "Give the post a title."
+msgstr "Donnez un titre à la publication."
+
+msgid "The title is too long."
+msgstr "Le titre est trop long."
+
+#, python-format
+msgid "The text is too long (at most %(limit)s characters)."
+msgstr "Le texte est trop long (au plus %(limit)s caractères)."
+
+#, python-format
+msgid "You can only choose existing tags: “%(name)s” does not exist."
+msgstr ""
+"Vous ne pouvez choisir que des étiquettes existantes : « %(name)s » n’existe "
+"pas."
+
+msgid "You cannot publish this kind of post here."
+msgstr "Vous ne pouvez pas publier ce type de publication ici."
+
+msgid "This post was changed by someone else since you opened it."
+msgstr ""
+"Cette publication a été modifiée par quelqu’un d’autre depuis que vous "
+"l’avez ouverte."
+
+msgid "Explain to the author why the post is refused."
+msgstr "Expliquez à l’auteur pourquoi la publication est refusée."
+
+#, python-format
+msgid "At most %(limit)s posts can be pinned: unpin one first."
+msgstr ""
+"Au plus %(limit)s publications peuvent être épinglées : désépinglez-en une "
+"d’abord."
 
 msgid "Edit conflict"
 msgstr "Conflit de modification"

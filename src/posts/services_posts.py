@@ -3,81 +3,552 @@ accepted answers, sharing and tags.
 
 Every service is atomic, keyword-only with the actor first, checks its policy itself and
 raises ``core.errors.DomainError`` (``forbidden``, ``read_only``, ``edit_conflict``, ...).
+Notifications and broadcasts go out once the transaction commits.
 """
 
+from django.conf import settings
+from django.contrib.postgres.search import SearchVector
 from django.db import transaction
+from django.db.models import TextField, Value
+from django.utils import timezone
+from django.utils.translation import gettext as _
+
+from audit.services import record
+from communities.models import Community, CommunityMembership
+from communities.policies import membership_of
+from communities.roles import ROLE_RANK, CommunityRole, role_at_least
+from core.errors import DomainError
+from notifications.services import notify
+from taxonomy.models import Tag
+from taxonomy.services import get_or_create_tag, normalize_tag_key
+
+from . import policies, ratelimit
+from .hiding import mark_hidden, mark_visible
+from .mentions import resolve_mentions, sync_mentions
+from .models import POST_BODY_MAX_LENGTH, Comment, Post, PostRevision
+from .rendering import render_body
+from .tasks import broadcast_post
+
+# Kinds whose published edits keep a revision even when the author edits (Decision 13).
+REVISED_KINDS = (Post.Kind.ARTICLE, Post.Kind.ANNOUNCEMENT)
+# Kinds broadcast in the ``announcement`` category (Decision 16).
+ANNOUNCEMENT_KINDS = (Post.Kind.ARTICLE, Post.Kind.ANNOUNCEMENT)
+MODERATOR_ROLES = [
+    role for role in CommunityRole if ROLE_RANK[role] >= ROLE_RANK[CommunityRole.MODERATOR]
+]
+
+
+# --- errors -----------------------------------------------------------------------------
+
+
+def _forbidden():
+    return DomainError("forbidden", _("You are not allowed to perform this action."))
+
+
+def _invalid_state():
+    return DomainError("invalid_state", _("This action is not possible in the current state."))
+
+
+def _ensure_live(community) -> None:
+    if community.is_read_only:
+        raise DomainError(
+            "read_only", _("This community is suspended or archived: it cannot be changed.")
+        )
+
+
+# --- helpers ----------------------------------------------------------------------------
+
+
+def _lock(post: Post) -> Post:
+    """Re-read ``post`` under a row lock (in place) so concurrent writes serialise."""
+    post.refresh_from_db(from_queryset=Post.objects.select_for_update())
+    return post
+
+
+def _clean_content(title: str, body: str) -> tuple[str, str]:
+    title = (title or "").strip()
+    body = body or ""
+    if not title:
+        raise DomainError("title_required", _("Give the post a title."))
+    if len(title) > Post._meta.get_field("title").max_length:
+        raise DomainError("title_too_long", _("The title is too long."))
+    if len(body) > POST_BODY_MAX_LENGTH:
+        raise DomainError(
+            "body_too_long",
+            _("The text is too long (at most %(limit)s characters).")
+            % {"limit": POST_BODY_MAX_LENGTH},
+        )
+    return title, body
+
+
+def _author_display(user) -> str:
+    return (user.get_full_name() or user.email)[: Post._meta.get_field("author_display").max_length]
+
+
+def _resolve_tags(actor, community, names) -> list[Tag]:
+    """Tags for ``names`` (strings or ``Tag`` instances), matched by key.
+
+    Unknown names are created only when the actor may create tags in ``community``.
+    """
+    found: list[Tag] = []
+    seen: set[str] = set()
+    max_length = Tag._meta.get_field("name").max_length
+    for name in names or ():
+        if isinstance(name, Tag):
+            if name.key not in seen:
+                seen.add(name.key)
+                found.append(name)
+            continue
+        name = " ".join(str(name).split())[:max_length].strip()
+        key = normalize_tag_key(name)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        tag = Tag.objects.filter(key=key).first()
+        if tag is None:
+            if not policies.can_create_tag(actor, community):
+                raise DomainError(
+                    "tag_creation_forbidden",
+                    _("You can only choose existing tags: “%(name)s” does not exist.")
+                    % {"name": name},
+                )
+            tag = get_or_create_tag(name)
+        found.append(tag)
+    return found
+
+
+def _refresh_search_vector(post: Post) -> None:
+    """Title (A), tag names (B) and body (C), with the ``simple`` configuration."""
+    tag_text = " ".join(post.tags.values_list("name", flat=True))
+    Post.objects.filter(pk=post.pk).update(
+        search_vector=SearchVector("title", weight="A", config="simple")
+        + SearchVector(Value(tag_text, output_field=TextField()), weight="B", config="simple")
+        + SearchVector("body", weight="C", config="simple")
+    )
+
+
+def _moderators(community) -> list:
+    """Members with the moderator role or above (recipients of review requests)."""
+    return [
+        membership.user
+        for membership in CommunityMembership.objects.select_related("user").filter(
+            community=community, role__in=MODERATOR_ROLES
+        )
+    ]
+
+
+def _needs_review(actor, community) -> bool:
+    return community.require_post_review and not policies.is_content_moderator(actor, community)
+
+
+def _notify_mentions(post: Post, users, actor) -> None:
+    if users:
+        notify("mention", users, actor=actor, target=post, community=post.community)
+
+
+def _sync_post_mentions(post: Post, actor) -> list:
+    """Store the mentions of ``post``; notify the newly mentioned users if it is published."""
+    new_users = sync_mentions(post, resolve_mentions(post.community, post.body))
+    if post.status == Post.Status.PUBLISHED:
+        _notify_mentions(post, new_users, actor)
+    return new_users
+
+
+def _go_live(post: Post, actor) -> None:
+    """Publish ``post`` (already locked): status, dates, community activity, broadcast and
+    notification of everyone it mentions."""
+    now = timezone.now()
+    post.status = Post.Status.PUBLISHED
+    post.published_at = now
+    post.last_activity_at = now
+    post.review_note = ""
+    post.save(
+        update_fields=["status", "published_at", "last_activity_at", "review_note", "updated_at"]
+    )
+    Community.objects.filter(pk=post.community_id).update(last_activity_at=now)
+    category = "announcement" if post.kind in ANNOUNCEMENT_KINDS else "community_post"
+    post_id = post.pk
+    transaction.on_commit(lambda: broadcast_post.delay(post_id, category))
+    mentioned = [
+        mention.mentioned_user for mention in post.mentions.select_related("mentioned_user")
+    ]
+    _notify_mentions(post, mentioned, actor)
+
+
+def _submit(post: Post, actor) -> None:
+    """Publish ``post`` or send it to review, depending on the community and the actor."""
+    if _needs_review(actor, post.community):
+        post.status = Post.Status.PENDING_REVIEW
+        post.review_note = ""
+        post.save(update_fields=["status", "review_note", "updated_at"])
+        notify(
+            "review_request",
+            _moderators(post.community),
+            actor=actor,
+            target=post,
+            community=post.community,
+        )
+    else:
+        _go_live(post, actor)
+
+
+def _ensure_can_create(actor, community, kind) -> None:
+    _ensure_live(community)
+    if policies.can_create_post(actor, community, kind):
+        return
+    if membership_of(actor, community) is None:
+        raise DomainError("not_member", _("You are not a member of this community."))
+    raise DomainError("kind_forbidden", _("You cannot publish this kind of post here."))
+
+
+def _create(*, actor, community, kind, title, body, tags, publish, shared_from=None) -> Post:
+    title, body = _clean_content(title, body)
+    tag_objects = _resolve_tags(actor, community, tags)
+    ratelimit.hit(actor, "post")
+    post = Post.objects.create(
+        community=community,
+        author=actor,
+        author_display=_author_display(actor),
+        kind=kind,
+        title=title,
+        body=body,
+        body_html=render_body(body),
+        status=Post.Status.DRAFT,
+        shared_from=shared_from,
+    )
+    post.tags.set(tag_objects)
+    _refresh_search_vector(post)
+    sync_mentions(post, resolve_mentions(community, body))
+    if publish:
+        _submit(post, actor)
+    return post
+
+
+# --- creation and drafts ----------------------------------------------------------------
 
 
 @transaction.atomic
-def create_post(*, actor, community, kind, title, body, tags=(), publish=True):
-    raise NotImplementedError
+def create_post(*, actor, community, kind, title, body, tags=(), publish=True) -> Post:
+    """Create a post: a draft (``publish=False``), a post pending review (community requires
+    review and the actor is below moderator) or a published post."""
+    _ensure_can_create(actor, community, kind)
+    return _create(
+        actor=actor,
+        community=community,
+        kind=kind,
+        title=title,
+        body=body,
+        tags=tags,
+        publish=publish,
+    )
 
 
 @transaction.atomic
-def update_post(*, actor, post, title, body, tags, version):
-    raise NotImplementedError
+def publish_draft(*, actor, post) -> Post:
+    """Publish (or submit for review) the actor's own draft."""
+    _lock(post)
+    _ensure_live(post.community)
+    if post.author_id is None or post.author_id != getattr(actor, "pk", None):
+        raise _forbidden()
+    if post.status != Post.Status.DRAFT:
+        raise _invalid_state()
+    _ensure_can_create(actor, post.community, post.kind)
+    _submit(post, actor)
+    return post
 
 
 @transaction.atomic
-def publish_draft(*, actor, post):
-    raise NotImplementedError
+def delete_draft(*, actor, post) -> None:
+    """Delete the actor's own draft (published content is hidden or archived instead)."""
+    _ensure_live(post.community)
+    if not policies.can_delete_draft(actor, post):
+        raise _forbidden()
+    _lock(post)
+    if post.status != Post.Status.DRAFT:
+        raise _invalid_state()
+    post.delete()
+
+
+# --- editing ----------------------------------------------------------------------------
 
 
 @transaction.atomic
-def delete_draft(*, actor, post):
-    raise NotImplementedError
+def update_post(*, actor, post, title, body, tags, version) -> Post:
+    """Edit title, body and (unless ``tags`` is ``None``) tags of ``post``.
+
+    ``version`` is the one the editor started from: a mismatch raises ``edit_conflict``. A
+    revision keeps the previous text for published articles and announcements and for any
+    edit by someone other than the author; a moderator's edit is audited and notified.
+    """
+    _lock(post)
+    _ensure_live(post.community)
+    if not policies.can_edit_post(actor, post):
+        raise _forbidden()
+    if int(version) != post.version:
+        raise DomainError(
+            "edit_conflict",
+            _("This post was changed by someone else since you opened it."),
+        )
+    title, body = _clean_content(title, body)
+    tag_objects = None if tags is None else _resolve_tags(actor, post.community, tags)
+    by_other = post.author_id != actor.pk
+    if by_other or (post.status == Post.Status.PUBLISHED and post.kind in REVISED_KINDS):
+        PostRevision.objects.create(post=post, editor=actor, title=post.title, body=post.body)
+    previous_title = post.title
+    post.title = title
+    post.body = body
+    post.body_html = render_body(body)
+    post.version += 1
+    post.save(update_fields=["title", "body", "body_html", "version", "updated_at"])
+    if tag_objects is not None:
+        post.tags.set(tag_objects)
+    _refresh_search_vector(post)
+    _sync_post_mentions(post, actor)
+    if by_other:
+        record(
+            actor=actor,
+            action="post.edited_by_moderator",
+            target=post,
+            changes={"title": {"before": previous_title, "after": title}},
+            community=post.community,
+        )
+        if post.author is not None:
+            notify("system", [post.author], actor=actor, target=post, community=post.community)
+    return post
 
 
 @transaction.atomic
-def approve_review(*, actor, post):
-    raise NotImplementedError
+def set_tags(*, actor, post, names) -> Post:
+    """Replace the tags of ``post``; members below contributor only pick existing tags."""
+    _lock(post)
+    _ensure_live(post.community)
+    if not policies.can_edit_post(actor, post):
+        raise _forbidden()
+    post.tags.set(_resolve_tags(actor, post.community, names))
+    _refresh_search_vector(post)
+    return post
+
+
+# --- review -----------------------------------------------------------------------------
+
+
+def _ensure_pending_review(actor, post) -> None:
+    if not policies.can_review(actor, post.community):
+        raise _forbidden()
+    if post.status != Post.Status.PENDING_REVIEW:
+        raise _invalid_state()
 
 
 @transaction.atomic
-def reject_review(*, actor, post, note):
-    raise NotImplementedError
+def approve_review(*, actor, post) -> Post:
+    """Publish a pending post (moderator+), broadcast it and tell its author."""
+    _lock(post)
+    _ensure_pending_review(actor, post)
+    _ensure_live(post.community)
+    _go_live(post, actor)
+    record(actor=actor, action="post.review_approved", target=post, community=post.community)
+    if post.author is not None:
+        notify("system", [post.author], actor=actor, target=post, community=post.community)
+    return post
 
 
 @transaction.atomic
-def pin_post(*, actor, post):
-    raise NotImplementedError
+def reject_review(*, actor, post, note) -> Post:
+    """Send a pending post back to draft with ``note`` (mandatory) for its author."""
+    _lock(post)
+    _ensure_pending_review(actor, post)
+    note = (note or "").strip()
+    if not note:
+        raise DomainError("reason_required", _("Explain to the author why the post is refused."))
+    post.status = Post.Status.DRAFT
+    post.review_note = note
+    post.save(update_fields=["status", "review_note", "updated_at"])
+    record(
+        actor=actor,
+        action="post.review_rejected",
+        target=post,
+        changes={"note": note},
+        community=post.community,
+    )
+    if post.author is not None:
+        notify("system", [post.author], actor=actor, target=post, community=post.community)
+    return post
+
+
+# --- pinning ----------------------------------------------------------------------------
 
 
 @transaction.atomic
-def unpin_post(*, actor, post):
-    raise NotImplementedError
+def pin_post(*, actor, post) -> Post:
+    """Pin a published post (facilitator+); at most ``POSTS_PIN_LIMIT`` per community."""
+    _ensure_live(post.community)
+    if not policies.can_pin(actor, post.community):
+        raise _forbidden()
+    # Lock the community first: concurrent pins in one community serialise on it.
+    Community.objects.select_for_update().filter(pk=post.community_id).first()
+    _lock(post)
+    if post.status != Post.Status.PUBLISHED or post.pinned_at is not None:
+        raise _invalid_state()
+    pinned = Post.objects.filter(
+        community_id=post.community_id, pinned_at__isnull=False, status=Post.Status.PUBLISHED
+    ).count()
+    if pinned >= settings.POSTS_PIN_LIMIT:
+        raise DomainError(
+            "pin_limit",
+            _("At most %(limit)s posts can be pinned: unpin one first.")
+            % {"limit": settings.POSTS_PIN_LIMIT},
+        )
+    post.pinned_at = timezone.now()
+    post.pinned_by = actor
+    post.save(update_fields=["pinned_at", "pinned_by", "updated_at"])
+    record(actor=actor, action="post.pinned", target=post, community=post.community)
+    return post
+
+
+def _clear_pin(post: Post) -> None:
+    if post.pinned_at is not None:
+        post.pinned_at = None
+        post.pinned_by = None
+        post.save(update_fields=["pinned_at", "pinned_by", "updated_at"])
 
 
 @transaction.atomic
-def hide_post(*, actor, post, reason):
-    raise NotImplementedError
+def unpin_post(*, actor, post) -> Post:
+    _ensure_live(post.community)
+    if not policies.can_pin(actor, post.community):
+        raise _forbidden()
+    _lock(post)
+    if post.pinned_at is None:
+        raise _invalid_state()
+    _clear_pin(post)
+    record(actor=actor, action="post.unpinned", target=post, community=post.community)
+    return post
+
+
+# --- hiding and archiving ---------------------------------------------------------------
 
 
 @transaction.atomic
-def unhide_post(*, actor, post):
-    raise NotImplementedError
+def hide_post(*, actor, post, reason) -> Post:
+    """Hide a post (moderator+, reason required); its author still reads it, with the reason.
+
+    Works in suspended and archived communities. A hidden post loses its pin.
+    """
+    if not policies.can_moderate(actor, post.community):
+        raise _forbidden()
+    _lock(post)
+    if post.status == Post.Status.DRAFT:
+        raise _invalid_state()
+    mark_hidden(post, actor=actor, reason=reason)
+    _clear_pin(post)
+    if post.author is not None:
+        notify("system", [post.author], actor=actor, target=post, community=post.community)
+    return post
 
 
 @transaction.atomic
-def archive_post(*, actor, post):
-    raise NotImplementedError
+def unhide_post(*, actor, post) -> Post:
+    """Restore a hidden post to its previous status (moderator+)."""
+    if not policies.can_moderate(actor, post.community):
+        raise _forbidden()
+    mark_visible(post, actor=actor)
+    if post.author is not None:
+        notify("system", [post.author], actor=actor, target=post, community=post.community)
+    return post
 
 
 @transaction.atomic
-def accept_answer(*, actor, post, comment):
-    raise NotImplementedError
+def archive_post(*, actor, post) -> Post:
+    """Archive a published post (moderator+): read-only, readable by link, out of feeds."""
+    if not policies.can_moderate(actor, post.community):
+        raise _forbidden()
+    _lock(post)
+    if post.status != Post.Status.PUBLISHED:
+        raise _invalid_state()
+    post.status = Post.Status.ARCHIVED
+    post.archived_at = timezone.now()
+    post.pinned_at = None
+    post.pinned_by = None
+    post.save(update_fields=["status", "archived_at", "pinned_at", "pinned_by", "updated_at"])
+    record(actor=actor, action="post.archived", target=post, community=post.community)
+    return post
+
+
+# --- accepted answers -------------------------------------------------------------------
+
+
+def _can_decide_answer(actor, post) -> bool:
+    """``policies.can_accept_answer`` (question author, moderator+) or an expert+ member."""
+    if policies.can_accept_answer(actor, post):
+        return True
+    membership = membership_of(actor, post.community)
+    return (
+        membership is not None
+        and role_at_least(membership.role, CommunityRole.EXPERT)
+        and post.status == Post.Status.PUBLISHED
+        and policies.can_view_post(actor, post)
+    )
+
+
+def _ensure_answerable(actor, post) -> None:
+    _lock(post)
+    _ensure_live(post.community)
+    if post.kind != Post.Kind.QUESTION:
+        raise _invalid_state()
+    if not _can_decide_answer(actor, post):
+        raise _forbidden()
 
 
 @transaction.atomic
-def clear_accepted_answer(*, actor, post):
-    raise NotImplementedError
+def accept_answer(*, actor, post, comment) -> Post:
+    """Mark ``comment`` (a visible top-level comment of ``post``) as the accepted answer."""
+    _ensure_answerable(actor, post)
+    if (
+        comment.post_id != post.pk
+        or comment.parent_id is not None
+        or comment.status != Comment.Status.VISIBLE
+    ):
+        raise _invalid_state()
+    post.accepted_answer = comment
+    post.save(update_fields=["accepted_answer", "updated_at"])
+    if comment.author is not None:
+        notify("system", [comment.author], actor=actor, target=post, community=post.community)
+    return post
 
 
 @transaction.atomic
-def share_post(*, actor, post, target_community, comment=""):
-    raise NotImplementedError
+def clear_accepted_answer(*, actor, post) -> Post:
+    _ensure_answerable(actor, post)
+    if post.accepted_answer_id is not None:
+        post.accepted_answer = None
+        post.save(update_fields=["accepted_answer", "updated_at"])
+    return post
+
+
+# --- sharing ----------------------------------------------------------------------------
 
 
 @transaction.atomic
-def set_tags(*, actor, post, names):
-    raise NotImplementedError
+def share_post(*, actor, post, target_community, comment="") -> Post:
+    """Publish a ``discussion`` in ``target_community`` pointing to ``post`` (``shared_from``),
+    with ``comment`` as its body. The target's review rule applies as for any new post."""
+    _ensure_live(target_community)
+    if not policies.can_share(actor, post, target_community):
+        if (
+            policies.can_view_post(actor, post)
+            and post.status == Post.Status.PUBLISHED
+            and target_community.pk != post.community_id
+            and membership_of(actor, target_community) is None
+        ):
+            raise DomainError("not_member", _("You are not a member of this community."))
+        raise _forbidden()
+    return _create(
+        actor=actor,
+        community=target_community,
+        kind=Post.Kind.DISCUSSION,
+        title=post.title,
+        body=comment,
+        tags=(),
+        publish=True,
+        shared_from=post,
+    )
