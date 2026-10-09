@@ -1,43 +1,29 @@
-{% load i18n static accounts_tags audit_tags %}<!doctype html>
+{% load i18n static %}<!doctype html>
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>{% block title %}{% translate "Communities" %}{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'core/app.css' %}">
+  <link rel="stylesheet" href="{% static 'core/dist/app.css' %}">
   {% block extra_head %}{% endblock %}
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="d-flex flex-column min-vh-100" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <a class="skip-link" href="#main">{% translate "Skip to main content" %}</a>
-  <header class="site-header">
-    <a class="site-name" href="{% url 'home' %}">{% translate "Communities" %}</a>
-    <div class="site-tools">
-      {% block usernav %}
-        {% if user.is_authenticated %}
-          <a href="{% url 'accounts:profile_me' %}">{% translate "My profile" %}</a>
-          <a href="{% url 'accounts:preferences' %}">{% translate "Preferences" %}</a>
-          {% if user|can_manage_users %}
-            <a href="{% url 'manage:user_list' %}">{% translate "Administration" %}</a>
-          {% endif %}
-          {% if user|can_view_audit_log %}
-            <a href="{% url 'audit:event_list' %}">{% translate "Audit log" %}</a>
-          {% endif %}
-          <form method="post" action="{% url 'accounts:logout' %}" class="logout-form">
-            {% csrf_token %}
-            <button type="submit">{% translate "Sign out" %}</button>
-          </form>
-        {% endif %}
-      {% endblock %}
-      {% include "components/language_switcher.html" %}
-    </div>
+  <header>
+    {% block site_header %}{% include "components/navbar.html" %}{% endblock %}
   </header>
-  <div role="status" class="messages">
-    {% for message in messages %}
-      <p class="message message-{{ message.level_tag }}">{{ message }}</p>
-    {% endfor %}
-  </div>
-  <main id="main" tabindex="-1">
+  {% include "components/messages.html" %}
+  <main id="main" tabindex="-1" class="{% block main_class %}container py-4 flex-grow-1{% endblock %}">
+    {% block breadcrumb %}{% endblock %}
+    {% block page_header %}{% endblock %}
     {% block content %}{% endblock %}
   </main>
+  <footer class="border-top py-3 text-body-secondary small">
+    <div class="container">{% translate "Communities — internal platform" %}</div>
+  </footer>
+  <script src="{% static 'core/dist/bootstrap.bundle.min.js' %}" defer></script>
+  <script src="{% static 'core/dist/htmx.min.js' %}" defer></script>
+  <script src="{% static 'core/js/app.js' %}" defer></script>
 </body>
 </html>

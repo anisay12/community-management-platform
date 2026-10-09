@@ -15,7 +15,8 @@
 //     light: 5.07, 5.93, 7.33, 6.10    dark: 9.58, 10.08, 8.17, 9.26
 //   secondary / bg              6.15     8.56
 //   focus / bg                  5.02    10.39   (3:1 needed for the focus ring)
-//   border / bg                 3.18     4.90   (3:1 needed for UI borders)
+//   border / bg                 3.39     4.90   (3:1 needed for UI borders)
+//   border / surface            3.16     4.33
 //
 // No Talan charter is available yet: these are neutral placeholder values.
 
@@ -37,7 +38,7 @@ $tl-light: (
   "color-surface": #f5f7fa,
   "color-text": #1a1a1a,
   "color-text-muted": #555b66,
-  "color-border": #8a919c,
+  "color-border": #858c97,
   "color-focus": #b45309,
 );
 

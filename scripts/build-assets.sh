@@ -15,7 +15,8 @@ mkdir -p "$DIST/fonts"
 
 # --quiet-deps silences Sass deprecations raised inside Bootstrap / Bootstrap Icons; our own
 # SCSS keeps reporting its warnings. The @import deprecation is the one Bootstrap 5.3 forces on
-# every consumer, so only that one is muted explicitly.
+# every consumer (it requires @import), so it is muted explicitly, which also covers our own entry
+# file app.scss and its partials.
 npx --no-install sass \
   --style=compressed --no-source-map --quiet-deps \
   --silence-deprecation=import \

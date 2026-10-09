@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 15:14+0200\n"
+"POT-Creation-Date: 2026-10-09 15:34+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -28,6 +28,9 @@ msgstr "Dates"
 
 msgid "A user with this email address already exists."
 msgstr "Un utilisateur avec cette adresse e-mail existe déjà."
+
+msgid "Administration"
+msgstr "Administration"
 
 msgid "Email"
 msgstr "E-mail"
@@ -614,9 +617,6 @@ msgstr ""
 msgid "There is a problem"
 msgstr "Il y a un problème"
 
-msgid "Administration"
-msgstr "Administration"
-
 msgid "Users"
 msgstr "Utilisateurs"
 
@@ -816,6 +816,9 @@ msgstr "Votre profil a été mis à jour."
 msgid "Your preferences have been saved."
 msgstr "Vos préférences ont été enregistrées."
 
+msgid "Audit log"
+msgstr "Journal d'audit"
+
 msgid "Action"
 msgstr "Action"
 
@@ -901,9 +904,6 @@ msgstr "Identifiant de requête"
 msgid "Changes"
 msgstr "Modifications"
 
-msgid "Audit log"
-msgstr "Journal d'audit"
-
 #, python-format
 msgid "%(counter)s event"
 msgid_plural "%(counter)s events"
@@ -919,20 +919,35 @@ msgstr "Technique et sécurité"
 msgid "Functional"
 msgstr "Fonctionnel"
 
+msgid "Home"
+msgstr "Accueil"
+
 msgid "Skip to main content"
 msgstr "Aller au contenu principal"
 
-msgid "My profile"
-msgstr "Mon profil"
-
-msgid "Sign out"
-msgstr "Se déconnecter"
+msgid "Communities — internal platform"
+msgstr "Communautés — plateforme interne"
 
 msgid "Language"
 msgstr "Langue"
 
 msgid "Change"
 msgstr "Changer"
+
+msgid "Close"
+msgstr "Fermer"
+
+msgid "Main navigation"
+msgstr "Navigation principale"
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "My profile"
+msgstr "Mon profil"
+
+msgid "Sign out"
+msgstr "Se déconnecter"
 
 #, python-format
 msgid "Hello, %(name)s."
