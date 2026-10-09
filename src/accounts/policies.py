@@ -13,7 +13,8 @@ def requires_mfa(user) -> bool:
     if is_break_glass(user):
         return True
     # Last because it needs the user's groups (memoised per user instance).
-    return bool(user_roles(user) & {str(role) for role in PRIVILEGED_ROLES})
+    # Auditors read every account's e-mail and security events, so they need it too.
+    return bool(user_roles(user) & {str(role) for role in PRIVILEGED_ROLES | {Role.AUDITOR}})
 
 
 def has_confirmed_device(user) -> bool:

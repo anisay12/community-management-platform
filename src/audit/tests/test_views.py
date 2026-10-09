@@ -28,9 +28,8 @@ def auditor(make_user):
 
 
 @pytest.fixture
-def auditor_client(client, auditor):
-    client.force_login(auditor)
-    return client
+def auditor_client(client, auditor, verified_login):
+    return verified_login(client, auditor)
 
 
 @pytest.fixture
@@ -215,8 +214,15 @@ def test_detail_anonymized_actor(auditor_client, make_user):
     assert "Gone Person" not in content
 
 
-def test_header_link(client, auditor, make_user):
+def test_auditor_without_verified_mfa_is_sent_to_mfa(client, auditor):
     client.force_login(auditor)
+    response = client.get(LIST_URL)
+    assert response.status_code == 302
+    assert response["Location"].startswith(reverse("accounts:mfa_setup"))
+
+
+def test_header_link(client, auditor, make_user, verified_login):
+    verified_login(client, auditor)
     assert 'href="/audit/"' in client.get("/").content.decode()
     client.logout()
     employee = _user(make_user, "emp@example.com", Role.EMPLOYEE)

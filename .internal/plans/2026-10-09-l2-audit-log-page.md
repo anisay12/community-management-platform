@@ -99,6 +99,8 @@
 
 ### Task 3: Second factor for auditors
 
+> **Dropped (owner decision, 2026-10-09):** auditors keep signing in without a second factor. Kept here for the record.
+
 The audit log exposes every account's e-mail, sign-in failures and security events; auditors are the only role reading all of it without a second factor today.
 
 **Files:**

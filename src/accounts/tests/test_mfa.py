@@ -45,7 +45,7 @@ def confirmed_device(user) -> TOTPDevice:
 # Policy -------------------------------------------------------------------------
 
 
-def test_requires_mfa_for_privileged_staff_and_break_glass(make_user, settings):
+def test_requires_mfa_for_privileged_auditor_staff_and_break_glass(make_user, settings):
     settings.BREAK_GLASS_EMAIL = "Rescue@Example.com"
     employee = make_user("emp@example.com")
     employee.groups.add(Group.objects.get(name=Role.EMPLOYEE))
@@ -59,7 +59,7 @@ def test_requires_mfa_for_privileged_staff_and_break_glass(make_user, settings):
 
     assert not requires_mfa(AnonymousUser())
     assert not requires_mfa(employee)
-    assert not requires_mfa(auditor)
+    assert requires_mfa(auditor)
     assert requires_mfa(tech)
     assert requires_mfa(staff)
     assert requires_mfa(superuser)
