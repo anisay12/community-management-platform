@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}
+  Inline alert.
+  Arguments: level (info|success|warning|danger; default info); title (optional); text;
+  dismissible (optional flag). Danger alerts use role="alert", others role="status".
+{% endcomment %}
+<div class="alert tl-alert alert-{{ level|default:'info' }}{% if dismissible %} alert-dismissible fade show{% endif %}" role="{% if level == 'danger' %}alert{% else %}status{% endif %}">
+  {% if title %}<p class="alert-heading h6">{{ title }}</p>{% endif %}
+  {{ text }}
+  {% if dismissible %}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% translate 'Close' %}"></button>{% endif %}
+</div>

@@ -115,6 +115,21 @@ main:focus-visible {
   font-weight: 700;
 }
 
+.tl-avatar {
+  @extend .avatar-initials;
+  flex: none;
+}
+
+.tl-avatar-sm { width: 1.5rem; height: 1.5rem; font-size: 0.625rem; }
+.tl-avatar-md { width: 2.25rem; height: 2.25rem; font-size: 0.875rem; }
+.tl-avatar-lg { width: 3.5rem; height: 3.5rem; font-size: 1.25rem; }
+
+.tl-card { --bs-card-bg: var(--tl-color-surface); }
+
+.tl-community-card .badge { font-size: 0.8125rem; }
+
+.page-link { min-width: var(--tl-touch-target); min-height: var(--tl-touch-target); display: inline-flex; align-items: center; justify-content: center; }
+
 .tl-narrow {
   max-width: 32rem;
 }

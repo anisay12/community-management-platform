@@ -1,0 +1,23 @@
+{% comment %}
+  Confirmation modal (focus is trapped by Bootstrap). Open it with a button carrying
+  data-bs-toggle="modal" data-bs-target="#<id>".
+  Arguments: id; title; body (text) or body_template (template name); confirm_action (POST url);
+  confirm_label; cancel_label; confirm_class (optional button class, default btn-primary).
+  The including context must provide csrf_token (render with a request).
+{% endcomment %}
+<div class="modal fade" id="{{ id }}" tabindex="-1" aria-labelledby="{{ id }}-title" aria-hidden="true">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{{ confirm_action }}">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h2 class="modal-title h5" id="{{ id }}-title">{{ title }}</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ cancel_label }}"></button>
+      </div>
+      <div class="modal-body">{% if body_template %}{% include body_template %}{% else %}{{ body }}{% endif %}</div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ cancel_label }}</button>
+        <button type="submit" class="btn {{ confirm_class|default:'btn-primary' }}">{{ confirm_label }}</button>
+      </div>
+    </form>
+  </div>
+</div>

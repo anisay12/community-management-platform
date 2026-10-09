@@ -1,0 +1,11 @@
+{% load i18n %}{% comment %}
+  Link-based tabs for navigating between pages (not in-page tab panels).
+  Arguments: items (list of (label, url, is_active)); label (aria-label of the nav, default "Sections").
+{% endcomment %}
+<nav aria-label="{{ label|default:_('Sections') }}">
+  <ul class="nav nav-tabs">
+    {% for text, url, active in items %}
+      <li class="nav-item"><a class="nav-link{% if active %} active{% endif %}" href="{{ url }}"{% if active %} aria-current="page"{% endif %}>{{ text }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>

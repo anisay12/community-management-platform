@@ -1,0 +1,11 @@
+{% comment %}
+  Empty state.
+  Arguments: icon (Bootstrap Icons name without "bi-", default "inbox"); title; text (optional);
+  action_url and action_label (optional call to action).
+{% endcomment %}
+<div class="tl-empty-state text-center py-5">
+  <i class="bi bi-{{ icon|default:'inbox' }} display-4 text-body-secondary" aria-hidden="true"></i>
+  <h2 class="h4 mt-3">{{ title }}</h2>
+  {% if text %}<p class="text-body-secondary">{{ text }}</p>{% endif %}
+  {% if action_url and action_label %}<a class="btn btn-primary" href="{{ action_url }}">{{ action_label }}</a>{% endif %}
+</div>

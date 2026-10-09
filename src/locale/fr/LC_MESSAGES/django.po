@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 15:34+0200\n"
+"POT-Creation-Date: 2026-10-09 15:40+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -928,20 +928,32 @@ msgstr "Aller au contenu principal"
 msgid "Communities — internal platform"
 msgstr "Communautés — plateforme interne"
 
+msgid "Close"
+msgstr "Fermer"
+
+msgid "Breadcrumb"
+msgstr "Fil d’Ariane"
+
+#, python-format
+msgid "%(counter)s member"
+msgid_plural "%(counter)s members"
+msgstr[0] "%(counter)s membre"
+msgstr[1] "%(counter)s membres"
+
 msgid "Language"
 msgstr "Langue"
 
 msgid "Change"
 msgstr "Changer"
 
-msgid "Close"
-msgstr "Fermer"
-
 msgid "Main navigation"
 msgstr "Navigation principale"
 
 msgid "Menu"
 msgstr "Menu"
+
+msgid "Sections"
+msgstr "Sections"
 
 msgid "My profile"
 msgstr "Mon profil"
@@ -955,6 +967,98 @@ msgstr "Bonjour, %(name)s."
 
 msgid "Welcome to the Talan communities platform."
 msgstr "Bienvenue sur la plateforme des communautés Talan."
+
+msgid "Style guide"
+msgstr "Guide de style"
+
+msgid "Every shared component, rendered with sample data. Development only."
+msgstr ""
+"Tous les composants partagés, affichés avec des données d’exemple. Réservé "
+"au développement."
+
+msgid "Cards"
+msgstr "Cartes"
+
+msgid "Welcome guide"
+msgstr "Guide de bienvenue"
+
+msgid "Updated yesterday"
+msgstr "Mis à jour hier"
+
+msgid "A short introduction to the platform."
+msgstr "Une courte introduction à la plateforme."
+
+msgid "3 comments"
+msgstr "3 commentaires"
+
+msgid "Everything about Python at Talan."
+msgstr "Tout sur Python chez Talan."
+
+msgid "Technology"
+msgstr "Technologie"
+
+msgid "Open"
+msgstr "Ouverte"
+
+msgid "Feedback"
+msgstr "Retours"
+
+msgid "Information"
+msgstr "Information"
+
+msgid "Something worth knowing."
+msgstr "Une information utile à connaître."
+
+msgid "Error"
+msgstr "Erreur"
+
+msgid "Something went wrong."
+msgstr "Une erreur s’est produite."
+
+msgid "Your changes were saved."
+msgstr "Vos modifications ont été enregistrées."
+
+msgid "No communities yet"
+msgstr "Aucune communauté pour le moment"
+
+msgid "Create the first one to get started."
+msgstr "Créez la première pour commencer."
+
+msgid "Create a community"
+msgstr "Créer une communauté"
+
+msgid "Badges and avatars"
+msgstr "Badges et avatars"
+
+msgid "Eve F."
+msgstr "Eve F."
+
+msgid "Navigation"
+msgstr "Navigation"
+
+msgid "Community sections"
+msgstr "Rubriques de la communauté"
+
+msgid "Modal"
+msgstr "Fenêtre modale"
+
+msgid "Open confirmation"
+msgstr "Ouvrir la confirmation"
+
+msgid "Delete this item?"
+msgstr "Supprimer cet élément ?"
+
+msgid "This cannot be undone."
+msgstr "Cette action est irréversible."
+
+msgid "Delete"
+msgstr "Supprimer"
+
+msgid "Form"
+msgstr "Formulaire"
+
+msgid "Submit"
+msgstr "Envoyer"
 
 msgid "Access denied"
 msgstr "Accès refusé"
@@ -985,6 +1089,24 @@ msgstr "Erreur serveur"
 
 msgid "Something went wrong on our side. Please try again later."
 msgstr "Une erreur est survenue de notre côté. Veuillez réessayer plus tard."
+
+msgid "A second problem on the same field."
+msgstr "Un second problème sur le même champ."
+
+msgid "Components"
+msgstr "Composants"
+
+msgid "Current page"
+msgstr "Page courante"
+
+msgid "Overview"
+msgstr "Vue d’ensemble"
+
+msgid "Members"
+msgstr "Membres"
+
+msgid "Settings"
+msgstr "Paramètres"
 
 msgid "name"
 msgstr "nom"

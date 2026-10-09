@@ -1,0 +1,17 @@
+{% comment %}
+  Content card.
+  Arguments: title; url (optional, makes the title a link); meta (optional meta line);
+  body (optional text); footer (optional text); footer_template (optional template name
+  included in the footer slot, with the same context).
+  All text is auto-escaped.
+{% endcomment %}
+<article class="card tl-card h-100">
+  <div class="card-body">
+    <h3 class="card-title h5">{% if url %}<a class="stretched-link" href="{{ url }}">{{ title }}</a>{% else %}{{ title }}{% endif %}</h3>
+    {% if meta %}<p class="card-subtitle small text-body-secondary mb-2">{{ meta }}</p>{% endif %}
+    {% if body %}<p class="card-text">{{ body }}</p>{% endif %}
+  </div>
+  {% if footer or footer_template %}
+    <div class="card-footer">{% if footer %}{{ footer }}{% endif %}{% if footer_template %}{% include footer_template %}{% endif %}</div>
+  {% endif %}
+</article>

@@ -1,0 +1,15 @@
+{% load i18n %}{% comment %}
+  Error summary for a form. Arguments: form. Renders nothing when the form has no errors.
+  Focusable (tabindex="-1") so a view or script can move focus to it after a failed submit.
+{% endcomment %}
+{% if form.errors %}
+  <div class="alert alert-danger tl-error-summary" role="alert" tabindex="-1" data-autofocus>
+    <h2 class="alert-heading h5">{% translate "There is a problem" %}</h2>
+    <ul class="mb-0">
+      {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+      {% for field in form %}{% for error in field.errors %}
+        <li><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ error }}</a></li>
+      {% endfor %}{% endfor %}
+    </ul>
+  </div>
+{% endif %}

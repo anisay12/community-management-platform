@@ -1,11 +1,8 @@
-{% load i18n %}
+{% comment %}
+  Toast stack for django.contrib.messages. Renders components/toast.html for each message.
+{% endcomment %}
 <div class="toast-container position-fixed bottom-0 end-0 p-3" aria-live="polite">
   {% for message in messages %}
-    <div class="toast show tl-toast tl-toast-{{ message.level_tag|default:'info' }}"{% if message.level_tag == 'error' %} role="alert" aria-live="assertive"{% else %} role="status"{% endif %} aria-atomic="true">
-      <div class="d-flex align-items-center">
-        <div class="toast-body">{{ message }}</div>
-        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="{% translate 'Close' %}"></button>
-      </div>
-    </div>
+    {% include "components/toast.html" with message=message level=message.level_tag %}
   {% endfor %}
 </div>

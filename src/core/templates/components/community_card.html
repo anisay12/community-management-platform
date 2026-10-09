@@ -1,0 +1,16 @@
+{% load i18n %}{% comment %}
+  Presentational community card.
+  Arguments: name; url; tagline; category (label); member_count (int);
+  access_mode (open|restricted|private, picks the colour); access_mode_label (translated label).
+{% endcomment %}
+<article class="card tl-card tl-community-card h-100">
+  <div class="card-body">
+    <p class="small text-body-secondary mb-1">{{ category }}</p>
+    <h3 class="card-title h5"><a class="stretched-link" href="{{ url }}">{{ name }}</a></h3>
+    <p class="card-text">{{ tagline }}</p>
+  </div>
+  <div class="card-footer d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-people me-1" aria-hidden="true"></i>{% blocktranslate count counter=member_count %}{{ counter }} member{% plural %}{{ counter }} members{% endblocktranslate %}</span>
+    <span class="badge text-bg-{% if access_mode == 'open' %}success{% elif access_mode == 'restricted' %}warning{% else %}secondary{% endif %}">{{ access_mode_label }}</span>
+  </div>
+</article>

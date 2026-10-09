@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}
+  Arguments: message (text), level (debug|info|success|warning|error; default info).
+  Errors use role="alert"; other levels use role="status".
+{% endcomment %}
+<div class="toast show tl-toast tl-toast-{{ level|default:'info' }}"{% if level == 'error' %} role="alert" aria-live="assertive"{% else %} role="status"{% endif %} aria-atomic="true">
+  <div class="d-flex align-items-center">
+    <div class="toast-body">{{ message }}</div>
+    <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="{% translate 'Close' %}"></button>
+  </div>
+</div>

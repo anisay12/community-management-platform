@@ -86,9 +86,13 @@ def test_unresolvable_url_name_is_skipped(clean_registry, make_user):
 
 
 def test_items_are_ordered(clean_registry, make_user):
-    navigation.register(NavItem(key="first", label="First", url_name="home", icon="x", order=-5))
+    navigation._registry.clear()
+    navigation.register(NavItem(key="c", label="C", url_name="home", icon="x", order=30))
+    navigation.register(NavItem(key="a", label="A", url_name="home", icon="x", order=-5))
+    navigation.register(NavItem(key="b2", label="B2", url_name="home", icon="x", order=10))
+    navigation.register(NavItem(key="b1", label="B1", url_name="home", icon="x", order=10))
     keys = [i.key for i in navigation.items_for(_request(user=make_user()))]
-    assert keys[0] == "first"
+    assert keys == ["a", "b1", "b2", "c"]
 
 
 def test_aria_current_only_on_current_item(client, make_user, verified_login):

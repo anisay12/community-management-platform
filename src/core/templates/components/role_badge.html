@@ -1,0 +1,4 @@
+{% load component_tags %}{% comment %}
+  Role badge. Arguments: role (role code, e.g. "employee"); shows the translated label.
+{% endcomment %}
+<span class="badge tl-role-badge text-bg-{{ role|role_colour }}">{{ role|role_label }}</span>

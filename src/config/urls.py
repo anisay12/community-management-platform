@@ -4,7 +4,7 @@ from django.urls import include, path
 from django.views.generic import TemplateView
 
 from accounts.urls import manage_patterns
-from core import views, views_i18n
+from core import views, views_i18n, views_styleguide
 
 handler403 = "core.views_errors.permission_denied"
 handler404 = "core.views_errors.page_not_found"
@@ -21,6 +21,7 @@ urlpatterns = [
     path("audit/", include("audit.urls")),
     path(settings.DJANGO_ADMIN_PATH, admin.site.urls),
     path("i18n/setlang/", views_i18n.set_language, name="set_language"),
+    path("styleguide/", views_styleguide.styleguide, name="styleguide"),
     path("healthz", views.healthz, name="healthz"),
     path("readyz", views.readyz, name="readyz"),
     path("metrics", views.metrics, name="metrics"),

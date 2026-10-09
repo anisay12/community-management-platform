@@ -1,0 +1,6 @@
+{% comment %}
+  Avatar with initials.
+  Arguments: initials; size (sm|md|lg, default md); hidden (true when the person's name is
+  visible next to it, so the avatar is decorative); label (accessible name when not hidden).
+{% endcomment %}
+<span class="tl-avatar tl-avatar-{{ size|default:'md' }}"{% if hidden %} aria-hidden="true"{% elif label %} role="img" aria-label="{{ label }}"{% endif %}>{{ initials }}</span>
