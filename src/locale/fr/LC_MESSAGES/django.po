@@ -2600,3 +2600,154 @@ msgstr "La collection a été supprimée."
 
 msgid "The bookmark has been moved."
 msgstr "Le favori a été déplacé."
+
+msgid "Resolve and hide"
+msgstr "Traiter et masquer"
+
+msgid "Resolve"
+msgstr "Traiter"
+
+msgid "Dismiss"
+msgstr "Rejeter"
+
+msgid "Moderation"
+msgstr "Modération"
+
+#, python-format
+msgid "%(counter)s open item"
+msgid_plural "%(counter)s open items"
+msgstr[0] "%(counter)s élément en attente"
+msgstr[1] "%(counter)s éléments en attente"
+
+msgid "Moderation queues"
+msgstr "Files de modération"
+
+#, python-format
+msgid "Comment on “%(title)s”"
+msgstr "Commentaire sur « %(title)s »"
+
+#, python-format
+msgid "%(counter)s open report"
+msgid_plural "%(counter)s open reports"
+msgstr[0] "%(counter)s signalement ouvert"
+msgstr[1] "%(counter)s signalements ouverts"
+
+#, python-format
+msgid "%(counter)s handled report"
+msgid_plural "%(counter)s handled reports"
+msgstr[0] "%(counter)s signalement traité"
+msgstr[1] "%(counter)s signalements traités"
+
+#, python-format
+msgid "By %(author)s"
+msgstr "Par %(author)s"
+
+msgid "View the comment"
+msgstr "Voir le commentaire"
+
+msgid "Reasons:"
+msgstr "Motifs :"
+
+msgid "Note (required to hide: shown to the author as the reason)"
+msgstr "Note (obligatoire pour masquer : présentée à l’auteur comme motif)"
+
+msgid "Confirm hiding"
+msgstr "Confirmer le masquage"
+
+msgid "No reports"
+msgstr "Aucun signalement"
+
+msgid "Reports filed by readers of this community will appear here."
+msgstr ""
+"Les signalements déposés par les lecteurs de cette communauté apparaîtront "
+"ici."
+
+#, python-format
+msgid "%(kind)s by %(author)s, submitted on %(date)s"
+msgstr "%(kind)s de %(author)s, soumise le %(date)s"
+
+msgid "Note to the author (required to reject)"
+msgstr "Note à l’auteur (obligatoire pour refuser)"
+
+msgid "No posts awaiting review"
+msgstr "Aucune publication en attente de validation"
+
+msgid "Posts submitted for review in this community will appear here."
+msgstr ""
+"Les publications soumises à validation dans cette communauté apparaîtront "
+"ici."
+
+msgid "Reports"
+msgstr "Signalements"
+
+msgid "Awaiting review"
+msgstr "En attente de validation"
+
+msgid "The content has been hidden and the reports resolved."
+msgstr "Le contenu a été masqué et les signalements traités."
+
+msgid "The reports have been resolved."
+msgstr "Les signalements ont été traités."
+
+msgid "The reports have been dismissed."
+msgstr "Les signalements ont été rejetés."
+
+msgid "The post has been published."
+msgstr "La publication a été publiée."
+
+msgid "Tag to merge"
+msgstr "Étiquette à fusionner"
+
+msgid "Tag to keep"
+msgstr "Étiquette à conserver"
+
+#, python-format
+msgid "No tag named “%(name)s”."
+msgstr "Aucune étiquette nommée « %(name)s »."
+
+msgid "Choose two different tags."
+msgstr "Choisissez deux étiquettes différentes."
+
+msgid "Merge two tags"
+msgstr "Fusionner deux étiquettes"
+
+msgid "Merge…"
+msgstr "Fusionner…"
+
+#, python-format
+msgid "%(counter)s tag"
+msgid_plural "%(counter)s tags"
+msgstr[0] "%(counter)s étiquette"
+msgstr[1] "%(counter)s étiquettes"
+
+msgid "Key"
+msgstr "Clé"
+
+msgid "Posts"
+msgstr "Publications"
+
+msgid "No tag found."
+msgstr "Aucune étiquette trouvée."
+
+#, python-format
+msgid "“%(source)s” will be merged into “%(target)s” and then deleted."
+msgstr "« %(source)s » sera fusionnée dans « %(target)s », puis supprimée."
+
+#, python-format
+msgid "%(counter)s post will be tagged with the kept tag."
+msgid_plural "%(counter)s posts will be tagged with the kept tag."
+msgstr[0] "%(counter)s publication recevra l’étiquette conservée."
+msgstr[1] "%(counter)s publications recevront l’étiquette conservée."
+
+#, python-format
+msgid "%(counter)s community will be tagged with the kept tag."
+msgid_plural "%(counter)s communities will be tagged with the kept tag."
+msgstr[0] "%(counter)s communauté recevra l’étiquette conservée."
+msgstr[1] "%(counter)s communautés recevront l’étiquette conservée."
+
+msgid "Merge"
+msgstr "Fusionner"
+
+#, python-format
+msgid "“%(source)s” has been merged into “%(target)s”."
+msgstr "« %(source)s » a été fusionnée dans « %(target)s »."

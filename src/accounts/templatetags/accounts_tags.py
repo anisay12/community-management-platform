@@ -52,6 +52,7 @@ def manage_tabs(active: str, user=None) -> list[tuple[str, str, bool]]:
             entries.append(
                 ("creation_requests", gettext("Creation requests"), "manage:creation_request_list")
             )
+            entries.append(("tags", gettext("Tags"), "manage:tag_list"))
     return [(label, reverse(name), key == active) for key, label, name in entries]
 
 
