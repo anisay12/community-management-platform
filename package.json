@@ -2,6 +2,9 @@
   "name": "talan-communities-assets",
   "private": true,
   "description": "Front-end asset pipeline (Sass, Bootstrap, HTMX). Output is committed under src/core/static/core/dist/.",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "bash scripts/build-assets.sh"
   },
