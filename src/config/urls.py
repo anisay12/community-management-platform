@@ -24,3 +24,7 @@ urlpatterns = [
     path("readyz", views.readyz, name="readyz"),
     path("metrics", views.metrics, name="metrics"),
 ]
+
+# Single sign-on endpoints exist only in the mixed and sso_only modes.
+if settings.AUTH_MODE != "local":
+    urlpatterns.append(path("oidc/", include("mozilla_django_oidc.urls")))

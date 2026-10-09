@@ -1,4 +1,5 @@
 from datetime import timedelta
+from email.utils import getaddresses
 from pathlib import Path
 
 import environ
@@ -31,6 +32,8 @@ INSTALLED_APPS = [
     "django_otp",
     "django_otp.plugins.otp_totp",
     "django_otp.plugins.otp_static",
+    # Always installed; its URLs and backend are only enabled in the SSO modes.
+    "mozilla_django_oidc",
     "core",
     "taxonomy",
     "organizations",
@@ -160,6 +163,33 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
+
+# Single sign-on (OpenID Connect, mozilla-django-oidc), enabled in the mixed and
+# sso_only modes. The provider name keys ExternalIdentity rows.
+OIDC_PROVIDER_NAME = env("OIDC_PROVIDER_NAME", default="entra")
+OIDC_RP_SIGN_ALGO = "RS256"
+OIDC_RP_SCOPES = "openid email profile"
+OIDC_USE_PKCE = True
+OIDC_TIMEOUT = 10
+OIDC_CALLBACK_CLASS = "accounts.oidc.TalanOIDCCallbackView"
+OIDC_REQUIRED_SETTINGS = (
+    "OIDC_RP_CLIENT_ID",
+    "OIDC_RP_CLIENT_SECRET",
+    "OIDC_OP_AUTHORIZATION_ENDPOINT",
+    "OIDC_OP_TOKEN_ENDPOINT",
+    "OIDC_OP_USER_ENDPOINT",
+    "OIDC_OP_JWKS_ENDPOINT",
+)
+if AUTH_MODE != "local":
+    _oidc = {name: env(name, default="").strip() for name in OIDC_REQUIRED_SETTINGS}
+    _missing = [name for name, value in _oidc.items() if not value]
+    if _missing:
+        raise ImproperlyConfigured(
+            f"AUTH_MODE={AUTH_MODE} requires these settings: {', '.join(_missing)}."
+        )
+    vars().update(_oidc)
+    AUTHENTICATION_BACKENDS.append("accounts.oidc.TalanOIDCBackend")
+
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "accounts:login"
@@ -179,6 +209,8 @@ AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
 AXES_USERNAME_FORM_FIELD = "username"
 # Lowercases the email so case variants share one failure counter.
 AXES_USERNAME_CALLABLE = "accounts.backends.axes_username"
+# Single sign-on callbacks are not password attempts and are not counted.
+AXES_WHITELIST_CALLABLE = "accounts.backends.axes_skip_non_password_attempt"
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_CALLABLE = "core.views_errors.axes_lockout"
 # Same proxy-aware client IP as the audit log; takes precedence over the ipware settings.
@@ -201,6 +233,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 vars().update(env.email_url("EMAIL_URL", default="consolemail://"))
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="communautes@localhost")
+# Recipients of operational alerts (break-glass sign-in): "Name <email>,other@example.com".
+ADMINS = [entry for entry in getaddresses([env("DJANGO_ADMINS", default="")]) if entry[1]]
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+EMAIL_SUBJECT_PREFIX = "[Talan Communities] "
 
 METRICS_TOKEN = env("METRICS_TOKEN", default="")
 

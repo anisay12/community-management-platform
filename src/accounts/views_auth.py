@@ -24,9 +24,25 @@ LOCAL_BACKEND = "accounts.backends.EmailBackend"
 
 
 class LoginView(auth_views.LoginView):
+    """Password and/or single sign-on, depending on AUTH_MODE.
+
+    In ``sso_only`` the password form is hidden behind a discreet emergency-access link
+    (``?local=1``) for the break-glass account; the backend refuses everyone else.
+    """
+
     template_name = "accounts/login.html"
     authentication_form = LoginForm
     redirect_authenticated_user = True
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        mode = settings.AUTH_MODE
+        context["sso_enabled"] = mode != "local"
+        context["password_reset_enabled"] = mode != "sso_only"
+        context["show_password_form"] = (
+            mode != "sso_only" or self.request.method == "POST" or "local" in self.request.GET
+        )
+        return context
 
 
 class PasswordResetView(auth_views.PasswordResetView):

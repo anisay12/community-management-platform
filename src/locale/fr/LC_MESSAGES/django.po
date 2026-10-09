@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 14:16+0200\n"
+"POT-Creation-Date: 2026-10-09 14:24+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -271,6 +271,13 @@ msgstr "export de données"
 msgid "data exports"
 msgstr "exports de données"
 
+msgid ""
+"Single sign-on did not complete. If your account is new or inactive, contact "
+"an administrator."
+msgstr ""
+"La connexion unique n’a pas abouti. Si votre compte est nouveau ou inactif, "
+"contactez un administrateur."
+
 msgid "Only a deactivated account can be anonymized."
 msgstr "Seul un compte désactivé peut être anonymisé."
 
@@ -438,8 +445,14 @@ msgstr "Demander une copie de mes données"
 msgid "Sign in"
 msgstr "Se connecter"
 
+msgid "Sign in with your Talan account"
+msgstr "Se connecter avec votre compte Talan"
+
 msgid "Forgot your password?"
 msgstr "Mot de passe oublié ?"
+
+msgid "Emergency access"
+msgstr "Accès de secours"
 
 msgid "Set up two-step verification"
 msgstr "Configurer la validation en deux étapes"

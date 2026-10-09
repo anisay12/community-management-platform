@@ -71,3 +71,45 @@ def test_settings_reject_unknown_auth_mode():
     result = _manage("check", env=_prod_env(AUTH_MODE="ldap"))
     assert result.returncode != 0
     assert "AUTH_MODE" in result.stderr
+
+
+OIDC_ENV = {
+    "OIDC_RP_CLIENT_ID": "client",
+    "OIDC_RP_CLIENT_SECRET": secrets.token_urlsafe(16),
+    "OIDC_OP_AUTHORIZATION_ENDPOINT": "https://idp.example.com/authorize",
+    "OIDC_OP_TOKEN_ENDPOINT": "https://idp.example.com/token",
+    "OIDC_OP_USER_ENDPOINT": "https://idp.example.com/userinfo",
+    "OIDC_OP_JWKS_ENDPOINT": "https://idp.example.com/jwks",
+}
+PRINT_AUTH_SETTINGS = (
+    "from django.conf import settings; "
+    "print(settings.AUTHENTICATION_BACKENDS); print(settings.ADMINS)"
+)
+
+
+def test_sso_modes_require_oidc_settings():
+    for mode in ("mixed", "sso_only"):
+        env = _prod_env(AUTH_MODE=mode, **{**OIDC_ENV, "OIDC_OP_JWKS_ENDPOINT": ""})
+        env["DJANGO_READ_DOT_ENV"] = "0"
+        result = _manage("check", env=env)
+        assert result.returncode != 0
+        assert "OIDC_OP_JWKS_ENDPOINT" in result.stderr
+
+
+def test_sso_mode_enables_the_oidc_backend():
+    env = _prod_env(
+        AUTH_MODE="sso_only", DJANGO_ADMINS="Ops Team <ops@example.com>,b@example.com", **OIDC_ENV
+    )
+    result = _manage("shell", "-c", PRINT_AUTH_SETTINGS, env=env)
+    assert result.returncode == 0, result.stderr
+    assert "accounts.oidc.TalanOIDCBackend" in result.stdout
+    assert "[('Ops Team', 'ops@example.com'), ('', 'b@example.com')]" in result.stdout
+
+
+def test_local_mode_needs_no_oidc_settings():
+    env = _prod_env(AUTH_MODE="local")
+    env["DJANGO_READ_DOT_ENV"] = "0"
+    result = _manage("shell", "-c", PRINT_AUTH_SETTINGS, env=env)
+    assert result.returncode == 0, result.stderr
+    assert "TalanOIDCBackend" not in result.stdout
+    assert "[]" in result.stdout
