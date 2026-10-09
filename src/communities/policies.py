@@ -78,12 +78,17 @@ def can_view_content(user, community) -> bool:
         return False
     if membership_of(user, community) is not None:
         return True
-    if is_functional_admin(user):
-        return has_valid_admin_grant(user, community)
-    return (
+    open_and_live = (
         community.access_mode == Community.AccessMode.OPEN
         and community.status != Community.Status.ARCHIVED
     )
+    if is_functional_admin(user):
+        # Framing 4.4: open content like everyone; other content only through a stated reason.
+        return open_and_live or has_valid_admin_grant(user, community)
+    if has_role(user, Role.TECHNICAL_ADMIN) or has_role(user, Role.AUDITOR):
+        # Framing 4.4: the technical admin has no content access, the auditor metadata only.
+        return False
+    return open_and_live
 
 
 def can_join(user, community) -> bool:

@@ -29,6 +29,29 @@ PAGES = {
         "auditor",
         lambda w: reverse("audit:event_detail", args=[w["event"].pk]),
     ),
+    "community-catalogue": ("employee", lambda w: reverse("communities:catalogue")),
+    "community-detail-member": (
+        "employee",
+        lambda w: reverse("communities:detail", args=[w["community"].slug]),
+    ),
+    "community-detail-non-member": (
+        "employee",
+        lambda w: reverse("communities:detail", args=[w["other_community"].slug]),
+    ),
+    "community-members": (
+        "employee",
+        lambda w: reverse("communities:members", args=[w["community"].slug]),
+    ),
+    "community-manage-settings": (
+        "employee",
+        lambda w: reverse("communities:manage_settings", args=[w["community"].slug]),
+    ),
+    "community-manage-members": (
+        "employee",
+        lambda w: reverse("communities:manage_members", args=[w["community"].slug]),
+    ),
+    "community-create": ("admin", lambda w: reverse("communities:create")),
+    "category-list": ("admin", lambda w: reverse("manage:category_list")),
     "styleguide": ("employee", lambda w: reverse("styleguide")),
 }
 

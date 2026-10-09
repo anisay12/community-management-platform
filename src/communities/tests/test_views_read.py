@@ -173,7 +173,7 @@ def test_navigation_entry(employee_client):
 # (detail status, members status) for an active community.
 MATRIX = {
     "open": {"non_member": (200, 200), "member": (200, 200), "animator": (200, 200),
-             "admin": (200, 403)},
+             "admin": (200, 200)},
     "request": {"non_member": (200, 403), "member": (200, 200), "animator": (200, 200),
                 "admin": (200, 403)},
     "invite": {"non_member": (404, 404), "member": (200, 200), "animator": (200, 200),

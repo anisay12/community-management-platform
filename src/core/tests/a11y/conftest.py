@@ -102,7 +102,37 @@ def world(db, make_user, verified_login):
         for i in range(55)
     )
     users["event"] = AuditEvent.objects.order_by("-created_at").first()
+    users.update(_communities(users))
     return users
+
+
+def _communities(users):
+    """A community the employee belongs to (as lead) and an on-request one they do not."""
+    from communities.models import Community, CommunityCategory, CommunityMembership
+
+    category, _ = CommunityCategory.objects.get_or_create(
+        slug="a11y-category", defaults={"name": "Accessibility category"}
+    )
+    joined = Community.objects.create(
+        name="Data guild",
+        slug="data-guild",
+        category=category,
+        tagline="Everything about data",
+        description="## Purpose\n\nShare **practices** and [links](https://example.com).",
+        rules="Be kind.",
+        member_count=1,
+    )
+    other = Community.objects.create(
+        name="Cloud circle",
+        slug="cloud-circle",
+        category=category,
+        tagline="Cloud practices",
+        access_mode=Community.AccessMode.REQUEST,
+    )
+    CommunityMembership.objects.create(
+        community=joined, user=users["employee"], role=CommunityMembership.Role.OWNER
+    )
+    return {"community": joined, "other_community": other}
 
 
 @pytest.fixture

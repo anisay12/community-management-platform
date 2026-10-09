@@ -37,9 +37,9 @@ EXPECTED = {
         "non_member": (True, True),
         "member": (True, True),
         "animator": (True, True),
-        "admin_no_grant": (True, False),
+        "admin_no_grant": (True, True),
         "admin_grant": (True, True),
-        "admin_expired_grant": (True, False),
+        "admin_expired_grant": (True, True),
         "suspended_employee": (False, False),
         "anonymous": (False, False),
     },
@@ -120,7 +120,13 @@ def test_suspended_community_matrix_matches_active(kind, make_community, viewers
 @pytest.mark.parametrize("kind", list(KINDS))
 def test_archived_community_only_for_members_and_admins(kind, make_community, viewers):
     community = make_community(status=ARCHIVED, **KINDS[kind])
-    expected = {**EXPECTED[kind], "non_member": (False, False)}
+    # Archived content is no longer "open": a functional admin needs a grant again.
+    expected = {
+        **EXPECTED[kind],
+        "non_member": (False, False),
+        "admin_no_grant": (True, False),
+        "admin_expired_grant": (True, False),
+    }
     _check(community, viewers(community), expected)
 
 
