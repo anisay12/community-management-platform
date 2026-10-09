@@ -207,6 +207,10 @@ METRICS_TOKEN = env("METRICS_TOKEN", default="")
 AUDIT_IP_HASH_KEY = env("AUDIT_IP_HASH_KEY")
 AUDIT_RETENTION_DAYS = env.int("AUDIT_RETENTION_DAYS", default=365)
 
+# Personal data: deactivated accounts are anonymized after 3 years; exports live 7 days.
+ACCOUNT_ANONYMIZE_AFTER_DAYS = env.int("ACCOUNT_ANONYMIZE_AFTER_DAYS", default=1095)
+DATA_EXPORT_TTL_DAYS = 7
+
 LOG_LEVEL = env("LOG_LEVEL", default="INFO")
 LOG_JSON = env.bool("LOG_JSON", default=True)
 LOGGING = build_logging(level=LOG_LEVEL, json=LOG_JSON)
@@ -226,5 +230,13 @@ CELERY_BEAT_SCHEDULE = {
     "audit-purge": {
         "task": "audit.tasks.purge_audit_events",
         "schedule": crontab(hour=3, minute=15),
+    },
+    "accounts-purge-expired-exports": {
+        "task": "accounts.tasks.purge_expired_exports",
+        "schedule": crontab(hour=3, minute=30),
+    },
+    "accounts-anonymize-expired-accounts": {
+        "task": "accounts.tasks.anonymize_expired_accounts",
+        "schedule": crontab(hour=3, minute=45),
     },
 }

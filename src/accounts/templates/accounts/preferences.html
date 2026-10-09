@@ -10,4 +10,6 @@
       <button type="submit">{% translate "Save" %}</button>
     </div>
   </form>
+  <h2>{% translate "My data" %}</h2>
+  <p><a href="{% url 'accounts:data_export' %}">{% translate "Download a copy of my data" %}</a></p>
 {% endblock %}

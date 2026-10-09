@@ -1,7 +1,7 @@
 from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 
-from . import views_auth, views_manage, views_mfa, views_profile
+from . import views_auth, views_manage, views_mfa, views_privacy, views_profile
 
 app_name = "accounts"
 
@@ -35,6 +35,12 @@ urlpatterns = [
     path("me/", views_profile.profile_me, name="profile_me"),
     path("me/edit/", views_profile.profile_edit, name="profile_edit"),
     path("me/preferences/", views_profile.preferences, name="preferences"),
+    path("me/data-export/", views_privacy.data_export, name="data_export"),
+    path(
+        "me/data-export/<uuid:public_id>/download/",
+        views_privacy.data_export_download,
+        name="data_export_download",
+    ),
     path("people/<uuid:public_id>/", views_profile.profile_detail, name="profile_detail"),
 ]
 
@@ -52,6 +58,11 @@ manage_patterns = (
             "users/<uuid:public_id>/deactivate/",
             views_manage.user_deactivate_confirm,
             name="user_deactivate_confirm",
+        ),
+        path(
+            "users/<uuid:public_id>/anonymize/",
+            views_manage.user_anonymize,
+            name="user_anonymize",
         ),
     ],
     "manage",

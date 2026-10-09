@@ -206,3 +206,39 @@ class UserSession(models.Model):
 
     def __str__(self):
         return str(self.user)
+
+
+class DataExport(models.Model):
+    """A copy of a user's personal data, built in the background and kept for a few days."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Being prepared")
+        READY = "ready", _("Ready")
+        FAILED = "failed", _("Failed")
+
+    public_id = models.UUIDField(_("public ID"), default=uuid.uuid4, unique=True, editable=False)
+    user = models.ForeignKey(
+        User, verbose_name=_("user"), on_delete=models.CASCADE, related_name="data_exports"
+    )
+    status = models.CharField(
+        _("status"), max_length=20, choices=Status.choices, default=Status.PENDING
+    )
+    file = models.FileField(_("file"), upload_to="exports/", blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    expires_at = models.DateTimeField(_("expires at"), null=True, blank=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = _("data export")
+        verbose_name_plural = _("data exports")
+
+    def __str__(self):
+        return f"{self.user} ({self.status})"
+
+    def is_downloadable(self) -> bool:
+        return (
+            self.status == self.Status.READY
+            and bool(self.file)
+            and self.expires_at is not None
+            and self.expires_at > timezone.now()
+        )

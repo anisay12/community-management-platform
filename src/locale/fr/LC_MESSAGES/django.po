@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 13:55+0200\n"
+"POT-Creation-Date: 2026-10-09 14:03+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -250,6 +250,37 @@ msgstr "session utilisateur"
 msgid "user sessions"
 msgstr "sessions utilisateur"
 
+msgid "Being prepared"
+msgstr "En cours de préparation"
+
+msgid "Ready"
+msgstr "Prêt"
+
+msgid "Failed"
+msgstr "Échec"
+
+msgid "file"
+msgstr "fichier"
+
+msgid "expires at"
+msgstr "expire le"
+
+msgid "data export"
+msgstr "export de données"
+
+msgid "data exports"
+msgstr "exports de données"
+
+msgid ""
+"Only a superuser can anonymize a superuser, a staff member or a technical "
+"administrator."
+msgstr ""
+"Seul un superutilisateur peut anonymiser un superutilisateur, un membre du "
+"staff ou un administrateur technique."
+
+msgid "Only a deactivated account can be anonymized."
+msgstr "Seul un compte désactivé peut être anonymisé."
+
 msgid "Employee"
 msgstr "Collaborateur"
 
@@ -372,6 +403,38 @@ msgstr ""
 msgid "Back to sign in"
 msgstr "Retour à la connexion"
 
+msgid "My data"
+msgstr "Mes données"
+
+msgid ""
+"You can download a copy of the personal data the platform holds about you, "
+"as a JSON file."
+msgstr ""
+"Vous pouvez télécharger une copie des données personnelles que la plateforme "
+"détient à votre sujet, au format JSON."
+
+#, python-format
+msgid "Your copy is ready. It can be downloaded until %(expires)s."
+msgstr ""
+"Votre copie est prête. Elle peut être téléchargée jusqu’au %(expires)s."
+
+msgid "Download my data"
+msgstr "Télécharger mes données"
+
+msgid "Your copy is being prepared. Come back to this page in a few minutes."
+msgstr ""
+"Votre copie est en cours de préparation. Revenez sur cette page dans "
+"quelques minutes."
+
+msgid "Your copy could not be prepared. Please try again."
+msgstr "Votre copie n’a pas pu être préparée. Veuillez réessayer."
+
+msgid "Your previous copy has expired."
+msgstr "Votre copie précédente a expiré."
+
+msgid "Request a copy of my data"
+msgstr "Demander une copie de mes données"
+
 msgid "Sign in"
 msgstr "Se connecter"
 
@@ -467,6 +530,9 @@ msgstr "Préférences"
 msgid "Save"
 msgstr "Enregistrer"
 
+msgid "Download a copy of my data"
+msgstr "Télécharger une copie de mes données"
+
 #, python-format
 msgid "Account status: %(status)s"
 msgstr "Statut du compte : %(status)s"
@@ -539,6 +605,29 @@ msgstr "Créer un utilisateur"
 msgid "Import users"
 msgstr "Importer des utilisateurs"
 
+msgid "Anonymize the account"
+msgstr "Anonymiser le compte"
+
+#, python-format
+msgid "You are about to anonymize the account of %(name)s (%(email)s)."
+msgstr "Vous êtes sur le point d’anonymiser le compte de %(name)s (%(email)s)."
+
+msgid ""
+"The name, email address, profile, organization details, sign-in methods and "
+"data exports of the account are erased."
+msgstr ""
+"Le nom, l’adresse e-mail, le profil, les informations d’organisation, les "
+"moyens de connexion et les exports de données du compte sont effacés."
+
+msgid ""
+"The person appears as “Former employee” wherever their contributions remain."
+msgstr ""
+"La personne apparaît comme « Ancien collaborateur » partout où ses "
+"contributions subsistent."
+
+msgid "Anonymization cannot be undone."
+msgstr "L’anonymisation est irréversible."
+
 msgid "Deactivate the account"
 msgstr "Désactiver le compte"
 
@@ -570,6 +659,9 @@ msgstr "Créé le"
 
 msgid "Deactivate"
 msgstr "Désactiver"
+
+msgid "Anonymize"
+msgstr "Anonymiser"
 
 msgid "Save roles"
 msgstr "Enregistrer les rôles"
@@ -683,8 +775,19 @@ msgstr "Ce compte est déjà désactivé."
 msgid "The account has been deactivated."
 msgstr "Le compte a été désactivé."
 
+msgid "This account is already anonymized."
+msgstr "Ce compte est déjà anonymisé."
+
+msgid "The account has been anonymized."
+msgstr "Le compte a été anonymisé."
+
 msgid "QR code"
 msgstr "Code QR"
+
+msgid "Your data is being prepared. Come back to this page in a few minutes."
+msgstr ""
+"Vos données sont en cours de préparation. Revenez sur cette page dans "
+"quelques minutes."
 
 msgid "Your profile has been updated."
 msgstr "Votre profil a été mis à jour."

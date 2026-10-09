@@ -9,6 +9,7 @@ from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
+from django.db.models import Q
 from django.db.models.functions import Lower
 from django.urls import reverse
 from django.utils import timezone
@@ -21,10 +22,10 @@ from core.context import suppress_m2m_audit
 from core.errors import DomainError
 from organizations.models import Employment, OrganizationUnit
 
-from .models import User, UserProfile
+from .models import DataExport, User, UserProfile
 from .policies import hierarchy_allows
 from .roles import Role
-from .tasks import send_email
+from .tasks import build_data_export, send_email
 from .tokens import activation_token_generator
 
 
@@ -506,3 +507,27 @@ def import_users_csv(*, actor, file) -> ImportResult:
     except DomainError as error:
         return ImportResult(errors=[ImportLineError(row.line if row else 0, error.message)])
     return ImportResult(created=len(created))
+
+
+# Personal data ------------------------------------------------------------------------
+
+
+@transaction.atomic
+def request_data_export(*, user) -> DataExport:
+    """Start building a copy of ``user``'s data, unless one is pending or still available."""
+    # Serialise concurrent requests of the same user.
+    User.objects.select_for_update().get(pk=user.pk)
+    current = (
+        DataExport.objects.filter(user=user)
+        .filter(
+            Q(status=DataExport.Status.PENDING)
+            | Q(status=DataExport.Status.READY, expires_at__gt=timezone.now())
+        )
+        .first()
+    )
+    if current is not None:
+        return current
+    export = DataExport.objects.create(user=user)
+    record(actor=user, action="user.data_export_requested", target=user)
+    transaction.on_commit(lambda: build_data_export.delay(export.pk))
+    return export

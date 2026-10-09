@@ -26,6 +26,8 @@
       {% endif %}
       {% if account.status != "deactivated" %}
         <a class="button" href="{% url 'manage:user_deactivate_confirm' account.public_id %}">{% translate "Deactivate" %}</a>
+      {% elif not account.anonymized_at %}
+        <a class="button" href="{% url 'manage:user_anonymize' account.public_id %}">{% translate "Anonymize" %}</a>
       {% endif %}
     </div>
 

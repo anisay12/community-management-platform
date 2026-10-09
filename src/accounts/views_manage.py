@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 
 from core.errors import DomainError
 
-from . import services
+from . import privacy, services
 from .forms import UserCreateForm, UserImportForm, UserRolesForm, UserStatusForm
 from .models import User
 from .policies import can_administer_user, can_manage_users
@@ -159,6 +159,29 @@ def user_deactivate_confirm(request, public_id):
             messages.success(request, _("The account has been deactivated."))
         return redirect("manage:user_detail", public_id=account.public_id)
     return render(request, "manage/user_deactivate_confirm.html", {"account": account})
+
+
+@manage_required
+def user_anonymize(request, public_id):
+    """Anonymization erases personal data for good: confirm it on its own page."""
+    account = _account(public_id)
+    if not can_administer_user(request.user, account):
+        raise PermissionDenied
+    if account.anonymized_at is not None:
+        messages.error(request, _("This account is already anonymized."))
+        return redirect("manage:user_detail", public_id=account.public_id)
+    if account.status != User.Status.DEACTIVATED:
+        messages.error(request, _("Only a deactivated account can be anonymized."))
+        return redirect("manage:user_detail", public_id=account.public_id)
+    if request.method == "POST":
+        try:
+            privacy.anonymize_user(actor=request.user, user=account)
+        except DomainError as error:
+            messages.error(request, error.message)
+        else:
+            messages.success(request, _("The account has been anonymized."))
+        return redirect("manage:user_detail", public_id=account.public_id)
+    return render(request, "manage/user_anonymize_confirm.html", {"account": account})
 
 
 @manage_required

@@ -1,0 +1,487 @@
+import json
+from datetime import timedelta
+
+import pytest
+from django.conf import settings
+from django.contrib.auth.models import Group
+from django.contrib.sessions.backends.cache import SessionStore
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.urls import reverse
+from django.utils import timezone, translation
+from django_otp.plugins.otp_static.models import StaticDevice
+from django_otp.plugins.otp_totp.models import TOTPDevice
+
+from accounts import privacy, services, tasks
+from accounts.models import DataExport, ExternalIdentity, User, UserSession
+from accounts.roles import Role
+from audit.models import AuditEvent
+from conftest import PASSWORD
+from core.errors import DomainError
+from organizations.models import Employment, OrganizationUnit
+from taxonomy.models import Tag
+
+pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture
+def unit(db):
+    return OrganizationUnit.objects.create(name="Data", code="DATA")
+
+
+@pytest.fixture
+def manager(make_user):
+    return make_user("manager@example.com", first_name="Mia", last_name="Boss")
+
+
+@pytest.fixture
+def owner(make_user, unit, manager):
+    user = make_user("owner@example.com", first_name="Olga", last_name="Owner")
+    user.groups.add(Group.objects.get(name=Role.EMPLOYEE))
+    profile = user.profile
+    profile.job_title = "Data engineer"
+    profile.bio = "Loves pipelines."
+    profile.language = "fr"
+    profile.profile_visibility = profile.Visibility.PRIVATE
+    profile.save()
+    profile.interests.add(Tag.objects.create(name="Python", slug="python"))
+    Employment.objects.create(user=user, unit=unit, manager=manager)
+    ExternalIdentity.objects.create(user=user, provider="entra", subject="secret-subject-42")
+    return user
+
+
+@pytest.fixture
+def other(make_user):
+    return make_user("other@example.com", first_name="Otto", last_name="Stranger")
+
+
+@pytest.fixture
+def admin_client(client, functional_admin, verified_login):
+    return verified_login(client, functional_admin)
+
+
+def _ready_export(owner, capture) -> DataExport:
+    with capture(execute=True):
+        export = services.request_data_export(user=owner)
+    export.refresh_from_db()
+    assert export.status == DataExport.Status.READY
+    return export
+
+
+def _content(export) -> dict:
+    with export.file.open("rb") as handle:
+        return json.loads(handle.read().decode("utf-8"))
+
+
+# Export ---------------------------------------------------------------------------
+
+
+def test_request_data_export_builds_a_ready_json_file(owner, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        export = services.request_data_export(user=owner)
+    export.refresh_from_db()
+    assert export.status == DataExport.Status.READY
+    expected = timezone.now() + timedelta(days=settings.DATA_EXPORT_TTL_DAYS)
+    assert abs(export.expires_at - expected) < timedelta(minutes=1)
+    assert export.file.name.startswith("exports/")
+    data = _content(export)
+    assert set(data) == {"generated_at", "sections"}
+    assert {"account", "audit"} <= set(data["sections"])
+    assert AuditEvent.objects.filter(
+        action="user.data_export_requested", actor=owner, target_id=str(owner.public_id)
+    ).exists()
+
+
+def test_export_contains_own_data_and_nothing_about_other_users(
+    owner, other, django_capture_on_commit_callbacks
+):
+    services.set_roles(actor=other, user=other, roles=[Role.EMPLOYEE])
+    with django_capture_on_commit_callbacks(execute=True):
+        export = services.request_data_export(user=owner)
+    export.refresh_from_db()
+    raw = export.file.open("rb").read().decode("utf-8")
+    data = json.loads(raw)
+    account = data["sections"]["account"]
+    assert account["email"] == "owner@example.com"
+    assert account["first_name"] == "Olga"
+    assert account["status"] == "active"
+    assert account["profile"]["job_title"] == "Data engineer"
+    assert account["profile"]["interests"] == ["Python"]
+    assert account["employment"] == {"unit": "DATA", "manager_email": "manager@example.com"}
+    assert account["roles"] == [Role.EMPLOYEE.value]
+    assert [i["provider"] for i in account["external_identities"]] == ["entra"]
+    assert "secret-subject-42" not in raw
+    actions = {event["action"] for event in data["sections"]["audit"]}
+    assert "user.data_export_requested" in actions
+    assert "user.roles_changed" not in actions  # done by another actor
+    assert "other@example.com" not in raw
+    assert "Stranger" not in raw
+
+
+def test_export_file_is_utf8_with_indent(owner, django_capture_on_commit_callbacks):
+    owner.first_name = "Élodie"
+    owner.save()
+    with django_capture_on_commit_callbacks(execute=True):
+        export = services.request_data_export(user=owner)
+    export.refresh_from_db()
+    raw = export.file.open("rb").read().decode("utf-8")
+    assert "Élodie" in raw
+    assert '\n  "sections"' in raw
+
+
+def test_only_one_export_at_a_time(owner, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        first = services.request_data_export(user=owner)
+    with django_capture_on_commit_callbacks(execute=True):
+        second = services.request_data_export(user=owner)
+    assert first.pk == second.pk
+    assert DataExport.objects.filter(user=owner).count() == 1
+    assert AuditEvent.objects.filter(action="user.data_export_requested").count() == 1
+
+
+def test_new_export_allowed_after_expiry_or_failure(owner, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        first = services.request_data_export(user=owner)
+    DataExport.objects.filter(pk=first.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
+    with django_capture_on_commit_callbacks(execute=True):
+        second = services.request_data_export(user=owner)
+    assert second.pk != first.pk
+    DataExport.objects.filter(pk=second.pk).update(status=DataExport.Status.FAILED)
+    third = services.request_data_export(user=owner)
+    assert third.pk not in {first.pk, second.pk}
+
+
+def test_build_failure_marks_export_failed(owner, monkeypatch):
+    export = DataExport.objects.create(user=owner)
+
+    def broken(user):
+        raise RuntimeError("boom")
+
+    monkeypatch.setitem(privacy._exporters, "broken", broken)
+    with pytest.raises(RuntimeError):
+        tasks.build_data_export(export.pk)
+    export.refresh_from_db()
+    assert export.status == DataExport.Status.FAILED
+    assert not export.file
+
+
+def test_build_ignores_missing_or_already_built_export(owner, django_capture_on_commit_callbacks):
+    tasks.build_data_export(999999)
+    with django_capture_on_commit_callbacks(execute=True):
+        export = services.request_data_export(user=owner)
+    export.refresh_from_db()
+    name = export.file.name
+    tasks.build_data_export(export.pk)
+    export.refresh_from_db()
+    assert export.file.name == name
+
+
+def test_registered_exporter_adds_a_section(owner, monkeypatch):
+    monkeypatch.setattr(privacy, "_exporters", dict(privacy._exporters))
+    privacy.register_exporter("posts", lambda user: [{"title": f"by {user.public_id}"}])
+    data = privacy.build_export(owner)
+    assert data["sections"]["posts"] == [{"title": f"by {owner.public_id}"}]
+
+
+# Export views ---------------------------------------------------------------------
+
+
+def test_data_export_urls():
+    assert reverse("accounts:data_export") == "/me/data-export/"
+
+
+def test_data_export_page_requires_login(client):
+    response = client.get(reverse("accounts:data_export"))
+    assert response.status_code == 302
+
+
+def test_data_export_page_and_request(client, owner, django_capture_on_commit_callbacks):
+    client.force_login(owner)
+    response = client.get(reverse("accounts:data_export"))
+    assert response.status_code == 200
+    assert "no-store" in response["Cache-Control"]
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post(reverse("accounts:data_export"))
+    assert response.status_code == 302
+    export = DataExport.objects.get(user=owner)
+    response = client.get(reverse("accounts:data_export"))
+    assert reverse("accounts:data_export_download", args=[export.public_id]) in (
+        response.content.decode()
+    )
+
+
+def test_owner_downloads_ready_export(client, owner, django_capture_on_commit_callbacks):
+    export = _ready_export(owner, django_capture_on_commit_callbacks)
+    client.force_login(owner)
+    response = client.get(reverse("accounts:data_export_download", args=[export.public_id]))
+    assert response.status_code == 200
+    assert "no-store" in response["Cache-Control"]
+    assert 'attachment; filename="my-data.json"' in response["Content-Disposition"]
+    data = json.loads(b"".join(response.streaming_content))
+    assert data["sections"]["account"]["email"] == "owner@example.com"
+
+
+def test_other_user_cannot_download_export(
+    client, owner, other, django_capture_on_commit_callbacks
+):
+    export = _ready_export(owner, django_capture_on_commit_callbacks)
+    client.force_login(other)
+    response = client.get(reverse("accounts:data_export_download", args=[export.public_id]))
+    assert response.status_code == 404
+
+
+def test_pending_export_cannot_be_downloaded(client, owner):
+    export = DataExport.objects.create(user=owner)
+    client.force_login(owner)
+    response = client.get(reverse("accounts:data_export_download", args=[export.public_id]))
+    assert response.status_code == 404
+
+
+def test_expired_export_is_404_and_purged(client, owner, django_capture_on_commit_callbacks):
+    export = _ready_export(owner, django_capture_on_commit_callbacks)
+    fresh = DataExport.objects.create(
+        user=owner,
+        status=DataExport.Status.READY,
+        expires_at=timezone.now() + timedelta(days=1),
+    )
+    fresh.file.save("fresh.json", ContentFile(b"{}"))
+    name = export.file.name
+    DataExport.objects.filter(pk=export.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
+    client.force_login(owner)
+    response = client.get(reverse("accounts:data_export_download", args=[export.public_id]))
+    assert response.status_code == 404
+    assert default_storage.exists(name)
+    assert tasks.purge_expired_exports() == 1
+    assert not default_storage.exists(name)
+    assert not DataExport.objects.filter(pk=export.pk).exists()
+    assert DataExport.objects.filter(pk=fresh.pk).exists()
+    assert default_storage.exists(fresh.file.name)
+
+
+# Anonymization --------------------------------------------------------------------
+
+
+def _deactivated(owner, actor=None):
+    services.deactivate_user(actor=actor, user=owner)
+    owner.refresh_from_db()
+    return owner
+
+
+def test_active_user_cannot_be_anonymized(owner, functional_admin):
+    with pytest.raises(DomainError) as error:
+        privacy.anonymize_user(actor=functional_admin, user=owner)
+    assert error.value.code == "invalid_status"
+    owner.refresh_from_db()
+    assert owner.anonymized_at is None
+    assert owner.email == "owner@example.com"
+
+
+def test_anonymize_wipes_personal_data(owner, functional_admin, django_capture_on_commit_callbacks):
+    owner.profile.avatar.save("face.png", ContentFile(b"png"))
+    avatar_name = owner.profile.avatar.name
+    export = _ready_export(owner, django_capture_on_commit_callbacks)
+    export_name = export.file.name
+    TOTPDevice.objects.create(user=owner, name="phone", confirmed=True)
+    StaticDevice.objects.create(user=owner, name="backup")
+    session = SessionStore()
+    session.create()
+    UserSession.objects.create(user=owner, session_key=session.session_key)
+    _deactivated(owner, functional_admin)
+
+    with django_capture_on_commit_callbacks(execute=True):
+        privacy.anonymize_user(actor=functional_admin, user=owner)
+
+    owner.refresh_from_db()
+    assert owner.email == f"anonymized-{owner.public_id}@invalid.invalid"
+    assert owner.first_name == owner.last_name == ""
+    assert owner.anonymized_at is not None
+    assert not owner.has_usable_password()
+    with translation.override("en"):
+        assert owner.get_full_name() == "Former employee"
+    with translation.override("fr"):
+        assert owner.get_full_name() == "Ancien collaborateur"
+    profile = owner.profile
+    assert profile.job_title == profile.bio == profile.language == ""
+    assert not profile.avatar
+    assert not default_storage.exists(avatar_name)
+    assert profile.interests.count() == 0
+    assert profile.profile_visibility == profile.Visibility.COMPANY
+    assert not Employment.objects.filter(user=owner).exists()
+    assert not ExternalIdentity.objects.filter(user=owner).exists()
+    assert not UserSession.objects.filter(user=owner).exists()
+    assert not DataExport.objects.filter(user=owner).exists()
+    assert not default_storage.exists(export_name)
+    assert not TOTPDevice.objects.filter(user=owner).exists()
+    assert not StaticDevice.objects.filter(user=owner).exists()
+    event = AuditEvent.objects.get(action="user.anonymized")
+    assert event.actor == functional_admin
+    assert event.target_id == str(owner.public_id)
+    serialized = json.dumps(event.changes)
+    for personal in ("owner@example.com", "Olga", "Owner", "Data engineer"):
+        assert personal not in serialized
+
+
+def test_anonymize_keeps_audit_actor(owner, functional_admin):
+    services.request_data_export(user=owner)
+    event_ids = list(AuditEvent.objects.filter(actor=owner).values_list("pk", flat=True))
+    assert event_ids
+    _deactivated(owner, functional_admin)
+    privacy.anonymize_user(actor=functional_admin, user=owner)
+    assert set(AuditEvent.objects.filter(actor_id=owner.pk).values_list("pk", flat=True)) >= set(
+        event_ids
+    )
+
+
+def test_anonymized_user_cannot_log_in(client, owner, functional_admin):
+    _deactivated(owner, functional_admin)
+    privacy.anonymize_user(actor=functional_admin, user=owner)
+    for email in ("owner@example.com", f"anonymized-{owner.public_id}@invalid.invalid"):
+        response = client.post(reverse("accounts:login"), {"username": email, "password": PASSWORD})
+        assert response.status_code == 200
+        assert "_auth_user_id" not in client.session
+
+
+def test_anonymize_twice_is_a_noop(owner, functional_admin):
+    _deactivated(owner, functional_admin)
+    privacy.anonymize_user(actor=functional_admin, user=owner)
+    owner.refresh_from_db()
+    stamp = owner.anonymized_at
+    privacy.anonymize_user(actor=functional_admin, user=owner)
+    owner.refresh_from_db()
+    assert owner.anonymized_at == stamp
+    assert AuditEvent.objects.filter(action="user.anonymized").count() == 1
+
+
+def test_registered_anonymizers_run(owner, functional_admin, monkeypatch):
+    monkeypatch.setattr(privacy, "_anonymizers", list(privacy._anonymizers))
+    seen = []
+    privacy.register_anonymizer(lambda user: seen.append(user.pk))
+    _deactivated(owner, functional_admin)
+    privacy.anonymize_user(actor=functional_admin, user=owner)
+    assert seen == [owner.pk]
+
+
+def test_functional_admin_cannot_anonymize_protected_account(make_user, functional_admin):
+    staff = make_user("staff@example.com", is_staff=True)
+    User.objects.filter(pk=staff.pk).update(
+        status=User.Status.DEACTIVATED, deactivated_at=timezone.now()
+    )
+    with pytest.raises(DomainError) as error:
+        privacy.anonymize_user(actor=functional_admin, user=staff)
+    assert error.value.code == "forbidden_target"
+
+
+def test_scheduled_task_anonymizes_only_old_deactivations(make_user):
+    now = timezone.now()
+    days = settings.ACCOUNT_ANONYMIZE_AFTER_DAYS
+    assert days == 1095
+    old = make_user("old@example.com")
+    recent = make_user("recent@example.com")
+    active = make_user("active@example.com")
+    for user in (old, recent):
+        services.deactivate_user(actor=None, user=user)
+    User.objects.filter(pk=old.pk).update(deactivated_at=now - timedelta(days=days, hours=1))
+    User.objects.filter(pk=recent.pk).update(deactivated_at=now - timedelta(days=days - 1))
+    User.objects.filter(pk=active.pk).update(deactivated_at=now - timedelta(days=days + 5))
+
+    assert tasks.anonymize_expired_accounts() == 1
+
+    old.refresh_from_db()
+    recent.refresh_from_db()
+    active.refresh_from_db()
+    assert old.anonymized_at is not None
+    assert recent.anonymized_at is None
+    assert active.anonymized_at is None
+    event = AuditEvent.objects.get(action="user.anonymized")
+    assert event.actor is None
+    assert tasks.anonymize_expired_accounts() == 0
+
+
+def test_beat_schedule_has_privacy_tasks():
+    schedule = {
+        entry["task"]: entry["schedule"] for entry in settings.CELERY_BEAT_SCHEDULE.values()
+    }
+    purge = schedule["accounts.tasks.purge_expired_exports"]
+    anonymize = schedule["accounts.tasks.anonymize_expired_accounts"]
+    assert (purge.hour, purge.minute) == ({3}, {30})
+    assert (anonymize.hour, anonymize.minute) == ({3}, {45})
+
+
+# Anonymization view ---------------------------------------------------------------
+
+
+def test_anonymize_view_requires_manage_permission(client, owner, other):
+    _deactivated(owner)
+    client.force_login(other)
+    url = reverse("manage:user_anonymize", args=[owner.public_id])
+    assert client.get(url).status_code == 404
+    assert client.post(url).status_code == 404
+    owner.refresh_from_db()
+    assert owner.anonymized_at is None
+
+
+def test_anonymize_view_confirm_then_perform(admin_client, owner, functional_admin):
+    _deactivated(owner, functional_admin)
+    url = reverse("manage:user_anonymize", args=[owner.public_id])
+    detail = reverse("manage:user_detail", args=[owner.public_id])
+    assert url in admin_client.get(detail).content.decode()
+    response = admin_client.get(url)
+    assert response.status_code == 200
+    assert "owner@example.com" in response.content.decode()
+    owner.refresh_from_db()
+    assert owner.anonymized_at is None
+    response = admin_client.post(url)
+    assert response.status_code == 302
+    assert response["Location"] == detail
+    owner.refresh_from_db()
+    assert owner.anonymized_at is not None
+
+
+def test_anonymize_view_refuses_active_account(admin_client, owner):
+    url = reverse("manage:user_anonymize", args=[owner.public_id])
+    response = admin_client.get(url)
+    assert response.status_code == 302
+    response = admin_client.post(url)
+    assert response.status_code == 302
+    owner.refresh_from_db()
+    assert owner.anonymized_at is None
+
+
+def test_anonymize_view_redirects_when_already_anonymized(admin_client, owner, functional_admin):
+    _deactivated(owner, functional_admin)
+    privacy.anonymize_user(actor=functional_admin, user=owner)
+    response = admin_client.get(reverse("manage:user_anonymize", args=[owner.public_id]))
+    assert response.status_code == 302
+
+
+def test_anonymize_view_forbids_protected_account(admin_client, make_user):
+    staff = make_user("staff@example.com", is_staff=True)
+    User.objects.filter(pk=staff.pk).update(
+        status=User.Status.DEACTIVATED, deactivated_at=timezone.now()
+    )
+    response = admin_client.get(reverse("manage:user_anonymize", args=[staff.public_id]))
+    assert response.status_code == 403
+
+
+def test_anonymize_erases_login_records_holding_the_email(owner, other, functional_admin):
+    from axes.models import AccessAttempt, AccessFailureLog, AccessLog
+
+    for model in (AccessAttempt, AccessFailureLog, AccessLog):
+        for email in ("owner@example.com", "other@example.com"):
+            extra = {"failures_since_start": 1} if model is AccessAttempt else {}
+            model.objects.create(username=email, ip_address="10.0.0.1", user_agent="ua", **extra)
+    _deactivated(owner, functional_admin)
+    privacy.anonymize_user(actor=functional_admin, user=owner)
+    for model in (AccessAttempt, AccessFailureLog, AccessLog):
+        assert not model.objects.filter(username="owner@example.com").exists()
+        assert model.objects.filter(username="other@example.com").exists()
+
+
+def test_purge_removes_stale_unfinished_exports(owner):
+    stale = DataExport.objects.create(user=owner)
+    failed = DataExport.objects.create(user=owner, status=DataExport.Status.FAILED)
+    recent = DataExport.objects.create(user=owner)
+    old = timezone.now() - timedelta(days=settings.DATA_EXPORT_TTL_DAYS, minutes=1)
+    DataExport.objects.filter(pk__in=[stale.pk, failed.pk]).update(created_at=old)
+    assert tasks.purge_expired_exports() == 2
+    assert list(DataExport.objects.values_list("pk", flat=True)) == [recent.pk]
