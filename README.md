@@ -2,7 +2,7 @@
 
 Internal platform for professional communities: communities, content, documents, lessons learned, events, then training and skills.
 
-**Status: work packages L0 (technical foundation) and L1 (accounts, roles, audit) delivered.** The application provides bilingual (English/French) accounts with roles, e-mail/password and Microsoft Entra single sign-on, mandatory TOTP for administrators, user administration with CSV import, profiles, personal data export and anonymization, and an append-only audit log. Communities and content arrive in the following work packages (see the specification).
+**Status: work packages L0 (technical foundation) and L1 (accounts, roles, audit) delivered.** The application provides bilingual (English/French) accounts with roles, e-mail/password and Microsoft Entra single sign-on, mandatory TOTP for administrators, user administration with CSV import, profiles, personal data export and anonymization, and an append-only audit log with a read-only audit log page (`/audit/`) for auditors and administrators. Communities and content arrive in the following work packages (see the specification).
 
 ## Prerequisites
 

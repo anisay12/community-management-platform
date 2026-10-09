@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 14:52+0200\n"
+"POT-Creation-Date: 2026-10-09 15:14+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -816,6 +816,31 @@ msgstr "Votre profil a été mis à jour."
 msgid "Your preferences have been saved."
 msgstr "Vos préférences ont été enregistrées."
 
+msgid "Action"
+msgstr "Action"
+
+msgid "Actor"
+msgstr "Acteur"
+
+msgid "Target"
+msgstr "Cible"
+
+msgid "From"
+msgstr "Du"
+
+msgid "To"
+msgstr "Au"
+
+msgid "All actions"
+msgstr "Toutes les actions"
+
+#, python-format
+msgid "Enter a date between %(min)s and %(max)s."
+msgstr "Saisissez une date comprise entre le %(min)s et le %(max)s."
+
+msgid "The start date must not be after the end date."
+msgstr "La date de début ne doit pas être postérieure à la date de fin."
+
 msgid "actor"
 msgstr "acteur"
 
@@ -845,6 +870,54 @@ msgstr "événement d'audit"
 
 msgid "audit events"
 msgstr "événements d'audit"
+
+msgid "Audit event"
+msgstr "Événement d'audit"
+
+msgid "Back to the audit log"
+msgstr "Retour au journal d'audit"
+
+msgid "Date"
+msgstr "Date"
+
+msgid "Category"
+msgstr "Catégorie"
+
+msgid "System"
+msgstr "Système"
+
+msgid "Target type"
+msgstr "Type de cible"
+
+msgid "Target identifier"
+msgstr "Identifiant de la cible"
+
+msgid "Community identifier"
+msgstr "Identifiant de la communauté"
+
+msgid "Request identifier"
+msgstr "Identifiant de requête"
+
+msgid "Changes"
+msgstr "Modifications"
+
+msgid "Audit log"
+msgstr "Journal d'audit"
+
+#, python-format
+msgid "%(counter)s event"
+msgid_plural "%(counter)s events"
+msgstr[0] "%(counter)s événement"
+msgstr[1] "%(counter)s événements"
+
+msgid "No audit event matches these filters."
+msgstr "Aucun événement d'audit ne correspond à ces filtres."
+
+msgid "Technical and security"
+msgstr "Technique et sécurité"
+
+msgid "Functional"
+msgstr "Fonctionnel"
 
 msgid "Skip to main content"
 msgstr "Aller au contenu principal"

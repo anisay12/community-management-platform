@@ -1,4 +1,4 @@
-{% load i18n static accounts_tags %}<!doctype html>
+{% load i18n static accounts_tags audit_tags %}<!doctype html>
 <html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8">
@@ -18,6 +18,9 @@
           <a href="{% url 'accounts:preferences' %}">{% translate "Preferences" %}</a>
           {% if user|can_manage_users %}
             <a href="{% url 'manage:user_list' %}">{% translate "Administration" %}</a>
+          {% endif %}
+          {% if user|can_view_audit_log %}
+            <a href="{% url 'audit:event_list' %}">{% translate "Audit log" %}</a>
           {% endif %}
           <form method="post" action="{% url 'accounts:logout' %}" class="logout-form">
             {% csrf_token %}
