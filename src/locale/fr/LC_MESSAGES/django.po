@@ -2112,3 +2112,133 @@ msgstr "Choisissez un motif pour votre signalement."
 
 msgid "You have already reported this content."
 msgstr "Vous avez déjà signalé ce contenu."
+
+msgid "Pinned"
+msgstr "Épinglé"
+
+#, python-format
+msgid "%(delay)s ago"
+msgstr "il y a %(delay)s"
+
+msgid "Also published in"
+msgstr "Également publié dans"
+
+msgid "Content not accessible"
+msgstr "Contenu non accessible"
+
+#, python-format
+msgid "%(counter)s comment"
+msgid_plural "%(counter)s comments"
+msgstr[0] "%(counter)s commentaire"
+msgstr[1] "%(counter)s commentaires"
+
+msgid "Accepted answer"
+msgstr "Réponse acceptée"
+
+msgid "Expert answer"
+msgstr "Réponse d’expert"
+
+msgid "Reason for hiding:"
+msgstr "Motif du masquage :"
+
+msgid "Comment hidden by a moderator"
+msgstr "Commentaire masqué par un modérateur"
+
+msgid "Feed filters"
+msgstr "Filtres du fil"
+
+msgid "Load more"
+msgstr "Charger la suite"
+
+msgid "This post is hidden by a moderator."
+msgstr "Cette publication est masquée par un modérateur."
+
+msgid "This post is awaiting review by a moderator."
+msgstr "Cette publication attend la validation d’un modérateur."
+
+msgid "This post is archived and read-only."
+msgstr "Cette publication est archivée et en lecture seule."
+
+msgid "Revisions"
+msgstr "Révisions"
+
+msgid "Comments"
+msgstr "Commentaires"
+
+msgid "No comments yet."
+msgstr "Aucun commentaire pour l’instant."
+
+msgid "Pinned posts"
+msgstr "Publications épinglées"
+
+msgid "Latest posts of your communities"
+msgstr "Dernières publications de vos communautés"
+
+msgid "Your feed is empty"
+msgstr "Votre fil est vide"
+
+msgid "Join communities to see their latest posts here."
+msgstr "Rejoignez des communautés pour voir ici leurs dernières publications."
+
+msgid "Browse communities"
+msgstr "Parcourir les communautés"
+
+#, python-format
+msgid "Revisions of “%(title)s”"
+msgstr "Révisions de « %(title)s »"
+
+msgid "Earlier versions of the title and body, newest first."
+msgstr ""
+"Versions antérieures du titre et du contenu, de la plus récente à la plus "
+"ancienne."
+
+msgid "Unknown editor"
+msgstr "Auteur de la modification inconnu"
+
+msgid "No revisions"
+msgstr "Aucune révision"
+
+msgid "This post has not been edited since it was published."
+msgstr "Cette publication n’a pas été modifiée depuis sa publication."
+
+msgid "All"
+msgstr "Tout"
+
+msgid "Discussions"
+msgstr "Discussions"
+
+msgid "Questions"
+msgstr "Questions"
+
+msgid "Announcements"
+msgstr "Annonces"
+
+msgid "Articles"
+msgstr "Articles"
+
+msgid "Unanswered questions"
+msgstr "Questions sans réponse"
+
+msgid "No posts yet"
+msgstr "Aucune publication pour l’instant"
+
+msgid "No discussions yet"
+msgstr "Aucune discussion pour l’instant"
+
+msgid "No questions yet"
+msgstr "Aucune question pour l’instant"
+
+msgid "No announcements yet"
+msgstr "Aucune annonce pour l’instant"
+
+msgid "No articles yet"
+msgstr "Aucun article pour l’instant"
+
+msgid "No unanswered questions"
+msgstr "Aucune question sans réponse"
+
+msgid "Be the first to start a conversation in this community."
+msgstr "Lancez la première conversation de cette communauté."
+
+msgid "Posts matching this filter will appear here."
+msgstr "Les publications correspondant à ce filtre apparaîtront ici."

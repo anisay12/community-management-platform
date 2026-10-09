@@ -12,6 +12,7 @@ from communities.tabs import tabs_for
 from core import navigation
 from core.errors import DomainError
 from posts import tasks
+from posts.apps import _routable
 from posts.models import Comment, Post
 from posts.privacy import anonymize_author
 from posts.views_errors import domain_error_response
@@ -23,8 +24,11 @@ def _labels(user, community):
     return [str(label) for label, _url, _active in tabs_for(user, community, "about")]
 
 
-def test_feed_tab_hidden_until_the_feed_route_exists(make_community, active_user):
+def test_feed_tab_hidden_while_the_feed_route_is_missing(monkeypatch, make_community, active_user):
     community = make_community()
+    assert _labels(active_user, community)[0] == "Feed"
+    assert not _routable("posts:missing")
+    monkeypatch.setattr("posts.apps._routable", lambda *args: False)
     assert "Feed" not in _labels(active_user, community)
 
 
@@ -42,12 +46,12 @@ def test_feed_tab_first_and_for_content_readers_only(
     assert "Feed" not in _labels(AnonymousUser(), open_community)
 
 
-def test_navigation_entries_hidden_until_routes_exist(rf, active_user):
+def test_navigation_entries_shown_once_routes_exist(rf, active_user):
     request = rf.get("/")
     request.user = active_user
     keys = [item.key for item in navigation.items_for(request)]
-    assert "home_feed" not in keys
-    assert "bookmarks" not in keys
+    assert keys.index("home_feed") == keys.index("communities") + 1
+    assert "bookmarks" not in keys  # Until Task 6 ships the bookmarks page.
 
 
 def _request(method="get", **headers):
