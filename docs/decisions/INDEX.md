@@ -1,6 +1,6 @@
-# Décisions d'architecture (ADR)
+# Architecture decisions (ADR)
 
-| N° | Titre | Statut | Date |
+| No. | Title | Status | Date |
 |---|---|---|---|
-| [ADR-0001](ADR-0001-fichiers-prives-via-nginx-x-accel-redirect.md) | Servir les fichiers privés via Nginx (X-Accel-Redirect) | Accepté | 2026-10-09 |
-| [ADR-0002](ADR-0002-modes-authentification-et-liaison-sso.md) | Modes d'authentification et liaison SSO par identifiant immuable | Accepté | 2026-10-09 |
+| [ADR-0001](ADR-0001-private-files-via-nginx-x-accel-redirect.md) | Serve private files through Nginx (X-Accel-Redirect) | Accepted | 2026-10-09 |
+| [ADR-0002](ADR-0002-authentication-modes-and-sso-linking.md) | Authentication modes and SSO linking by immutable identifier | Accepted | 2026-10-09 |

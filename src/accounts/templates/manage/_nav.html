@@ -1,0 +1,5 @@
+{% load i18n %}<nav aria-label="{% translate 'Administration' %}" class="subnav">
+  <a href="{% url 'manage:user_list' %}">{% translate "Users" %}</a>
+  <a href="{% url 'manage:user_create' %}">{% translate "Create a user" %}</a>
+  <a href="{% url 'manage:user_import' %}">{% translate "Import users" %}</a>
+</nav>

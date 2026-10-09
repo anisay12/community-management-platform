@@ -1,6 +1,6 @@
 name: talan-communities
 
-# Images tierces épinglées par digest, via le miroir Docker Hub de Google (mirror.gcr.io).
+# Third-party images pinned by digest, via Google's Docker Hub mirror (mirror.gcr.io).
 x-app: &app
   build:
     context: .
@@ -69,7 +69,7 @@ services:
         b = os.environ["S3_BUCKET"]
         if b not in {x["Name"] for x in c.list_buckets().get("Buckets", [])}:
             c.create_bucket(Bucket=b)
-        print("bucket prêt :", b)
+        print("bucket ready:", b)
     restart: "no"
 
   clamav:

@@ -12,7 +12,7 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(
         not os.environ.get("S3_INTEGRATION_ENDPOINT"),
-        reason="nécessite un stockage S3-compatible (exécuté en CI et via `make test-integration`)",
+        reason="requires an S3-compatible storage (run in CI and via `make test-integration`)",
     ),
 ]
 

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "My data" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "My data" %}</h1>
+  <p>{% translate "You can download a copy of the personal data the platform holds about you, as a JSON file." %}</p>
+  {% if export %}
+    {% if downloadable %}
+      <p>{% blocktranslate with expires=export.expires_at %}Your copy is ready. It can be downloaded until {{ expires }}.{% endblocktranslate %}</p>
+      <p><a class="button" href="{% url 'accounts:data_export_download' export.public_id %}">{% translate "Download my data" %}</a></p>
+    {% elif export.status == "pending" %}
+      <p>{% translate "Your copy is being prepared. Come back to this page in a few minutes." %}</p>
+    {% elif export.status == "failed" %}
+      <p class="message message-error">{% translate "Your copy could not be prepared. Please try again." %}</p>
+    {% else %}
+      <p>{% translate "Your previous copy has expired." %}</p>
+    {% endif %}
+  {% endif %}
+  {% if can_request %}
+    <form method="post" action="{% url 'accounts:data_export' %}">
+      {% csrf_token %}
+      <button type="submit">{% translate "Request a copy of my data" %}</button>
+    </form>
+  {% endif %}
+{% endblock %}

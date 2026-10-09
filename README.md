@@ -1,16 +1,16 @@
-# Plateforme Communautés TALAN
+# TALAN Communities Platform
 
-Plateforme interne de communautés professionnelles : communautés, contenus, documents, retours d'expérience, événements, puis formations et compétences.
+Internal platform for professional communities: communities, content, documents, lessons learned, events, then training and skills.
 
-**État : lot L0 livré (socle technique).** Aucune fonctionnalité métier n'est encore disponible. L'application démarre, se supervise et passe sa chaîne d'intégration continue ; les comptes, communautés et contenus arrivent dans les lots suivants (voir la spécification).
+**Status: work packages L0 (technical foundation) and L1 (accounts, roles, audit) delivered.** The application provides bilingual (English/French) accounts with roles, e-mail/password and Microsoft Entra single sign-on, mandatory TOTP for administrators, user administration with CSV import, profiles, personal data export and anonymization, and an append-only audit log. Communities and content arrive in the following work packages (see the specification).
 
-## Prérequis
+## Prerequisites
 
-- Docker ≥ 24 avec Docker Compose v2
-- [uv](https://docs.astral.sh/uv/) ≥ 0.4 (pour lancer les tests hors conteneur)
+- Docker ≥ 24 with Docker Compose v2
+- [uv](https://docs.astral.sh/uv/) ≥ 0.4 (to run tests outside a container)
 - Make
 
-## Démarrage rapide
+## Quick start
 
 ```bash
 cp .env.example .env
@@ -19,41 +19,44 @@ curl -fsS localhost:8000/readyz
 # {"status": "ok", "checks": {"database": true, "redis": true}}
 ```
 
-Les migrations ne sont jamais appliquées automatiquement par l'application : le service `migrate` les applique au démarrage de l'environnement de développement, et `docker compose run --rm migrate` les rejoue.
+Migrations are never applied automatically by the application: the `migrate` service applies them when the development environment starts, and `docker compose run --rm migrate` replays them.
 
-Derrière un proxy d'entreprise qui intercepte TLS, construire l'image en fournissant l'autorité de certification (elle n'est pas copiée dans l'image) :
+Behind a corporate proxy that intercepts TLS, build the image by supplying the certificate authority (it is not copied into the image):
 
 ```bash
-docker build --secret id=extra_ca,src=/chemin/ca.pem -f docker/Dockerfile --target runtime -t talan-communities:dev .
+docker build --secret id=extra_ca,src=/path/ca.pem -f docker/Dockerfile --target runtime -t talan-communities:dev .
 docker compose up -d --no-build --wait
 ```
 
-## Commandes utiles
+## Useful commands
 
-| Commande | Effet |
+| Command | Effect |
 |---|---|
-| `make lint` | Ruff (lint + format) et détection des migrations manquantes |
-| `make test` | Migrations sur base vide, tests et couverture (seuil 85 %) |
-| `make test-integration` | Test du stockage S3 privé (variables `S3_INTEGRATION_*` requises) |
-| `make security` | Audit des dépendances, Bandit, recherche de secrets (gitleaks) |
-| `make image` | Construction de l'image, scan Trivy, validation de la configuration Nginx |
-| `make ci` | Toute la chaîne, comme en intégration continue |
+| `make lint` | Ruff (lint + format) and detection of missing migrations |
+| `make test` | Migrations on an empty database, tests and coverage (85% threshold) |
+| `make i18n-check` | Fails if the French catalogue is incomplete or out of date |
+| `make messages` | Extracts and compiles translations |
+| `make dev-admin` | Creates a development administrator (`EMAIL=you@example.com`) |
+| `make test-integration` | Private S3 storage test (`S3_INTEGRATION_*` variables required) |
+| `make security` | Dependency audit, Bandit, secret scanning (gitleaks) |
+| `make image` | Image build, Trivy scan, Nginx configuration validation |
+| `make ci` | The whole pipeline, as in continuous integration |
 
-`make test` attend PostgreSQL sur `localhost:5432` (base `talan_test`, utilisateur `postgres`) et Redis sur `localhost:6379`, ou les URL fournies par `DATABASE_URL` et `REDIS_URL`.
+`make test` expects PostgreSQL on `localhost:5432` (database `talan_test`, user `postgres`) and Redis on `localhost:6379`, or the URLs provided by `DATABASE_URL` and `REDIS_URL`.
 
-## Services locaux
+## Local services
 
-| Service | Adresse |
+| Service | Address |
 |---|---|
 | Application | http://localhost:8000 |
-| Stockage S3 (SeaweedFS) | http://localhost:8333 |
-| Mailpit (e-mails de développement) | http://localhost:8025 |
+| S3 storage (SeaweedFS) | http://localhost:8333 |
+| Mailpit (development e-mails) | http://localhost:8025 |
 | PostgreSQL | localhost:5432 |
 | Redis | localhost:6379 |
 
 ## Documentation
 
-- [Cadrage du projet](docs/cadrage.md)
-- [Spécification du MVP](.internal/specs/2026-10-09-mvp-connaissance-design.md)
-- [Décisions d'architecture (ADR)](docs/decisions/INDEX.md)
-- [Guide de développement](docs/development.md)
+- [Project framing](docs/framing.md)
+- [MVP specification](.internal/specs/2026-10-09-mvp-knowledge-design.md)
+- [Architecture decisions (ADR)](docs/decisions/INDEX.md)
+- [Development guide](docs/development.md)

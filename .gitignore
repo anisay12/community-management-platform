@@ -8,3 +8,5 @@ htmlcov/
 .pytest_cache/
 .ruff_cache/
 .audit-requirements.txt
+.internal/sdd/
+*.mo

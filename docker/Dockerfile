@@ -1,29 +1,35 @@
 # syntax=docker/dockerfile:1.7
-# Images épinglées par digest. Miroir Docker Hub de Google pour éviter les limites de débit.
+# Images pinned by digest. Google's Docker Hub mirror avoids rate limits.
 ARG PYTHON_IMAGE=mirror.gcr.io/library/python:3.13-slim@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c
 
 FROM ${PYTHON_IMAGE} AS build
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never PIP_NO_CACHE_DIR=1
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-# Proxy d'entreprise : fournir son autorité de certification avec
-# `--secret id=extra_ca,src=<bundle.pem>` (facultatif, jamais copié dans l'image).
+# Corporate proxy: provide the certificate authority with
+# `--secret id=extra_ca,src=<bundle.pem>` (optional, never copied into the image).
 RUN --mount=type=secret,id=extra_ca,required=false \
     if [ -f /run/secrets/extra_ca ]; then \
       export SSL_CERT_FILE=/run/secrets/extra_ca PIP_CERT=/run/secrets/extra_ca; \
     fi; \
     pip install --disable-pip-version-check uv==0.11.32 \
     && uv sync --frozen --no-dev --no-install-project
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends gettext \
+    && rm -rf /var/lib/apt/lists/*
 COPY manage.py ./
 COPY src ./src
-# Valeurs factices propres à collectstatic : non conservées dans l'image (pas d'ENV).
-RUN DJANGO_SETTINGS_MODULE=config.settings.prod \
+# Throwaway values for collectstatic and compilemessages: exported in this RUN only,
+# not kept in the image (no ENV) and absent from the runtime stage.
+RUN export DJANGO_SETTINGS_MODULE=config.settings.prod \
     DJANGO_SECRET_KEY=collectstatic-build-only \
     DJANGO_ALLOWED_HOSTS=localhost \
     DATABASE_URL=postgres://build:build@localhost:5432/build \
     REDIS_URL=redis://localhost:6379/0 \
     S3_BUCKET=build \
-    /app/.venv/bin/python manage.py collectstatic --noinput
+    AUDIT_IP_HASH_KEY=build-only-not-a-secret \
+    && /app/.venv/bin/python manage.py collectstatic --noinput \
+    && cd src && /app/.venv/bin/python ../manage.py compilemessages
 
 FROM ${PYTHON_IMAGE} AS runtime
 RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin app

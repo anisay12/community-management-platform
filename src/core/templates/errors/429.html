@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Too many requests" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "Too many requests" %}</h1>
+  <p>{% translate "Too many attempts. Please wait a moment and try again." %}</p>
+  <p><a href="{% url 'home' %}">{% translate "Back to the home page" %}</a></p>
+{% endblock %}

@@ -1,0 +1,935 @@
+# French translation of the Talan Communities platform.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Talan Communities\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-09 14:52+0200\n"
+"PO-Revision-Date: 2026-10-09 12:00+0000\n"
+"Last-Translator: Talan Communities\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Personal info"
+msgstr "Informations personnelles"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Permissions"
+msgstr "Permissions"
+
+msgid "Dates"
+msgstr "Dates"
+
+msgid "A user with this email address already exists."
+msgstr "Un utilisateur avec cette adresse e-mail existe déjà."
+
+msgid "Email"
+msgstr "E-mail"
+
+msgid "Invalid email or password."
+msgstr "E-mail ou mot de passe incorrect."
+
+msgid ""
+"Your account is not active yet. Check your activation email or contact an "
+"administrator."
+msgstr ""
+"Votre compte n’est pas encore actif. Consultez l’e-mail d’activation ou "
+"contactez un administrateur."
+
+msgid "Your account is suspended. Contact an administrator."
+msgstr "Votre compte est suspendu. Contactez un administrateur."
+
+msgid "Invalid code. Please try again."
+msgstr "Code invalide. Veuillez réessayer."
+
+msgid "Verification code"
+msgstr "Code de vérification"
+
+msgid "Roles"
+msgstr "Rôles"
+
+msgid "First name"
+msgstr "Prénom"
+
+msgid "Last name"
+msgstr "Nom"
+
+msgid "Unit"
+msgstr "Unité"
+
+msgid "Manager's email"
+msgstr "E-mail du manager"
+
+msgid "Requires a unit. The manager must already have an account."
+msgstr "Nécessite une unité. Le manager doit déjà avoir un compte."
+
+msgid "Suspend"
+msgstr "Suspendre"
+
+msgid "Reactivate"
+msgstr "Réactiver"
+
+msgid "Resend activation email"
+msgstr "Renvoyer l’e-mail d’activation"
+
+msgid "CSV file"
+msgstr "Fichier CSV"
+
+msgid ""
+"UTF-8, comma or semicolon separated, at most 5000 rows and 2 MB. First line: "
+"email,first_name,last_name,unit_code,manager_email"
+msgstr ""
+"UTF-8, séparateur virgule ou point-virgule, 5000 lignes et 2 Mo au maximum. "
+"Première ligne : email,first_name,last_name,unit_code,manager_email"
+
+#, python-format
+msgid ""
+"Separate interests with commas: at most %(max_interests)d, each up to "
+"%(max_length)d characters."
+msgstr ""
+"Séparez les centres d’intérêt par des virgules : %(max_interests)d au "
+"maximum, %(max_length)d caractères chacun au plus."
+
+msgid "Interests"
+msgstr "Centres d’intérêt"
+
+#, python-format
+msgid "Choose at most %(count)d interests."
+msgstr "Choisissez au plus %(count)d centres d’intérêt."
+
+#, python-format
+msgid "“%(name)s…” is too long: an interest has at most %(length)d characters."
+msgstr ""
+"« %(name)s… » est trop long : un centre d’intérêt compte au plus %(length)d "
+"caractères."
+
+msgid "Who can see your bio and your interests."
+msgstr "Qui peut voir votre présentation et vos centres d’intérêt."
+
+msgid "Let colleagues find you in the people directory."
+msgstr "Permettre à vos collègues de vous trouver dans l’annuaire."
+
+msgid "Time zone"
+msgstr "Fuseau horaire"
+
+msgid "“Automatic” follows your browser settings."
+msgstr "« Automatique » suit les réglages de votre navigateur."
+
+msgid "Pending"
+msgstr "En attente"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Suspended"
+msgstr "Suspendu"
+
+msgid "Deactivated"
+msgstr "Désactivé"
+
+msgid "public ID"
+msgstr "identifiant public"
+
+msgid "email address"
+msgstr "adresse e-mail"
+
+msgid "first name"
+msgstr "prénom"
+
+msgid "last name"
+msgstr "nom"
+
+msgid "status"
+msgstr "statut"
+
+msgid "staff status"
+msgstr "accès à l'administration"
+
+msgid "active"
+msgstr "actif"
+
+msgid "last seen at"
+msgstr "dernière activité le"
+
+msgid "activated at"
+msgstr "activé le"
+
+msgid "deactivated at"
+msgstr "désactivé le"
+
+msgid "anonymized at"
+msgstr "anonymisé le"
+
+msgid "created at"
+msgstr "créé le"
+
+msgid "updated at"
+msgstr "mis à jour le"
+
+msgid "user"
+msgstr "utilisateur"
+
+msgid "users"
+msgstr "utilisateurs"
+
+msgid "Former employee"
+msgstr "Ancien collaborateur"
+
+msgid "Unknown time zone."
+msgstr "Fuseau horaire inconnu."
+
+msgid "Only me"
+msgstr "Moi uniquement"
+
+msgid "Members of my communities"
+msgstr "Membres de mes communautés"
+
+msgid "Everyone in the company"
+msgstr "Toute l'entreprise"
+
+msgid "job title"
+msgstr "intitulé de poste"
+
+msgid "bio"
+msgstr "biographie"
+
+msgid "avatar"
+msgstr "avatar"
+
+msgid "time zone"
+msgstr "fuseau horaire"
+
+msgid "language"
+msgstr "langue"
+
+msgid "Automatic"
+msgstr "Automatique"
+
+msgid "interests"
+msgstr "centres d'intérêt"
+
+msgid "profile visibility"
+msgstr "visibilité du profil"
+
+msgid "discoverable"
+msgstr "visible dans l'annuaire"
+
+msgid "user profile"
+msgstr "profil utilisateur"
+
+msgid "user profiles"
+msgstr "profils utilisateurs"
+
+msgid "provider"
+msgstr "fournisseur"
+
+msgid "subject"
+msgstr "identifiant (sujet)"
+
+msgid "last login at"
+msgstr "dernière connexion le"
+
+msgid "external identity"
+msgstr "identité externe"
+
+msgid "external identities"
+msgstr "identités externes"
+
+msgid "session key"
+msgstr "clé de session"
+
+msgid "user session"
+msgstr "session utilisateur"
+
+msgid "user sessions"
+msgstr "sessions utilisateur"
+
+msgid "Being prepared"
+msgstr "En cours de préparation"
+
+msgid "Ready"
+msgstr "Prêt"
+
+msgid "Failed"
+msgstr "Échec"
+
+msgid "file"
+msgstr "fichier"
+
+msgid "expires at"
+msgstr "expire le"
+
+msgid "data export"
+msgstr "export de données"
+
+msgid "data exports"
+msgstr "exports de données"
+
+msgid ""
+"Single sign-on did not complete. If your account is new or inactive, contact "
+"an administrator."
+msgstr ""
+"La connexion unique n’a pas abouti. Si votre compte est nouveau ou inactif, "
+"contactez un administrateur."
+
+msgid "Only a deactivated account can be anonymized."
+msgstr "Seul un compte désactivé peut être anonymisé."
+
+msgid ""
+"Only a superuser can anonymize a superuser, a staff member or a technical "
+"administrator."
+msgstr ""
+"Seul un superutilisateur peut anonymiser un superutilisateur, un membre du "
+"staff ou un administrateur technique."
+
+msgid "Employee"
+msgstr "Collaborateur"
+
+msgid "Community creator"
+msgstr "Créateur de communauté"
+
+msgid "Functional administrator"
+msgstr "Administrateur fonctionnel"
+
+msgid "Technical administrator"
+msgstr "Administrateur technique"
+
+msgid "Auditor"
+msgstr "Auditeur"
+
+#, python-format
+msgid "Unknown role: %s."
+msgstr "Rôle inconnu : %s."
+
+msgid "Only a superuser can grant or revoke the technical administrator role."
+msgstr ""
+"Seul un superutilisateur peut attribuer ou retirer le rôle d’administrateur "
+"technique."
+
+msgid ""
+"Only a superuser can change the status or the roles of a superuser, a staff "
+"member or a technical administrator."
+msgstr ""
+"Seul un superutilisateur peut modifier le statut ou les rôles d’un "
+"superutilisateur, d’un membre du staff ou d’un administrateur technique."
+
+#, python-format
+msgid "Invalid email address: “%s”."
+msgstr "Adresse e-mail invalide : « %s »."
+
+#, python-format
+msgid "An account already exists for %s."
+msgstr "Un compte existe déjà pour %s."
+
+msgid "The first name is required."
+msgstr "Le prénom est obligatoire."
+
+msgid "The last name is required."
+msgstr "Le nom est obligatoire."
+
+msgid "Names are limited to 150 characters."
+msgstr "Les noms sont limités à 150 caractères."
+
+msgid "A user cannot be their own manager."
+msgstr "Un utilisateur ne peut pas être son propre manager."
+
+msgid "A manager can only be set with a unit."
+msgstr "Un manager ne peut être indiqué qu’avec une unité."
+
+#, python-format
+msgid "Unknown manager: %s."
+msgstr "Manager inconnu : %s."
+
+msgid "You cannot do this to your own account."
+msgstr "Vous ne pouvez pas effectuer cette action sur votre propre compte."
+
+#, python-format
+msgid "This action is not possible for an account with status “%(status)s”."
+msgstr "Cette action est impossible pour un compte au statut « %(status)s »."
+
+msgid "The file is larger than 2 MB."
+msgstr "Le fichier dépasse 2 Mo."
+
+msgid "The file must be encoded in UTF-8."
+msgstr "Le fichier doit être encodé en UTF-8."
+
+msgid "The file is not a valid CSV file."
+msgstr "Le fichier n’est pas un fichier CSV valide."
+
+#, python-format
+msgid "The first line must be exactly: %s"
+msgstr "La première ligne doit être exactement : %s"
+
+#, python-format
+msgid "The file has more than %(max)d rows."
+msgstr "Le fichier contient plus de %(max)d lignes."
+
+#, python-format
+msgid "Expected %(count)d columns."
+msgstr "%(count)d colonnes sont attendues."
+
+msgid "The file contains no users."
+msgstr "Le fichier ne contient aucun utilisateur."
+
+#, python-format
+msgid "%(email)s is already listed on line %(line)d."
+msgstr "%(email)s figure déjà à la ligne %(line)d."
+
+#, python-format
+msgid "Unknown unit code: “%s”."
+msgstr "Code d’unité inconnu : « %s »."
+
+#, python-format
+msgid ""
+"%s could not be created because the data changed during the import. Import "
+"the file again."
+msgstr ""
+"%s n’a pas pu être créé, car les données ont changé pendant l’import. "
+"Importez de nouveau le fichier."
+
+msgid "Activate your account"
+msgstr "Activer votre compte"
+
+msgid "Communities"
+msgstr "Communautés"
+
+msgid "Choose the password you will use to sign in."
+msgstr "Choisissez le mot de passe que vous utiliserez pour vous connecter."
+
+msgid "Activate my account"
+msgstr "Activer mon compte"
+
+msgid "Invalid link"
+msgstr "Lien invalide"
+
+msgid ""
+"This activation link is invalid, has expired or has already been used. "
+"Contact an administrator to receive a new one."
+msgstr ""
+"Ce lien d’activation est invalide, a expiré ou a déjà été utilisé. Contactez "
+"un administrateur pour en recevoir un nouveau."
+
+msgid "Back to sign in"
+msgstr "Retour à la connexion"
+
+msgid "My data"
+msgstr "Mes données"
+
+msgid ""
+"You can download a copy of the personal data the platform holds about you, "
+"as a JSON file."
+msgstr ""
+"Vous pouvez télécharger une copie des données personnelles que la plateforme "
+"détient à votre sujet, au format JSON."
+
+#, python-format
+msgid "Your copy is ready. It can be downloaded until %(expires)s."
+msgstr ""
+"Votre copie est prête. Elle peut être téléchargée jusqu’au %(expires)s."
+
+msgid "Download my data"
+msgstr "Télécharger mes données"
+
+msgid "Your copy is being prepared. Come back to this page in a few minutes."
+msgstr ""
+"Votre copie est en cours de préparation. Revenez sur cette page dans "
+"quelques minutes."
+
+msgid "Your copy could not be prepared. Please try again."
+msgstr "Votre copie n’a pas pu être préparée. Veuillez réessayer."
+
+msgid "Your previous copy has expired."
+msgstr "Votre copie précédente a expiré."
+
+msgid "Request a copy of my data"
+msgstr "Demander une copie de mes données"
+
+msgid "Sign in"
+msgstr "Se connecter"
+
+msgid "Sign in with your Talan account"
+msgstr "Se connecter avec votre compte Talan"
+
+msgid "Forgot your password?"
+msgstr "Mot de passe oublié ?"
+
+msgid "Emergency access"
+msgstr "Accès de secours"
+
+msgid "Set up two-step verification"
+msgstr "Configurer la validation en deux étapes"
+
+msgid ""
+"Your role gives you access to sensitive features, so your account must be "
+"protected by a second factor."
+msgstr ""
+"Votre rôle vous donne accès à des fonctions sensibles : votre compte doit "
+"donc être protégé par un second facteur."
+
+msgid ""
+"Scan this QR code with an authenticator app (for example Microsoft "
+"Authenticator or FreeOTP)."
+msgstr ""
+"Scannez ce code QR avec une application d’authentification (par exemple "
+"Microsoft Authenticator ou FreeOTP)."
+
+msgid "Enter the 6-digit code shown by the app to confirm."
+msgstr ""
+"Saisissez le code à 6 chiffres affiché par l’application pour confirmer."
+
+msgid "Cannot scan the code? Enter this key manually:"
+msgstr "Impossible de scanner le code ? Saisissez cette clé manuellement :"
+
+msgid "Confirm"
+msgstr "Confirmer"
+
+msgid "Two-step verification"
+msgstr "Validation en deux étapes"
+
+msgid "Enter the 6-digit code shown by your authenticator app."
+msgstr ""
+"Saisissez le code à 6 chiffres affiché par votre application "
+"d’authentification."
+
+msgid "Verify"
+msgstr "Vérifier"
+
+msgid "Password changed"
+msgstr "Mot de passe modifié"
+
+msgid "Your password has been changed. You can now sign in."
+msgstr ""
+"Votre mot de passe a été modifié. Vous pouvez maintenant vous connecter."
+
+msgid "Choose a new password"
+msgstr "Choisir un nouveau mot de passe"
+
+msgid "Change my password"
+msgstr "Modifier mon mot de passe"
+
+msgid ""
+"This password reset link is invalid or has expired. Please request a new one."
+msgstr ""
+"Ce lien de réinitialisation du mot de passe est invalide ou a expiré. "
+"Veuillez en demander un nouveau."
+
+msgid "Request a new link"
+msgstr "Demander un nouveau lien"
+
+msgid "Check your email"
+msgstr "Consultez vos e-mails"
+
+msgid ""
+"If an active account uses this address, you will receive an email with a "
+"link to reset your password. The link is valid for one hour."
+msgstr ""
+"Si un compte actif utilise cette adresse, vous recevrez un e-mail contenant "
+"un lien pour réinitialiser votre mot de passe. Ce lien est valable une heure."
+
+msgid "Reset your password"
+msgstr "Réinitialiser votre mot de passe"
+
+msgid ""
+"Enter the email address of your account. If it matches an active account, we "
+"will send you a link to choose a new password."
+msgstr ""
+"Saisissez l’adresse e-mail de votre compte. Si elle correspond à un compte "
+"actif, nous vous enverrons un lien pour choisir un nouveau mot de passe."
+
+msgid "Send the link"
+msgstr "Envoyer le lien"
+
+msgid "Preferences"
+msgstr "Préférences"
+
+msgid "Save"
+msgstr "Enregistrer"
+
+msgid "Download a copy of my data"
+msgstr "Télécharger une copie de mes données"
+
+#, python-format
+msgid "Account status: %(status)s"
+msgstr "Statut du compte : %(status)s"
+
+msgid "Last seen"
+msgstr "Dernière activité"
+
+msgid "About"
+msgstr "À propos"
+
+msgid "Edit my profile"
+msgstr "Modifier mon profil"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+#, python-format
+msgid "Hello %(first_name)s,"
+msgstr "Bonjour %(first_name)s,"
+
+msgid "Hello,"
+msgstr "Bonjour,"
+
+msgid ""
+"An account has been created for you on Talan Communities. To activate it and "
+"choose your password, open this link:"
+msgstr ""
+"Un compte a été créé pour vous sur la plateforme Communautés de Talan. Pour "
+"l’activer et choisir votre mot de passe, ouvrez ce lien :"
+
+#, python-format
+msgid "This link is valid for %(hours)s hour and can be used only once."
+msgid_plural ""
+"This link is valid for %(hours)s hours and can be used only once."
+msgstr[0] ""
+"Ce lien est valable %(hours)s heure et ne peut être utilisé qu’une seule "
+"fois."
+msgstr[1] ""
+"Ce lien est valable %(hours)s heures et ne peut être utilisé qu’une seule "
+"fois."
+
+msgid ""
+"We received a request to reset the password of your Talan Communities "
+"account. To choose a new password, open this link:"
+msgstr ""
+"Nous avons reçu une demande de réinitialisation du mot de passe de votre "
+"compte sur la plateforme Communautés de Talan. Pour choisir un nouveau mot "
+"de passe, ouvrez ce lien :"
+
+msgid ""
+"This link is valid for one hour and can be used only once. If you did not "
+"ask for this, you can ignore this email: your password will not change."
+msgstr ""
+"Ce lien est valable une heure et ne peut être utilisé qu’une seule fois. Si "
+"vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot "
+"de passe ne sera pas modifié."
+
+msgid "There is a problem"
+msgstr "Il y a un problème"
+
+msgid "Administration"
+msgstr "Administration"
+
+msgid "Users"
+msgstr "Utilisateurs"
+
+msgid "Create a user"
+msgstr "Créer un utilisateur"
+
+msgid "Import users"
+msgstr "Importer des utilisateurs"
+
+msgid "Anonymize the account"
+msgstr "Anonymiser le compte"
+
+#, python-format
+msgid "You are about to anonymize the account of %(name)s (%(email)s)."
+msgstr "Vous êtes sur le point d’anonymiser le compte de %(name)s (%(email)s)."
+
+msgid ""
+"The name, email address, profile, organization details, sign-in methods and "
+"data exports of the account are erased."
+msgstr ""
+"Le nom, l’adresse e-mail, le profil, les informations d’organisation, les "
+"moyens de connexion et les exports de données du compte sont effacés."
+
+msgid ""
+"The person appears as “Former employee” wherever their contributions remain."
+msgstr ""
+"La personne apparaît comme « Ancien collaborateur » partout où ses "
+"contributions subsistent."
+
+msgid "Anonymization cannot be undone."
+msgstr "L’anonymisation est irréversible."
+
+msgid "Deactivate the account"
+msgstr "Désactiver le compte"
+
+#, python-format
+msgid "You are about to deactivate the account of %(name)s (%(email)s)."
+msgstr ""
+"Vous êtes sur le point de désactiver le compte de %(name)s (%(email)s)."
+
+msgid ""
+"All of the person's sessions end immediately and they can no longer sign in."
+msgstr ""
+"Toutes les sessions de la personne prennent fin immédiatement et elle ne "
+"peut plus se connecter."
+
+msgid "Deactivation cannot be undone in the application."
+msgstr "La désactivation ne peut pas être annulée dans l’application."
+
+msgid ""
+"The account's personal data will be anonymized after the retention period."
+msgstr ""
+"Les données personnelles du compte seront anonymisées à l’issue de la durée "
+"de conservation."
+
+msgid "Manager"
+msgstr "Manager"
+
+msgid "Created"
+msgstr "Créé le"
+
+msgid "Deactivate"
+msgstr "Désactiver"
+
+msgid "Anonymize"
+msgstr "Anonymiser"
+
+msgid "Save roles"
+msgstr "Enregistrer les rôles"
+
+msgid "Only a superuser can change the status or the roles of this account."
+msgstr ""
+"Seul un superutilisateur peut modifier le statut ou les rôles de ce compte."
+
+msgid "Create and send the activation email"
+msgstr "Créer et envoyer l’e-mail d’activation"
+
+msgid ""
+"Every line is checked first: if any line is invalid, no account is created."
+msgstr ""
+"Toutes les lignes sont d’abord vérifiées : si une seule est invalide, aucun "
+"compte n’est créé."
+
+msgid "Import"
+msgstr "Importer"
+
+msgid "Import result"
+msgstr "Résultat de l’import"
+
+msgid "The file was not imported"
+msgstr "Le fichier n’a pas été importé"
+
+msgid "No account was created. Fix the lines below and import the file again."
+msgstr ""
+"Aucun compte n’a été créé. Corrigez les lignes ci-dessous puis importez de "
+"nouveau le fichier."
+
+msgid "Line"
+msgstr "Ligne"
+
+msgid "Problem"
+msgstr "Problème"
+
+#, python-format
+msgid "%(counter)s more problem is not shown."
+msgid_plural "%(counter)s more problems are not shown."
+msgstr[0] "%(counter)s autre problème n’est pas affiché."
+msgstr[1] "%(counter)s autres problèmes ne sont pas affichés."
+
+#, python-format
+msgid "%(counter)s account was created and invited by email."
+msgid_plural "%(counter)s accounts were created and invited by email."
+msgstr[0] "%(counter)s compte a été créé et invité par e-mail."
+msgstr[1] "%(counter)s comptes ont été créés et invités par e-mail."
+
+msgid "Import another file"
+msgstr "Importer un autre fichier"
+
+msgid "Search"
+msgstr "Rechercher"
+
+msgid "All statuses"
+msgstr "Tous les statuts"
+
+msgid "Filter"
+msgstr "Filtrer"
+
+#, python-format
+msgid "%(counter)s user"
+msgid_plural "%(counter)s users"
+msgstr[0] "%(counter)s utilisateur"
+msgstr[1] "%(counter)s utilisateurs"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Pagination"
+msgstr "Pagination"
+
+msgid "Previous"
+msgstr "Précédent"
+
+#, python-format
+msgid "Page %(number)s of %(total)s"
+msgstr "Page %(number)s sur %(total)s"
+
+msgid "Next"
+msgstr "Suivant"
+
+msgid "Your account is active. You can now sign in."
+msgstr "Votre compte est actif. Vous pouvez maintenant vous connecter."
+
+msgid "Your account is active. Welcome!"
+msgstr "Votre compte est actif. Bienvenue !"
+
+msgid "The account has been suspended."
+msgstr "Le compte a été suspendu."
+
+msgid "The account has been reactivated."
+msgstr "Le compte a été réactivé."
+
+msgid "A new activation email has been sent."
+msgstr "Un nouvel e-mail d’activation a été envoyé."
+
+msgid "The account has been created and an activation email sent."
+msgstr "Le compte a été créé et un e-mail d’activation envoyé."
+
+msgid "Select valid roles."
+msgstr "Sélectionnez des rôles valides."
+
+msgid "The roles have been updated."
+msgstr "Les rôles ont été mis à jour."
+
+msgid "This account is already deactivated."
+msgstr "Ce compte est déjà désactivé."
+
+msgid "The account has been deactivated."
+msgstr "Le compte a été désactivé."
+
+msgid "This account is already anonymized."
+msgstr "Ce compte est déjà anonymisé."
+
+msgid "The account has been anonymized."
+msgstr "Le compte a été anonymisé."
+
+msgid "QR code"
+msgstr "Code QR"
+
+msgid "Your data is being prepared. Come back to this page in a few minutes."
+msgstr ""
+"Vos données sont en cours de préparation. Revenez sur cette page dans "
+"quelques minutes."
+
+msgid "Your profile has been updated."
+msgstr "Votre profil a été mis à jour."
+
+msgid "Your preferences have been saved."
+msgstr "Vos préférences ont été enregistrées."
+
+msgid "actor"
+msgstr "acteur"
+
+msgid "action"
+msgstr "action"
+
+msgid "target type"
+msgstr "type de cible"
+
+msgid "target identifier"
+msgstr "identifiant de la cible"
+
+msgid "community identifier"
+msgstr "identifiant de la communauté"
+
+msgid "changes"
+msgstr "modifications"
+
+msgid "IP hash"
+msgstr "empreinte de l'adresse IP"
+
+msgid "request identifier"
+msgstr "identifiant de requête"
+
+msgid "audit event"
+msgstr "événement d'audit"
+
+msgid "audit events"
+msgstr "événements d'audit"
+
+msgid "Skip to main content"
+msgstr "Aller au contenu principal"
+
+msgid "My profile"
+msgstr "Mon profil"
+
+msgid "Sign out"
+msgstr "Se déconnecter"
+
+msgid "Language"
+msgstr "Langue"
+
+msgid "Change"
+msgstr "Changer"
+
+#, python-format
+msgid "Hello, %(name)s."
+msgstr "Bonjour, %(name)s."
+
+msgid "Welcome to the Talan communities platform."
+msgstr "Bienvenue sur la plateforme des communautés Talan."
+
+msgid "Access denied"
+msgstr "Accès refusé"
+
+msgid "You do not have permission to view this page."
+msgstr "Vous n'avez pas l'autorisation de consulter cette page."
+
+msgid "Back to the home page"
+msgstr "Retour à l'accueil"
+
+msgid "Page not found"
+msgstr "Page introuvable"
+
+msgid "The page you are looking for does not exist."
+msgstr "La page que vous recherchez n'existe pas."
+
+msgid "Too many requests"
+msgstr "Trop de requêtes"
+
+msgid "Too many attempts. Please wait a moment and try again."
+msgstr "Trop de tentatives. Veuillez patienter un instant puis réessayer."
+
+msgid "Reference"
+msgstr "Référence"
+
+msgid "Server error"
+msgstr "Erreur serveur"
+
+msgid "Something went wrong on our side. Please try again later."
+msgstr "Une erreur est survenue de notre côté. Veuillez réessayer plus tard."
+
+msgid "name"
+msgstr "nom"
+
+msgid "code"
+msgstr "code"
+
+msgid "parent unit"
+msgstr "unité parente"
+
+msgid "organization unit"
+msgstr "unité organisationnelle"
+
+msgid "organization units"
+msgstr "unités organisationnelles"
+
+msgid "unit"
+msgstr "unité"
+
+msgid "manager"
+msgstr "manager"
+
+msgid "employment"
+msgstr "affectation"
+
+msgid "employments"
+msgstr "affectations"
+
+msgid "slug"
+msgstr "identifiant URL"
+
+msgid "tag"
+msgstr "tag"
+
+msgid "tags"
+msgstr "tags"

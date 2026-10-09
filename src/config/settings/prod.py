@@ -4,7 +4,7 @@ from .base import *
 
 DEBUG = False
 if not ALLOWED_HOSTS:
-    raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS doit lister au moins un nom d'hôte.")
+    raise ImproperlyConfigured("DJANGO_ALLOWED_HOSTS must list at least one host name.")
 
 CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS]
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -21,5 +21,5 @@ SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = "DENY"
 
-# Préchargement HSTS : décision de la DSI Talan (domaine partagé).
-SILENCED_SYSTEM_CHECKS = ["security.W021"]
+# HSTS preload: decision of Talan IT (shared domain).
+SILENCED_SYSTEM_CHECKS = [*SILENCED_SYSTEM_CHECKS, "security.W021"]

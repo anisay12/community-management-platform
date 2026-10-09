@@ -1,0 +1,8 @@
+{% load i18n %}{% autoescape off %}{% if first_name %}{% blocktranslate %}Hello {{ first_name }},{% endblocktranslate %}{% else %}{% translate "Hello," %}{% endif %}
+
+{% translate "An account has been created for you on Talan Communities. To activate it and choose your password, open this link:" %}
+
+{{ activation_url }}
+
+{% blocktranslate count hours=expiry_hours %}This link is valid for {{ hours }} hour and can be used only once.{% plural %}This link is valid for {{ hours }} hours and can be used only once.{% endblocktranslate %}
+{% endautoescape %}

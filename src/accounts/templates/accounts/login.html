@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Sign in" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "Sign in" %}</h1>
+  {% if sso_enabled %}{% url 'oidc_authentication_init' as sso_url %}{% endif %}
+  {% if sso_url %}
+    <p><a class="button" href="{{ sso_url }}{% if next %}?next={{ next|urlencode:'' }}{% endif %}">{% translate "Sign in with your Talan account" %}</a></p>
+  {% endif %}
+  {% if show_password_form %}
+    <form method="post" action="{% url 'accounts:login' %}" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+      <button type="submit">{% translate "Sign in" %}</button>
+    </form>
+    {% if password_reset_enabled %}
+      <p><a href="{% url 'accounts:password_reset' %}">{% translate "Forgot your password?" %}</a></p>
+    {% endif %}
+  {% else %}
+    <p><small><a href="?local=1{% if next %}&amp;next={{ next|urlencode:'' }}{% endif %}">{% translate "Emergency access" %}</a></small></p>
+  {% endif %}
+{% endblock %}
