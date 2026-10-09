@@ -96,7 +96,13 @@ def test_429_french(client):
 
 
 def test_home_greets_signed_in_user(client):
-    user = get_user_model().objects.create_user(username="alice", password="pw-123456-x")
+    user = get_user_model().objects.create_user(
+        "alice@example.com",
+        password="pw-123456-x",
+        first_name="Alice",
+        last_name="Doe",
+        status="active",
+    )
     client.force_login(user)
     response = client.get("/")
-    assert b"Hello, alice." in response.content
+    assert b"Hello, alice@example.com." in response.content

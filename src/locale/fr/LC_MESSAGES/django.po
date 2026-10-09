@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 12:21+0200\n"
+"POT-Creation-Date: 2026-10-09 12:29+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -13,6 +13,117 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+msgid "Personal info"
+msgstr "Informations personnelles"
+
+msgid "Status"
+msgstr "Statut"
+
+msgid "Permissions"
+msgstr "Permissions"
+
+msgid "Dates"
+msgstr "Dates"
+
+msgid "Pending"
+msgstr "En attente"
+
+msgid "Active"
+msgstr "Actif"
+
+msgid "Suspended"
+msgstr "Suspendu"
+
+msgid "Deactivated"
+msgstr "Désactivé"
+
+msgid "email address"
+msgstr "adresse e-mail"
+
+msgid "first name"
+msgstr "prénom"
+
+msgid "last name"
+msgstr "nom"
+
+msgid "status"
+msgstr "statut"
+
+msgid "staff status"
+msgstr "accès à l'administration"
+
+msgid "user"
+msgstr "utilisateur"
+
+msgid "users"
+msgstr "utilisateurs"
+
+msgid "Former employee"
+msgstr "Ancien collaborateur"
+
+msgid "Unknown time zone."
+msgstr "Fuseau horaire inconnu."
+
+msgid "Only me"
+msgstr "Moi uniquement"
+
+msgid "Members of my communities"
+msgstr "Membres de mes communautés"
+
+msgid "Everyone in the company"
+msgstr "Toute l'entreprise"
+
+msgid "job title"
+msgstr "intitulé de poste"
+
+msgid "bio"
+msgstr "biographie"
+
+msgid "avatar"
+msgstr "avatar"
+
+msgid "time zone"
+msgstr "fuseau horaire"
+
+msgid "language"
+msgstr "Langue"
+
+msgid "Automatic"
+msgstr "Automatique"
+
+msgid "profile visibility"
+msgstr "visibilité du profil"
+
+msgid "discoverable"
+msgstr "visible dans l'annuaire"
+
+msgid "user profile"
+msgstr "profil utilisateur"
+
+msgid "user profiles"
+msgstr "profils utilisateurs"
+
+msgid "external identity"
+msgstr "identité externe"
+
+msgid "external identities"
+msgstr "identités externes"
+
+msgid "Employee"
+msgstr "Collaborateur"
+
+msgid "Community creator"
+msgstr "Créateur de communauté"
+
+msgid "Functional administrator"
+msgstr "Administrateur fonctionnel"
+
+msgid "Technical administrator"
+msgstr "Administrateur technique"
+
+msgid "Auditor"
+msgstr "Auditeur"
 
 msgid "Communities"
 msgstr "Communautés"
@@ -65,3 +176,39 @@ msgstr "Erreur serveur"
 
 msgid "Something went wrong on our side. Please try again later."
 msgstr "Une erreur est survenue de notre côté. Veuillez réessayer plus tard."
+
+msgid "name"
+msgstr "nom"
+
+msgid "code"
+msgstr "code"
+
+msgid "parent unit"
+msgstr "unité parente"
+
+msgid "organization unit"
+msgstr "unité organisationnelle"
+
+msgid "organization units"
+msgstr "unités organisationnelles"
+
+msgid "unit"
+msgstr "unité"
+
+msgid "manager"
+msgstr "manager"
+
+msgid "employment"
+msgstr "affectation"
+
+msgid "employments"
+msgstr "affectations"
+
+msgid "slug"
+msgstr "identifiant URL"
+
+msgid "tag"
+msgstr "tag"
+
+msgid "tags"
+msgstr "tags"

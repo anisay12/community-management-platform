@@ -23,6 +23,9 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_prometheus",
     "core",
+    "taxonomy",
+    "organizations",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -71,6 +74,11 @@ CACHES = {
     }
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
+
+AUTH_USER_MODEL = "accounts.User"
+# Email uniqueness is enforced case-insensitively by a functional UniqueConstraint on
+# Lower("email"), which the auth system check cannot see.
+SILENCED_SYSTEM_CHECKS = ["auth.E003", "auth.W004"]
 
 LANGUAGE_CODE = "en"
 LANGUAGES = [("en", "English"), ("fr", "Français")]

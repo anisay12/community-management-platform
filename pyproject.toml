@@ -9,6 +9,7 @@ dependencies = [
     "django-prometheus>=2.3",
     "django-storages[s3]>=1.14",
     "gunicorn>=23",
+    "pillow>=12.3.0",
     "psycopg[binary]>=3.2",
     "redis>=5",
     "structlog>=24",
@@ -35,8 +36,11 @@ extend-exclude = [".internal", "docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM", "RUF"]
+# Django Meta/admin class attributes are mutable by convention.
+ignore = ["RUF012"]
 
 [tool.ruff.lint.per-file-ignores]
+"**/migrations/*" = ["E501"]
 "src/config/settings/*" = ["F403", "F405"]
 "src/config/settings/test.py" = ["F403", "F405", "S105"]
 "**/tests/**" = ["S101", "S105", "S106", "S310", "S603"]

@@ -22,4 +22,4 @@ CSRF_COOKIE_SECURE = True
 X_FRAME_OPTIONS = "DENY"
 
 # HSTS preload: decision of Talan IT (shared domain).
-SILENCED_SYSTEM_CHECKS = ["security.W021"]
+SILENCED_SYSTEM_CHECKS = [*SILENCED_SYSTEM_CHECKS, "security.W021"]
