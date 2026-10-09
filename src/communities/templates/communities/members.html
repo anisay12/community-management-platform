@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n component_tags %}
+{% block title %}{% translate "Members" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_header.html" %}
+  <h2 class="h4 mt-3">{% translate "Members" %}</h2>
+  <ul class="list-group mb-3">
+    {% for member in page_obj %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ member.user|member_name }}</span>
+        {% include "components/community_role_badge.html" with role=member.role %}
+      </li>
+    {% endfor %}
+  </ul>
+  {% querystring_without_page as querystring %}
+  {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
+{% endblock %}

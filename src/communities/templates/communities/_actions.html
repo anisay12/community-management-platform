@@ -1,0 +1,33 @@
+{% load i18n community_actions %}{% comment %}
+  Contextual membership actions of a community header (POST forms with CSRF).
+  Context: community, request.
+{% endcomment %}{% community_actions request.user community as actions %}
+{% if actions.membership %}
+  {% if actions.membership.role != "owner" or community.member_count > 1 %}
+    <form method="post" action="{% url 'communities:leave' community.slug %}">{% csrf_token %}
+      <button type="submit" class="btn btn-outline-danger"><i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>{% translate "Leave" %}</button>
+    </form>
+  {% endif %}
+{% elif actions.invitation %}
+  <form method="post" action="{% url 'communities:invitation_respond' actions.invitation.public_id %}" class="d-flex gap-2">{% csrf_token %}
+    <button type="submit" name="decision" value="accept" class="btn btn-primary">{% translate "Accept the invitation" %}</button>
+    <button type="submit" name="decision" value="decline" class="btn btn-outline-secondary">{% translate "Decline" %}</button>
+  </form>
+{% elif actions.pending_request %}
+  <form method="post" action="{% url 'communities:cancel_request' community.slug %}" class="d-flex align-items-center gap-2">{% csrf_token %}
+    <span class="badge text-bg-warning">{% translate "Request pending" %}</span>
+    <button type="submit" class="btn btn-outline-secondary">{% translate "Cancel my request" %}</button>
+  </form>
+{% elif actions.can_join %}
+  <form method="post" action="{% url 'communities:join' community.slug %}">{% csrf_token %}
+    {% if community.access_mode == "request" %}
+      <div class="mb-2">
+        <label class="form-label" for="join-message">{% translate "Message to the facilitators (optional)" %}</label>
+        <textarea class="form-control" id="join-message" name="message" rows="2" maxlength="{{ actions.max_length }}"></textarea>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1" aria-hidden="true"></i>{% translate "Request to join" %}</button>
+    {% else %}
+      <button type="submit" class="btn btn-primary"><i class="bi bi-person-plus me-1" aria-hidden="true"></i>{% translate "Join" %}</button>
+    {% endif %}
+  </form>
+{% endif %}

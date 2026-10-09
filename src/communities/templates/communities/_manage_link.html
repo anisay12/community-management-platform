@@ -1,0 +1,2 @@
+{% load i18n community_manage %}{% comment %}"Manage" link of the community header, for facilitators, leads and functional admins.{% endcomment %}
+{% community_manage_url community as manage_url %}{% if manage_url %}<a class="btn btn-outline-primary" href="{{ manage_url }}"><i class="bi bi-gear me-1" aria-hidden="true"></i>{% translate "Manage" %}</a>{% endif %}

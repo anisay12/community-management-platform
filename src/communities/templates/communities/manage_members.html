@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load i18n component_tags %}
+{% block title %}{% translate "Members" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_manage_tabs.html" %}
+  <h2 class="h4 mt-3">{% translate "Members" %}</h2>
+  <form method="get" class="row g-2 align-items-end mb-3" role="search">
+    <div class="col-12 col-md-6">
+      <label class="form-label" for="{{ form.q.id_for_label }}">{{ form.q.label }}</label>
+      {{ form.q }}
+    </div>
+    <div class="col-auto"><button type="submit" class="btn btn-outline-primary">{% translate "Search" %}</button></div>
+  </form>
+  {% if page_obj.object_list %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th scope="col">{% translate "Name" %}</th><th scope="col">{% translate "Role" %}</th><th scope="col"><span class="visually-hidden">{% translate "Actions" %}</span></th></tr></thead>
+        <tbody>
+          {% for member in page_obj %}
+            <tr>
+              <th scope="row" class="fw-normal">{{ member.user|member_name }}</th>
+              <td>
+                {% if can_change_roles and not read_only %}
+                  <form method="post" action="{% url 'communities:manage_member_role' community.slug member.user.public_id %}" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <label class="visually-hidden" for="role-{{ member.pk }}">{% blocktranslate with name=member.user|member_name %}Role of {{ name }}{% endblocktranslate %}</label>
+                    <select class="form-select form-select-sm w-auto" name="role" id="role-{{ member.pk }}">
+                      {% for value, label in role_choices %}<option value="{{ value }}"{% if value == member.role %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-outline-primary">{% translate "Change" %}</button>
+                  </form>
+                {% else %}
+                  {% include "components/community_role_badge.html" with role=member.role %}
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if member.removable and not read_only %}
+                  <form method="post" action="{% url 'communities:manage_member_remove' community.slug member.user.public_id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">{% blocktranslate with name=member.user|member_name %}Remove {{ name }}{% endblocktranslate %}</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% querystring_without_page as querystring %}
+    {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
+  {% else %}
+    {% translate "No member found" as empty_title %}
+    {% include "components/empty_state.html" with icon="people" title=empty_title %}
+  {% endif %}
+{% endblock %}

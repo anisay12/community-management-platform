@@ -12,6 +12,7 @@ from accounts.models import User
 from audit.models import AuditEvent, AuditImmutableError
 from audit.services import record
 from audit.tasks import purge_audit_events
+from communities.models import Community, CommunityCategory
 from core.context import bind_request, clear_request, set_user
 
 pytestmark = pytest.mark.django_db
@@ -76,11 +77,14 @@ def test_anonymous_actor_is_stored_as_none():
 
 
 def test_community_id_and_changes_are_stored():
+    community = Community.objects.create(
+        name="C", slug="c", tagline="t", category=CommunityCategory.objects.first()
+    )
     event = record(
-        actor=None, action="x.y", target=("thing", "1"), changes={"a": 1}, community_id=7
+        actor=None, action="x.y", target=("thing", "1"), changes={"a": 1}, community_id=community.pk
     )
     event.refresh_from_db()
-    assert event.community_id == 7
+    assert event.community_id == community.pk
     assert event.changes == {"a": 1}
 
 

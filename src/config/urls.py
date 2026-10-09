@@ -19,6 +19,7 @@ urlpatterns = [
     path("", include("accounts.urls")),
     path("manage/", include(manage_patterns)),
     path("audit/", include("audit.urls")),
+    path("communities/", include("communities.urls")),
     path(settings.DJANGO_ADMIN_PATH, admin.site.urls),
     path("i18n/setlang/", views_i18n.set_language, name="set_language"),
     path("styleguide/", views_styleguide.styleguide, name="styleguide"),

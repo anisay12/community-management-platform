@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% if category %}{% translate "Edit the category" %}{% else %}{% translate "New category" %}{% endif %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h2">{% if category %}{% blocktranslate with name=category.name %}Edit the category “{{ name }}”{% endblocktranslate %}{% else %}{% translate "New category" %}{% endif %}</h1>
+  {% include "manage/_tabs.html" with active="categories" %}
+  <div class="card mt-3">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% include "accounts/_form_fields.html" %}
+        <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+        <a class="btn btn-link" href="{% url 'manage:category_list' %}">{% translate "Cancel" %}</a>
+      </form>
+    </div>
+  </div>
+{% endblock %}

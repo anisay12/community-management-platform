@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n markdown_tags %}
+{% block title %}{{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_header.html" %}
+  {% if not full_metadata %}
+    <p class="mt-3">{% translate "Membership is by invitation only." %}</p>
+  {% else %}
+  <div class="row g-3 mt-1">
+    <section class="col-12 col-lg-8" aria-labelledby="about-description">
+      <h2 class="h4" id="about-description">{% translate "Description" %}</h2>
+      {% if community.description %}<div class="tl-markdown">{{ community.description|markdown }}</div>{% else %}<p class="text-body-secondary">{% translate "No description yet." %}</p>{% endif %}
+    </section>
+    <div class="col-12 col-lg-4">
+      {% if community.objectives %}
+        <section class="mb-3" aria-labelledby="about-objectives">
+          <h2 class="h5" id="about-objectives">{% translate "Objectives" %}</h2>
+          <div class="tl-markdown">{{ community.objectives|markdown }}</div>
+        </section>
+      {% endif %}
+      {% if community.rules %}
+        <section aria-labelledby="about-rules">
+          <h2 class="h5" id="about-rules">{% translate "Rules" %}</h2>
+          <div class="tl-markdown">{{ community.rules|markdown }}</div>
+        </section>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+{% endblock %}
