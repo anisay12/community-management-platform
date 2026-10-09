@@ -61,6 +61,7 @@ def test_dev_settings_load():
 def test_settings_require_audit_ip_hash_key():
     env = _prod_env()
     env.pop("AUDIT_IP_HASH_KEY")
+    env["DJANGO_READ_DOT_ENV"] = "0"  # a developer's .env must not re-supply the key
     result = _manage("check", env=env)
     assert result.returncode != 0
     assert "AUDIT_IP_HASH_KEY" in result.stderr

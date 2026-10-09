@@ -49,6 +49,9 @@ class AuditEvent(models.Model):
     def save(self, *args, **kwargs):
         if not self._state.adding:
             raise AuditImmutableError("Audit events are append-only.")
+        # Always INSERT: a primary-key collision must fail, never overwrite a row.
+        kwargs["force_insert"] = True
+        kwargs.pop("force_update", None)
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
@@ -57,4 +60,5 @@ class AuditEvent(models.Model):
     @classmethod
     def purge_older_than(cls, cutoff) -> int:
         """Retention-only deletion; bypasses the append-only guard on purpose."""
-        return cls.objects.filter(created_at__lt=cutoff)._raw_delete(using="default")
+        qs = cls.objects.filter(created_at__lt=cutoff)
+        return qs._raw_delete(using=qs.db)

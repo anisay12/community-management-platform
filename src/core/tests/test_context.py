@@ -68,3 +68,18 @@ def test_middlewares_populate_context_during_request_and_clear_it_after(settings
     assert ctx.user == "the-user"
     assert get_request_context().request_id is None
     assert get_request_context().user is None
+
+
+def test_user_is_resolved_lazily_from_the_request(settings):
+    settings.NUM_PROXIES = 0
+    seen = {}
+
+    def view(request):
+        request.user = "logged-in-later"
+        seen["user"] = get_request_context().user
+        return HttpResponse("ok")
+
+    request = _req()
+    request.user = "anonymous"
+    RequestIDMiddleware(RequestUserContextMiddleware(view))(request)
+    assert seen["user"] == "logged-in-later"

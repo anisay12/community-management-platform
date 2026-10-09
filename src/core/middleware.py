@@ -5,7 +5,7 @@ from collections.abc import Callable
 import structlog
 from django.http import HttpRequest, HttpResponse
 
-from .context import bind_request, clear_request, set_user
+from .context import bind_request, clear_request, set_user_source
 
 REQUEST_ID_HEADER = "X-Request-ID"
 _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
@@ -40,5 +40,5 @@ class RequestUserContextMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
-        set_user(getattr(request, "user", None))
+        set_user_source(lambda: getattr(request, "user", None))
         return self.get_response(request)

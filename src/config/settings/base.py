@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 SRC_DIR = BASE_DIR / "src"
 
 env = environ.Env()
-if (BASE_DIR / ".env").exists():
+if env.bool("DJANGO_READ_DOT_ENV", default=True) and (BASE_DIR / ".env").exists():
     environ.Env.read_env(BASE_DIR / ".env", overwrite=False)
 
 SECRET_KEY = env("DJANGO_SECRET_KEY")

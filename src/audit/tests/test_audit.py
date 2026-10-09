@@ -4,6 +4,7 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth.models import AnonymousUser, Group
+from django.db import IntegrityError, transaction
 from django.test import RequestFactory
 from django.utils import timezone
 
@@ -166,15 +167,13 @@ def test_roles_changed_actor_comes_from_request_context(user, request_ctx):
 
 def test_purge_removes_only_events_older_than_retention(settings):
     settings.AUDIT_RETENTION_DAYS = 30
-    old = record(actor=None, action="old", target=("t", "1"))
+    AuditEvent.objects.create(
+        action="old",
+        target_type="t",
+        target_id="1",
+        created_at=timezone.now() - timedelta(days=31),
+    )
     recent = record(actor=None, action="recent", target=("t", "1"))
-    from django.db import connection
-
-    with connection.cursor() as cur:
-        cur.execute(
-            "UPDATE audit_auditevent SET created_at = %s WHERE id = %s",
-            [timezone.now() - timedelta(days=31), old.pk],
-        )
     assert purge_audit_events() == 1
     assert list(AuditEvent.objects.values_list("action", flat=True)) == ["recent"]
     assert recent.pk
@@ -185,14 +184,12 @@ def test_purge_older_than_returns_count():
     assert AuditEvent.purge_older_than(timezone.now() + timedelta(days=1)) == 1
 
 
-def test_admin_is_read_only(rf, settings):
-    # django.contrib.admin is installed by a later task; enable it for this test only.
-    settings.INSTALLED_APPS = [*settings.INSTALLED_APPS, "django.contrib.admin"]
-    from django.contrib import admin
+def test_admin_is_read_only(rf):
+    from django.contrib.admin import AdminSite
 
     from audit.admin import AuditEventAdmin
 
-    model_admin = AuditEventAdmin(AuditEvent, admin.AdminSite())
+    model_admin = AuditEventAdmin(AuditEvent, AdminSite())
     request = rf.get("/")
     request.user = User(is_superuser=True, is_staff=True)
     assert not model_admin.has_add_permission(request)
@@ -200,8 +197,46 @@ def test_admin_is_read_only(rf, settings):
     assert not model_admin.has_delete_permission(request)
 
 
-def test_uuid_target_without_public_id_uses_pk():
+def test_target_without_public_id_uses_pk():
     group = Group.objects.get(name="employee")
     event = record(actor=None, action="x.y", target=group)
     assert event.target_type == "auth.group"
     assert event.target_id == str(group.pk)
+
+
+def test_saving_new_instance_with_existing_pk_raises_integrity_error():
+    event = record(actor=None, action="orig", target=("t", "1"))
+    with pytest.raises(IntegrityError), transaction.atomic():
+        AuditEvent(pk=event.pk, action="forged", target_type="t", target_id="1").save()
+    assert AuditEvent.objects.get(pk=event.pk).action == "orig"
+
+
+def test_removing_unheld_group_records_nothing(user):
+    user.groups.remove(Group.objects.get(name="auditor"))
+    assert not AuditEvent.objects.filter(action="user.roles_changed").exists()
+
+
+def test_removing_held_and_unheld_groups_lists_only_held(user):
+    user.groups.add(Group.objects.get(name="employee"))
+    user.groups.remove(*Group.objects.filter(name__in=["employee", "auditor"]))
+    event = AuditEvent.objects.filter(action="user.roles_changed").order_by("-id").first()
+    assert event.changes == {"removed": ["employee"]}
+
+
+def test_reverse_remove_records_only_users_who_held_group():
+    holder = User.objects.create_user(email="h@example.com", password="x")
+    other = User.objects.create_user(email="o@example.com", password="x")
+    group = Group.objects.get(name="auditor")
+    holder.groups.add(group)
+    group.user_set.remove(holder, other)
+    events = AuditEvent.objects.filter(
+        action="user.roles_changed", changes={"removed": ["auditor"]}
+    )
+    assert [e.target_id for e in events] == [str(holder.public_id)]
+
+
+def test_adding_already_held_group_records_nothing(user):
+    group = Group.objects.get(name="employee")
+    user.groups.add(group)
+    user.groups.add(group)
+    assert AuditEvent.objects.filter(action="user.roles_changed").count() == 1

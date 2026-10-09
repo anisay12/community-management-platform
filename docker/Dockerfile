@@ -27,6 +27,7 @@ RUN export DJANGO_SETTINGS_MODULE=config.settings.prod \
     DATABASE_URL=postgres://build:build@localhost:5432/build \
     REDIS_URL=redis://localhost:6379/0 \
     S3_BUCKET=build \
+    AUDIT_IP_HASH_KEY=build-only-not-a-secret \
     && /app/.venv/bin/python manage.py collectstatic --noinput \
     && cd src && /app/.venv/bin/python ../manage.py compilemessages
 

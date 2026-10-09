@@ -1,6 +1,7 @@
 """Per-request context (request id, client IP, current user) usable outside views."""
 
 import ipaddress
+from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from typing import Any
@@ -13,7 +14,12 @@ from django.http import HttpRequest
 class RequestContext:
     request_id: str | None = None
     ip: str | None = None
-    user: Any = None
+    user_source: Callable[[], Any] | None = None
+
+    @property
+    def user(self) -> Any:
+        """The current user, resolved at read time so login/logout mid-request is seen."""
+        return self.user_source() if self.user_source else None
 
 
 _context: ContextVar[RequestContext | None] = ContextVar("request_context", default=None)
@@ -52,7 +58,11 @@ def bind_request(request: HttpRequest) -> None:
 
 
 def set_user(user: Any) -> None:
-    _context.set(replace(get_request_context(), user=user))
+    set_user_source(lambda: user)
+
+
+def set_user_source(source: Callable[[], Any]) -> None:
+    _context.set(replace(get_request_context(), user_source=source))
 
 
 def clear_request() -> None:
