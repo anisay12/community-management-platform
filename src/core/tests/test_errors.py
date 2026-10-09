@@ -105,4 +105,13 @@ def test_home_greets_signed_in_user(client):
     )
     client.force_login(user)
     response = client.get("/")
-    assert b"Hello, alice@example.com." in response.content
+    assert b"Hello, Alice." in response.content
+
+
+def test_home_greeting_falls_back_to_email_without_first_name(client):
+    user = get_user_model().objects.create_user(
+        "carol@example.com", password="pw-123456-x", status="active"
+    )
+    client.force_login(user)
+    response = client.get("/")
+    assert b"Hello, carol@example.com." in response.content

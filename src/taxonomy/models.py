@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 class Tag(models.Model):
     name = models.CharField(_("name"), max_length=64)
     slug = models.SlugField(_("slug"), unique=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
 
     class Meta:
         ordering = ["name"]

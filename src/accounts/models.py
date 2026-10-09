@@ -15,7 +15,7 @@ class UserManager(BaseUserManager):
     use_in_migrations = True
 
     def get_by_natural_key(self, email):
-        return self.get(email__iexact=email)
+        return self.get(email=self.normalize_email(email).lower())
 
     def create_user(self, email, password=None, **extra):
         if not email:
@@ -64,12 +64,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         output_field=models.BooleanField(),
         db_persist=True,
     )
-    last_seen_at = models.DateTimeField(null=True, blank=True)
-    activated_at = models.DateTimeField(null=True, blank=True)
-    deactivated_at = models.DateTimeField(null=True, blank=True)
-    anonymized_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    last_seen_at = models.DateTimeField(_("last seen at"), null=True, blank=True)
+    activated_at = models.DateTimeField(_("activated at"), null=True, blank=True)
+    deactivated_at = models.DateTimeField(_("deactivated at"), null=True, blank=True)
+    anonymized_at = models.DateTimeField(_("anonymized at"), null=True, blank=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     objects = UserManager()
 
@@ -90,7 +90,13 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def save(self, *args, **kwargs):
         self.email = self.__class__.objects.normalize_email(self.email).lower()
+        adding = self._state.adding
         super().save(*args, **kwargs)
+        if not adding:
+            # Django 5.2 refreshes generated fields after INSERT only. Dropping the
+            # stale value makes it deferred, so it is lazily reloaded from the database
+            # on next access (no extra query when it is never read).
+            self.__dict__.pop("is_active", None)
 
     def get_full_name(self):
         if self.anonymized_at:
@@ -112,7 +118,9 @@ class UserProfile(models.Model):
         COMMUNITIES = "communities", _("Members of my communities")
         COMPANY = "company", _("Everyone in the company")
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    user = models.OneToOneField(
+        User, verbose_name=_("user"), on_delete=models.CASCADE, related_name="profile"
+    )
     job_title = models.CharField(_("job title"), max_length=150, blank=True)
     bio = models.TextField(_("bio"), blank=True, validators=[MaxLengthValidator(2000)])
     # Upload UI is deferred to L5 (antivirus scan and private file serving).
@@ -126,7 +134,9 @@ class UserProfile(models.Model):
         blank=True,
         choices=[("", _("Automatic")), ("en", "English"), ("fr", "Français")],
     )
-    interests = models.ManyToManyField("taxonomy.Tag", blank=True, related_name="profiles")
+    interests = models.ManyToManyField(
+        "taxonomy.Tag", verbose_name=_("interests"), blank=True, related_name="profiles"
+    )
     profile_visibility = models.CharField(
         _("profile visibility"),
         max_length=20,
@@ -134,7 +144,7 @@ class UserProfile(models.Model):
         default=Visibility.COMPANY,
     )
     is_discoverable = models.BooleanField(_("discoverable"), default=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         verbose_name = _("user profile")
@@ -145,11 +155,16 @@ class UserProfile(models.Model):
 
 
 class ExternalIdentity(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="external_identities")
-    provider = models.CharField(max_length=50)
-    subject = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_login_at = models.DateTimeField(null=True, blank=True)
+    user = models.ForeignKey(
+        User,
+        verbose_name=_("user"),
+        on_delete=models.CASCADE,
+        related_name="external_identities",
+    )
+    provider = models.CharField(_("provider"), max_length=50)
+    subject = models.CharField(_("subject"), max_length=255)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    last_login_at = models.DateTimeField(_("last login at"), null=True, blank=True)
 
     class Meta:
         constraints = [

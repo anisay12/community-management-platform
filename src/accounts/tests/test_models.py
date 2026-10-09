@@ -155,3 +155,40 @@ def test_external_identity_provider_and_subject_are_immutable():
     identity.refresh_from_db()
     identity.last_login_at = timezone.now()
     identity.save()
+
+
+def test_is_active_reflects_status_after_save_without_refresh():
+    user = make_user(status=User.Status.ACTIVE)
+    user.refresh_from_db()
+    assert user.is_active is True
+    user.status = User.Status.SUSPENDED
+    user.save()
+    assert user.is_active is False
+
+    pending = make_user("bob@example.com")
+    assert pending.is_active is False
+    pending.status = User.Status.ACTIVE
+    pending.save()
+    assert pending.is_active is True
+
+
+def test_email_unique_constraint_is_declared():
+    names = {c.name for c in User._meta.constraints}
+    assert "accounts_user_email_ci_unique" in names
+
+
+def test_email_unique_constraint_enforced_in_database_bypassing_save():
+    make_user("bob@x.com")
+    with pytest.raises(IntegrityError), transaction.atomic():
+        User.objects.bulk_create([User(email="Bob@x.com", first_name="B", last_name="B")])
+
+
+def test_profile_not_created_for_raw_saves():
+    from accounts.signals import create_profile
+
+    user = make_user()
+    UserProfile.objects.filter(user=user).delete()
+    create_profile(sender=User, instance=user, created=True, raw=True)
+    assert not UserProfile.objects.filter(user=user).exists()
+    create_profile(sender=User, instance=user, created=True, raw=False)
+    assert UserProfile.objects.filter(user=user).exists()

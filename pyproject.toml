@@ -36,11 +36,11 @@ extend-exclude = [".internal", "docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM", "RUF"]
-# Django Meta/admin class attributes are mutable by convention.
-ignore = ["RUF012"]
-
 [tool.ruff.lint.per-file-ignores]
-"**/migrations/*" = ["E501"]
+# Django Meta/admin/migration class attributes are mutable by convention.
+"**/migrations/*" = ["E501", "RUF012"]
+"**/models.py" = ["RUF012"]
+"**/admin.py" = ["RUF012"]
 "src/config/settings/*" = ["F403", "F405"]
 "src/config/settings/test.py" = ["F403", "F405", "S105"]
 "**/tests/**" = ["S101", "S105", "S106", "S310", "S603"]

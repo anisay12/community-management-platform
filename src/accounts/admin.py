@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 
+from .admin_forms import UserAddForm
 from .models import User
 
 
@@ -22,6 +23,7 @@ class UserAdmin(BaseUserAdmin):
         ),
         (_("Dates"), {"fields": ("last_seen_at", "created_at", "updated_at")}),
     )
+    add_form = UserAddForm
     add_fieldsets = (
         (None, {"classes": ("wide",), "fields": ("email", "first_name", "last_name")}),
     )

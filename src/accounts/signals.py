@@ -5,6 +5,6 @@ from .models import User, UserProfile
 
 
 @receiver(post_save, sender=User, dispatch_uid="accounts_create_user_profile")
-def create_profile(sender, instance, created, **kwargs):
-    if created:
+def create_profile(sender, instance, created, raw=False, **kwargs):
+    if created and not raw:
         UserProfile.objects.get_or_create(user=instance)

@@ -3,7 +3,7 @@
 {% block content %}
   <h1>{% translate "Communities" %}</h1>
   {% if user.is_authenticated %}
-    <p>{% blocktranslate with name=user.get_username %}Hello, {{ name }}.{% endblocktranslate %}</p>
+    <p>{% blocktranslate with name=user.get_short_name|default:user.get_username %}Hello, {{ name }}.{% endblocktranslate %}</p>
   {% else %}
     <p>{% translate "Welcome to the Talan communities platform." %}</p>
     <p><a class="button" href="{{ login_url }}">{% translate "Sign in" %}</a></p>

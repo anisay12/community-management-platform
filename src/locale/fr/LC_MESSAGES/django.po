@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 12:29+0200\n"
+"POT-Creation-Date: 2026-10-09 12:36+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -25,6 +25,9 @@ msgstr "Permissions"
 
 msgid "Dates"
 msgstr "Dates"
+
+msgid "A user with this email address already exists."
+msgstr "Un utilisateur avec cette adresse e-mail existe déjà."
 
 msgid "Pending"
 msgstr "En attente"
@@ -52,6 +55,24 @@ msgstr "statut"
 
 msgid "staff status"
 msgstr "accès à l'administration"
+
+msgid "last seen at"
+msgstr "dernière activité le"
+
+msgid "activated at"
+msgstr "activé le"
+
+msgid "deactivated at"
+msgstr "désactivé le"
+
+msgid "anonymized at"
+msgstr "anonymisé le"
+
+msgid "created at"
+msgstr "créé le"
+
+msgid "updated at"
+msgstr "mis à jour le"
 
 msgid "user"
 msgstr "utilisateur"
@@ -87,10 +108,13 @@ msgid "time zone"
 msgstr "fuseau horaire"
 
 msgid "language"
-msgstr "Langue"
+msgstr "langue"
 
 msgid "Automatic"
 msgstr "Automatique"
+
+msgid "interests"
+msgstr "centres d'intérêt"
 
 msgid "profile visibility"
 msgstr "visibilité du profil"
@@ -103,6 +127,15 @@ msgstr "profil utilisateur"
 
 msgid "user profiles"
 msgstr "profils utilisateurs"
+
+msgid "provider"
+msgstr "fournisseur"
+
+msgid "subject"
+msgstr "identifiant (sujet)"
+
+msgid "last login at"
+msgstr "dernière connexion le"
 
 msgid "external identity"
 msgstr "identité externe"

@@ -14,8 +14,8 @@ class OrganizationUnit(models.Model):
         on_delete=models.PROTECT,
         related_name="children",
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         ordering = ["code"]
@@ -28,7 +28,10 @@ class OrganizationUnit(models.Model):
 
 class Employment(models.Model):
     user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="employment"
+        settings.AUTH_USER_MODEL,
+        verbose_name=_("user"),
+        on_delete=models.CASCADE,
+        related_name="employment",
     )
     unit = models.ForeignKey(
         OrganizationUnit,
@@ -44,7 +47,7 @@ class Employment(models.Model):
         on_delete=models.SET_NULL,
         related_name="reports",
     )
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(_("updated at"), auto_now=True)
 
     class Meta:
         constraints = [
