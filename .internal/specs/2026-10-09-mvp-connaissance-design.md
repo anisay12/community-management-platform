@@ -40,7 +40,7 @@ Le modèle de données MVP **réserve** les points d'extension (ex. `Event.kind 
 
 ## 3. Lot L0 — Socle technique
 
-**Livrables** : projet `src/config` (settings `base/dev/test/prod` lus depuis l'environnement via `django-environ`), `compose.yaml` (web, worker, beat, postgres 16, redis 7, minio, clamav, mailpit), Dockerfile multi-étapes non-root, `uv.lock`, `.env.example`, CI GitHub Actions (ou script `make ci` exécutable localement tant que GitHub n'est pas connecté).
+**Livrables** : projet `src/config` (settings `base/dev/test/prod` lus depuis l'environnement via `django-environ`), `compose.yaml` (web, worker, beat, postgres 16, redis 7, stockage S3-compatible SeaweedFS (MinIO n'étant plus distribué sur Docker Hub), clamav, mailpit), Dockerfile multi-étapes non-root, `uv.lock`, `.env.example`, CI GitHub Actions (ou script `make ci` exécutable localement tant que GitHub n'est pas connecté).
 
 **Contrôles CI** : `ruff check`, `ruff format --check`, `pytest` (avec PostgreSQL réel en service), `python manage.py makemigrations --check`, migrations depuis une base vide, `pip-audit`, `bandit -q`, `gitleaks`, build de l'image, `trivy image` (bloquant sur CRITICAL).
 
