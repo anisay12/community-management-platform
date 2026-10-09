@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Sign in" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "Sign in" %}</h1>
+  <form method="post" action="{% url 'accounts:login' %}" novalidate>
+    {% csrf_token %}
+    {% include "accounts/_form_fields.html" %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button type="submit">{% translate "Sign in" %}</button>
+  </form>
+  <p><a href="{% url 'accounts:password_reset' %}">{% translate "Forgot your password?" %}</a></p>
+{% endblock %}

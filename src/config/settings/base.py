@@ -1,7 +1,9 @@
+from datetime import timedelta
 from pathlib import Path
 
 import environ
 from celery.schedules import crontab
+from django.core.exceptions import ImproperlyConfigured
 
 from core.logging import build_logging, configure_structlog
 
@@ -23,6 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_prometheus",
+    "axes",
     "core",
     "taxonomy",
     "organizations",
@@ -40,9 +43,12 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "core.middleware.RequestUserContextMiddleware",
+    "core.middleware.ActivityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_prometheus.middleware.PrometheusAfterMiddleware",
+    # Must stay last: turns lockouts raised during authentication into the 429 page.
+    "axes.middleware.AxesMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -112,7 +118,64 @@ STORAGES = {
     },
 }
 
-LOGIN_URL = "/accounts/login/"
+# Number of reverse proxies in front of the app; 0 means X-Forwarded-For is not trusted.
+NUM_PROXIES = env.int("NUM_PROXIES", default=0)
+
+# Authentication ----------------------------------------------------------------
+AUTH_MODES = ("local", "mixed", "oidc")
+AUTH_MODE = env("AUTH_MODE", default="local")
+if AUTH_MODE not in AUTH_MODES:
+    raise ImproperlyConfigured(f"AUTH_MODE must be one of {', '.join(AUTH_MODES)}.")
+# Emergency local account that may sign in with a password whatever AUTH_MODE is.
+BREAK_GLASS_EMAIL = env("BREAK_GLASS_EMAIL", default="")
+# Public base URL used to build links in emails (never derived from the Host header).
+SITE_URL = env("SITE_URL", default="http://localhost:8000")
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "accounts.backends.EmailBackend",
+]
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "accounts:login"
+PASSWORD_RESET_TIMEOUT = 3600
+ACCOUNT_ACTIVATION_TIMEOUT = 72 * 3600
+
+# 8 h of inactivity: ActivityMiddleware re-saves the session at most every 5 minutes.
+SESSION_COOKIE_AGE = 8 * 3600
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+
+# Brute-force protection (django-axes): lock a (email, IP) pair after 5 failures.
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_USERNAME_FORM_FIELD = "username"
+# Lowercases the email so case variants share one failure counter.
+AXES_USERNAME_CALLABLE = "accounts.backends.axes_username"
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_CALLABLE = "core.views_errors.too_many_requests"
+# Same proxy-aware client IP as the audit log; takes precedence over the ipware settings.
+AXES_CLIENT_IP_CALLABLE = "core.context.client_ip"
+AXES_IPWARE_PROXY_COUNT = NUM_PROXIES
+AXES_IPWARE_META_PRECEDENCE_ORDER = ["HTTP_X_FORWARDED_FOR", "REMOTE_ADDR"]
+AXES_ENABLE_ADMIN = False
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -123,8 +186,6 @@ METRICS_TOKEN = env("METRICS_TOKEN", default="")
 
 AUDIT_IP_HASH_KEY = env("AUDIT_IP_HASH_KEY")
 AUDIT_RETENTION_DAYS = env.int("AUDIT_RETENTION_DAYS", default=365)
-# Number of reverse proxies in front of the app; 0 means X-Forwarded-For is not trusted.
-NUM_PROXIES = env.int("NUM_PROXIES", default=0)
 
 LOG_LEVEL = env("LOG_LEVEL", default="INFO")
 LOG_JSON = env.bool("LOG_JSON", default=True)

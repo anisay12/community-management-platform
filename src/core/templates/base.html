@@ -12,7 +12,14 @@
   <header class="site-header">
     <a class="site-name" href="{% url 'home' %}">{% translate "Communities" %}</a>
     <div class="site-tools">
-      {% block usernav %}{% endblock %}
+      {% block usernav %}
+        {% if user.is_authenticated %}
+          <form method="post" action="{% url 'accounts:logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit">{% translate "Sign out" %}</button>
+          </form>
+        {% endif %}
+      {% endblock %}
       {% include "components/language_switcher.html" %}
     </div>
   </header>

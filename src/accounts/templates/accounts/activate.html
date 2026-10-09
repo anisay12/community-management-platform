@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Activate your account" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1>{% translate "Activate your account" %}</h1>
+  <p>{% translate "Choose the password you will use to sign in." %}</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "accounts/_form_fields.html" %}
+    <button type="submit">{% translate "Activate my account" %}</button>
+  </form>
+{% endblock %}

@@ -186,3 +186,23 @@ class ExternalIdentity(models.Model):
             if stored and (stored["provider"], stored["subject"]) != (self.provider, self.subject):
                 raise ValueError("ExternalIdentity provider and subject are immutable.")
         super().save(*args, **kwargs)
+
+
+class UserSession(models.Model):
+    """A session opened by a user, so that all of them can be ended at once."""
+
+    user = models.ForeignKey(
+        User,
+        verbose_name=_("user"),
+        on_delete=models.CASCADE,
+        related_name="tracked_sessions",
+    )
+    session_key = models.CharField(_("session key"), max_length=40, unique=True)
+    created_at = models.DateTimeField(_("created at"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("user session")
+        verbose_name_plural = _("user sessions")
+
+    def __str__(self):
+        return str(self.user)

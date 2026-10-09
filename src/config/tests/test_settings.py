@@ -65,3 +65,9 @@ def test_settings_require_audit_ip_hash_key():
     result = _manage("check", env=env)
     assert result.returncode != 0
     assert "AUDIT_IP_HASH_KEY" in result.stderr
+
+
+def test_settings_reject_unknown_auth_mode():
+    result = _manage("check", env=_prod_env(AUTH_MODE="ldap"))
+    assert result.returncode != 0
+    assert "AUTH_MODE" in result.stderr

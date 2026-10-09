@@ -1,9 +1,12 @@
 import re
 import uuid
+import zoneinfo
 from collections.abc import Callable
+from datetime import timedelta
 
 import structlog
 from django.http import HttpRequest, HttpResponse
+from django.utils import timezone
 
 from .context import bind_request, clear_request, set_user_source
 
@@ -42,3 +45,41 @@ class RequestUserContextMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         set_user_source(lambda: getattr(request, "user", None))
         return self.get_response(request)
+
+
+ACTIVITY_INTERVAL = timedelta(minutes=5)
+
+
+class ActivityMiddleware:
+    """Track the user's last activity and activate their time zone.
+
+    ``last_seen_at`` is written at most once per ``ACTIVITY_INTERVAL``; the session is
+    re-saved at the same moment, which slides its inactivity expiry.
+    """
+
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
+        self.get_response = get_response
+
+    def __call__(self, request: HttpRequest) -> HttpResponse:
+        user = getattr(request, "user", None)
+        if user is not None and user.is_authenticated:
+            now = timezone.now()
+            if user.last_seen_at is None or now - user.last_seen_at >= ACTIVITY_INTERVAL:
+                user._meta.model._default_manager.filter(pk=user.pk).update(last_seen_at=now)
+                user.last_seen_at = now
+                request.session.modified = True
+            self._activate_timezone(user)
+        else:
+            timezone.deactivate()
+        try:
+            return self.get_response(request)
+        finally:
+            timezone.deactivate()
+
+    @staticmethod
+    def _activate_timezone(user) -> None:
+        profile = getattr(user, "profile", None)
+        try:
+            timezone.activate(zoneinfo.ZoneInfo(profile.timezone))
+        except (AttributeError, ValueError, zoneinfo.ZoneInfoNotFoundError):
+            timezone.deactivate()

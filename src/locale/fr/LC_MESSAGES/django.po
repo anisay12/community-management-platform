@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 12:43+0200\n"
+"POT-Creation-Date: 2026-10-09 12:56+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -28,6 +28,22 @@ msgstr "Dates"
 
 msgid "A user with this email address already exists."
 msgstr "Un utilisateur avec cette adresse e-mail existe déjà."
+
+msgid "Email"
+msgstr "E-mail"
+
+msgid "Invalid email or password."
+msgstr "E-mail ou mot de passe incorrect."
+
+msgid ""
+"Your account is not active yet. Check your activation email or contact an "
+"administrator."
+msgstr ""
+"Votre compte n’est pas encore actif. Consultez l’e-mail d’activation ou "
+"contactez un administrateur."
+
+msgid "Your account is suspended. Contact an administrator."
+msgstr "Votre compte est suspendu. Contactez un administrateur."
 
 msgid "Pending"
 msgstr "En attente"
@@ -149,6 +165,15 @@ msgstr "identité externe"
 msgid "external identities"
 msgstr "identités externes"
 
+msgid "session key"
+msgstr "clé de session"
+
+msgid "user session"
+msgstr "session utilisateur"
+
+msgid "user sessions"
+msgstr "sessions utilisateur"
+
 msgid "Employee"
 msgstr "Collaborateur"
 
@@ -163,6 +188,129 @@ msgstr "Administrateur technique"
 
 msgid "Auditor"
 msgstr "Auditeur"
+
+msgid "Activate your account"
+msgstr "Activer votre compte"
+
+msgid "Communities"
+msgstr "Communautés"
+
+msgid "Choose the password you will use to sign in."
+msgstr "Choisissez le mot de passe que vous utiliserez pour vous connecter."
+
+msgid "Activate my account"
+msgstr "Activer mon compte"
+
+msgid "Invalid link"
+msgstr "Lien invalide"
+
+msgid ""
+"This activation link is invalid, has expired or has already been used. "
+"Contact an administrator to receive a new one."
+msgstr ""
+"Ce lien d’activation est invalide, a expiré ou a déjà été utilisé. Contactez "
+"un administrateur pour en recevoir un nouveau."
+
+msgid "Back to sign in"
+msgstr "Retour à la connexion"
+
+msgid "Sign in"
+msgstr "Se connecter"
+
+msgid "Forgot your password?"
+msgstr "Mot de passe oublié ?"
+
+msgid "Password changed"
+msgstr "Mot de passe modifié"
+
+msgid "Your password has been changed. You can now sign in."
+msgstr ""
+"Votre mot de passe a été modifié. Vous pouvez maintenant vous connecter."
+
+msgid "Choose a new password"
+msgstr "Choisir un nouveau mot de passe"
+
+msgid "Change my password"
+msgstr "Modifier mon mot de passe"
+
+msgid ""
+"This password reset link is invalid or has expired. Please request a new one."
+msgstr ""
+"Ce lien de réinitialisation du mot de passe est invalide ou a expiré. "
+"Veuillez en demander un nouveau."
+
+msgid "Request a new link"
+msgstr "Demander un nouveau lien"
+
+msgid "Check your email"
+msgstr "Consultez vos e-mails"
+
+msgid ""
+"If an active account uses this address, you will receive an email with a "
+"link to reset your password. The link is valid for one hour."
+msgstr ""
+"Si un compte actif utilise cette adresse, vous recevrez un e-mail contenant "
+"un lien pour réinitialiser votre mot de passe. Ce lien est valable une heure."
+
+msgid "Reset your password"
+msgstr "Réinitialiser votre mot de passe"
+
+msgid ""
+"Enter the email address of your account. If it matches an active account, we "
+"will send you a link to choose a new password."
+msgstr ""
+"Saisissez l’adresse e-mail de votre compte. Si elle correspond à un compte "
+"actif, nous vous enverrons un lien pour choisir un nouveau mot de passe."
+
+msgid "Send the link"
+msgstr "Envoyer le lien"
+
+#, python-format
+msgid "Hello %(first_name)s,"
+msgstr "Bonjour %(first_name)s,"
+
+msgid "Hello,"
+msgstr "Bonjour,"
+
+msgid ""
+"An account has been created for you on Talan Communities. To activate it and "
+"choose your password, open this link:"
+msgstr ""
+"Un compte a été créé pour vous sur la plateforme Communautés de Talan. Pour "
+"l’activer et choisir votre mot de passe, ouvrez ce lien :"
+
+#, python-format
+msgid "This link is valid for %(hours)s hour and can be used only once."
+msgid_plural ""
+"This link is valid for %(hours)s hours and can be used only once."
+msgstr[0] ""
+"Ce lien est valable %(hours)s heure et ne peut être utilisé qu’une seule "
+"fois."
+msgstr[1] ""
+"Ce lien est valable %(hours)s heures et ne peut être utilisé qu’une seule "
+"fois."
+
+msgid ""
+"We received a request to reset the password of your Talan Communities "
+"account. To choose a new password, open this link:"
+msgstr ""
+"Nous avons reçu une demande de réinitialisation du mot de passe de votre "
+"compte sur la plateforme Communautés de Talan. Pour choisir un nouveau mot "
+"de passe, ouvrez ce lien :"
+
+msgid ""
+"This link is valid for one hour and can be used only once. If you did not "
+"ask for this, you can ignore this email: your password will not change."
+msgstr ""
+"Ce lien est valable une heure et ne peut être utilisé qu’une seule fois. Si "
+"vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot "
+"de passe ne sera pas modifié."
+
+msgid "Your account is active. You can now sign in."
+msgstr "Votre compte est actif. Vous pouvez maintenant vous connecter."
+
+msgid "Your account is active. Welcome!"
+msgstr "Votre compte est actif. Bienvenue !"
 
 msgid "actor"
 msgstr "acteur"
@@ -194,11 +342,11 @@ msgstr "événement d'audit"
 msgid "audit events"
 msgstr "événements d'audit"
 
-msgid "Communities"
-msgstr "Communautés"
-
 msgid "Skip to main content"
 msgstr "Aller au contenu principal"
+
+msgid "Sign out"
+msgstr "Se déconnecter"
 
 msgid "Language"
 msgstr "Langue"
@@ -212,9 +360,6 @@ msgstr "Bonjour, %(name)s."
 
 msgid "Welcome to the Talan communities platform."
 msgstr "Bienvenue sur la plateforme des communautés Talan."
-
-msgid "Sign in"
-msgstr "Se connecter"
 
 msgid "Access denied"
 msgstr "Accès refusé"
