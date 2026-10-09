@@ -49,4 +49,11 @@ markers = ["integration: nécessite un service externe (stockage S3-compatible)"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/migrations/*", "*/tests/*", "src/config/wsgi.py"]
+# dev.py et prod.py sont chargés dans des sous-processus par config/tests/test_settings.py.
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "src/config/wsgi.py",
+    "src/config/settings/dev.py",
+    "src/config/settings/prod.py",
+]

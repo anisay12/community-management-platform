@@ -41,3 +41,16 @@ def test_prod_settings_require_allowed_hosts():
     result = _manage("check", env=_prod_env(DJANGO_ALLOWED_HOSTS=""))
     assert result.returncode != 0
     assert "DJANGO_ALLOWED_HOSTS" in result.stderr
+
+
+def test_dev_settings_load():
+    env = {
+        **os.environ,
+        "DJANGO_SETTINGS_MODULE": "config.settings.dev",
+        "DJANGO_SECRET_KEY": "dev-only",
+        "DATABASE_URL": "postgres://u:p@localhost:5432/db",
+        "REDIS_URL": "redis://localhost:6379/0",
+        "S3_BUCKET": "documents",
+    }
+    result = _manage("check", env=env)
+    assert result.returncode == 0, result.stdout + result.stderr
