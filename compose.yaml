@@ -1,0 +1,111 @@
+name: talan-communities
+
+# Images tierces épinglées par digest, via le miroir Docker Hub de Google (mirror.gcr.io).
+x-app: &app
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    target: runtime
+  image: talan-communities:dev
+  env_file: .env
+  volumes:
+    - ./src:/app/src:ro
+  depends_on: &app-deps
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+    s3-init: { condition: service_completed_successfully }
+
+services:
+  postgres:
+    image: mirror.gcr.io/library/postgres:16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    ports: ["127.0.0.1:5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: mirror.gcr.io/library/redis:7-alpine@sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  s3:
+    image: mirror.gcr.io/chrislusf/seaweedfs:latest@sha256:4e61d15fd35994cb1e43e1e553dff106794841fd9a99ade2fc8c8bfce4d7872d
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    env_file: .env
+    volumes:
+      - ./docker/seaweedfs/entrypoint.sh:/entrypoint.sh:ro
+      - s3data:/data
+    ports: ["127.0.0.1:8333:8333"]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8333/healthz || exit 1"]
+      interval: 5s
+      retries: 20
+
+  s3-init:
+    image: talan-communities:dev
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: runtime
+    env_file: .env
+    depends_on:
+      s3: { condition: service_healthy }
+    command:
+      - python
+      - -c
+      - |
+        import os, boto3
+        c = boto3.client("s3", endpoint_url=os.environ["S3_ENDPOINT_URL"], region_name=os.environ["S3_REGION"],
+                         aws_access_key_id=os.environ["S3_ACCESS_KEY"], aws_secret_access_key=os.environ["S3_SECRET_KEY"])
+        b = os.environ["S3_BUCKET"]
+        if b not in {x["Name"] for x in c.list_buckets().get("Buckets", [])}:
+            c.create_bucket(Bucket=b)
+        print("bucket prêt :", b)
+    restart: "no"
+
+  clamav:
+    image: mirror.gcr.io/clamav/clamav:stable@sha256:ebec5bc138401b36ae987caa1a3fa3c3b2a21ed3d51f0bfa5852825e663e67b0
+    volumes: [clamdb:/var/lib/clamav]
+
+  mailpit:
+    image: mirror.gcr.io/axllent/mailpit:latest@sha256:b68349e3a014b90c5610bfb26b2ae36f3892d7b8cf25ee140c6c71c98d2fcf48
+    ports: ["127.0.0.1:8025:8025"]
+
+  migrate:
+    <<: *app
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    restart: "no"
+
+  web:
+    <<: *app
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      <<: *app-deps
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=2)"]
+      interval: 10s
+      retries: 10
+
+  worker:
+    <<: *app
+    command: ["celery", "-A", "config", "worker", "-l", "info"]
+
+  beat:
+    <<: *app
+    command: ["celery", "-A", "config", "beat", "-l", "info", "--schedule", "/tmp/celerybeat-schedule"]
+
+volumes:
+  pgdata:
+  s3data:
+  clamdb:
