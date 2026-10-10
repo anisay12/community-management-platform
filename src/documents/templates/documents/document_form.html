@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n static %}{% comment %}
+  Upload form (new document) and metadata edition (``document`` set).
+  Context: community, form, tag_suggestions, breadcrumb, document (edit only).
+{% endcomment %}
+{% block title %}{% if document %}{% translate "Edit document" %}{% else %}{% translate "Upload a document" %}{% endif %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
+{% block content %}
+  {% if document %}{% translate "Edit document" as form_title %}{% else %}{% translate "Upload a document" as form_title %}{% endif %}
+  {% include "components/page_header.html" with title=form_title eyebrow=community.name eyebrow_icon="file-earmark-arrow-up" %}
+  <form method="post"{% if not document %} enctype="multipart/form-data"{% endif %} class="tl-section tl-form col-12 col-lg-9" novalidate data-tl-single-submit data-documents-form>{% csrf_token %}
+    {% include "components/form_errors.html" %}
+    {% for field in form.visible_fields %}{% include "components/form_field.html" %}{% endfor %}
+    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+    <datalist id="tag-suggestions">{% for name in tag_suggestions %}<option value="{{ name }}">{% endfor %}</datalist>
+    <div class="tl-form-actions">
+      <button type="submit" class="btn btn-primary">{% if document %}{% translate "Save" %}{% else %}{% translate "Upload" %}{% endif %}</button>
+      <a class="btn btn-link" href="{% if document %}{% url 'documents:detail' document.public_id %}{% else %}{% url 'documents:community_documents' community.slug %}{% endif %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+  <script src="{% static 'documents/document-form.js' %}" defer></script>
+{% endblock %}

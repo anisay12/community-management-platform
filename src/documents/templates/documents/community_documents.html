@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load i18n component_tags %}{% comment %}
+  Resources tab of a community. Context: the community page context (community_page), form
+  (ResourcesFilterForm), page_obj, querystring, filtered, can_upload.
+{% endcomment %}
+{% block title %}{% translate "Resources" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_header.html" %}
+  <div class="tl-section-header mt-4 mb-3">
+    <h2 id="community-resources-title">{% translate "Resources" %}</h2>
+    {% if can_upload %}
+      <a class="btn btn-primary" href="{% url 'documents:create' community.slug %}"><i class="bi bi-upload me-1" aria-hidden="true"></i>{% translate "Upload a document" %}</a>
+    {% endif %}
+  </div>
+  <form method="get" class="tl-toolbar row g-2 align-items-end mb-3" role="search" aria-label="{% translate 'Filter the documents' %}">
+    {% for field in form %}
+      <div class="col-12 col-sm-6 col-lg">
+        <label class="form-label small mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {% if field.name == "q" %}<input type="search" name="q" id="{{ field.id_for_label }}" class="form-control form-control-sm" value="{{ field.value|default:'' }}" maxlength="200">{% else %}<select name="{{ field.name }}" id="{{ field.id_for_label }}" class="form-select form-select-sm">{% for value, label in field.field.choices %}<option value="{{ value }}"{% if field.value|stringformat:'s' == value|stringformat:'s' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="col-12 col-lg-auto d-flex gap-2">
+      <button type="submit" class="btn btn-sm btn-outline-primary">{% translate "Apply" %}</button>
+      {% if filtered %}<a class="btn btn-sm btn-link" href="{{ request.path }}">{% translate "Reset" %}</a>{% endif %}
+    </div>
+  </form>
+  {% if page_obj.object_list %}
+    <section class="tl-section tl-section-flush" aria-labelledby="community-resources-title">
+      <p class="tl-meta px-3 pt-3 mb-0" role="status">{% blocktranslate count counter=page_obj.paginator.count trimmed %}{{ counter }} document{% plural %}{{ counter }} documents{% endblocktranslate %}</p>
+      <ul class="tl-list" data-documents="list">
+        {% for document in page_obj %}
+          {% with version=document.current_version %}
+          <li class="d-block">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <a class="fw-semibold" href="{% url 'documents:detail' document.public_id %}">{{ document.title }}</a>
+              <span class="badge text-bg-light border">{{ document.get_doc_type_display }}</span>
+              {% include "documents/_badges.html" %}
+            </div>
+            {% with tags=document.tags.all %}{% if tags %}
+              <ul class="list-inline mb-1 mt-1" aria-label="{% translate 'Tags' %}">{% for tag in tags %}<li class="list-inline-item"><span class="tl-chip">{{ tag.name }}</span></li>{% endfor %}</ul>
+            {% endif %}{% endwith %}
+            <p class="tl-meta mb-0">
+              <i class="bi bi-person" aria-hidden="true"></i> {{ document.owner_display }}
+              {% if version %}· {% blocktranslate with label=version.version_label %}Version {{ label }}{% endblocktranslate %} · {{ version.size|filesizeformat }}{% endif %}
+              · <i class="bi bi-clock" aria-hidden="true"></i> <time datetime="{{ document.updated_at|date:'c' }}">{{ document.updated_at|date:"SHORT_DATE_FORMAT" }}</time>
+              · <i class="bi bi-download" aria-hidden="true"></i> {% blocktranslate count counter=document.download_count trimmed %}{{ counter }} download{% plural %}{{ counter }} downloads{% endblocktranslate %}
+            </p>
+          </li>
+          {% endwith %}
+        {% endfor %}
+      </ul>
+    </section>
+    {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
+  {% else %}
+    {% if filtered %}
+      {% translate "No document matches these filters" as empty_title %}
+      {% translate "Change or reset the filters to see more documents." as empty_text %}
+      {% include "components/empty_state.html" with icon="search" title=empty_title text=empty_text %}
+    {% elif can_upload %}
+      {% translate "No documents yet" as empty_title %}
+      {% translate "Share a guide, a template or a presentation with the community." as empty_text %}
+      {% translate "Upload a document" as action_label %}{% url 'documents:create' community.slug as action_url %}
+      {% include "components/empty_state.html" with icon="folder2-open" title=empty_title text=empty_text action_url=action_url action_label=action_label %}
+    {% else %}
+      {% translate "No documents yet" as empty_title %}
+      {% translate "Documents shared by the community's contributors will appear here." as empty_text %}
+      {% include "components/empty_state.html" with icon="folder2-open" title=empty_title text=empty_text %}
+    {% endif %}
+  {% endif %}
+{% endblock %}

@@ -12,16 +12,21 @@ from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from accounts.policies import can_manage_users
+from accounts.roles import Role, has_role
 from audit.policies import can_view_audit_log
 from audit.selectors import events_visible_to
 from communities.models import Community, CommunityCreationRequest, CommunityInvitation
 from communities.selectors import visible_communities
+from documents.models import Document
+from documents.selectors_pages import latest_scan_errors, recent_member_documents
+from documents.selectors_review import documents_to_review
 from posts.models import Bookmark, ContentReport, Post
 from posts.selectors import MODERATOR_ROLES, home_feed
 
 MY_COMMUNITIES_LIMIT = 6
 LATEST_POSTS_LIMIT = 5
 AUDIT_WINDOW_DAYS = 7
+DOCUMENTS_LIMIT = 5
 
 
 def _subquery_count(queryset):
@@ -70,6 +75,29 @@ def _administration() -> dict:
     }
 
 
+def _is_admin(user) -> bool:
+    """Functional or technical administrators (and superusers) see the scan errors."""
+    return bool(
+        user.is_superuser
+        or has_role(user, Role.FUNCTIONAL_ADMIN)
+        or has_role(user, Role.TECHNICAL_ADMIN)
+    )
+
+
+def _scan_errors(user) -> list:
+    """The latest failed or infected scans; ``openable`` tells whether ``user`` may open the
+    document (two queries whatever the number of rows)."""
+    versions = latest_scan_errors(DOCUMENTS_LIMIT)
+    openable = set(
+        Document.objects.visible_to(user)
+        .filter(pk__in={version.document_id for version in versions})
+        .values_list("pk", flat=True)
+    )
+    for version in versions:
+        version.openable = version.document_id in openable
+    return versions
+
+
 def dashboard_context(user) -> dict:
     """The dashboard blocks ``user`` may see (an empty dict for anonymous users)."""
     if not getattr(user, "is_authenticated", False):
@@ -88,6 +116,15 @@ def dashboard_context(user) -> dict:
         ).count(),
         "latest_posts": home_feed(user).items[:LATEST_POSTS_LIMIT],
     }
+    context["recent_documents"] = recent_member_documents(user, DOCUMENTS_LIMIT)
+    to_review = list(documents_to_review(user)[:DOCUMENTS_LIMIT])
+    now = timezone.now()
+    for document in to_review:
+        document.review_passed = bool(document.review_due_at and document.review_due_at <= now)
+    if to_review:
+        context["documents_to_review"] = to_review
+    if _is_admin(user):
+        context["scan_errors"] = _scan_errors(user)
     moderated = _moderation(user)
     if moderated:
         context["moderation"] = {

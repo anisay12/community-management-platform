@@ -10,7 +10,22 @@ class DocumentsConfig(AppConfig):
         self._register_privacy()
 
     def _register_pages(self):
-        """Community tab, navigation entries and dashboard blocks of the document pages."""
+        """Community tab of the document pages (the dashboard blocks live in
+        ``core.dashboard``; no sidebar entry: resources are reached through the community)."""
+        from django.utils.translation import gettext_lazy as _
+
+        from communities import tabs
+        from communities.policies import can_view_content
+
+        tabs.register(
+            tabs.Tab(
+                key="resources",
+                label=_("Resources"),
+                url_name="documents:community_documents",
+                order=20,
+                is_visible=can_view_content,
+            )
+        )
 
     def _register_privacy(self):
         """GDPR export and erasure hooks for documents and download logs."""
