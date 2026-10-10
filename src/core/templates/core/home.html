@@ -48,6 +48,46 @@
       </section>
     {% endif %}
 
+    {% if documents_to_review %}
+      <section class="tl-section tl-section-flush" aria-labelledby="dash-review" data-dashboard="documents-review">
+        <div class="tl-section-header"><h2 id="dash-review">{% translate "Documents to review" %}</h2></div>
+        <ul class="tl-list">
+          {% for document in documents_to_review %}
+            <li>
+              <a href="{% url 'documents:detail' document.public_id %}">{{ document.title }}</a>
+              <span class="tl-meta">
+                <i class="bi bi-people" aria-hidden="true"></i> {{ document.community.name }}
+                {% if document.has_outdated_report %}· <i class="bi bi-flag" aria-hidden="true"></i> {% translate "Reported as outdated" %}{% endif %}
+                {% if document.review_passed %}· <i class="bi bi-calendar-check" aria-hidden="true"></i> {% translate "Review date passed" %} (<time datetime="{{ document.review_due_at|date:'c' }}">{{ document.review_due_at|date:"SHORT_DATE_FORMAT" }}</time>){% endif %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if scan_errors is not None %}
+      <section class="tl-section tl-section-flush" aria-labelledby="dash-scan" data-dashboard="scan-errors">
+        <div class="tl-section-header"><h2 id="dash-scan">{% translate "Latest scan errors" %}</h2></div>
+        {% if scan_errors %}
+          <ul class="tl-list">
+            {% for version in scan_errors %}
+              <li>
+                {% if version.openable %}<a href="{% url 'documents:detail' version.document.public_id %}">{{ version.document.title }}</a>{% else %}<span>{{ version.document.title }}</span>{% endif %}
+                <span class="tl-meta">
+                  <i class="bi bi-people" aria-hidden="true"></i> {{ version.document.community.name }}
+                  · <span class="badge text-bg-danger">{{ version.get_scan_status_display }}</span>
+                  · <time datetime="{{ version.created_at|date:'c' }}">{{ version.created_at|date:"SHORT_DATETIME_FORMAT" }}</time>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="px-3">{% translate "No scan error." %}</p>
+        {% endif %}
+      </section>
+    {% endif %}
+
     {% if administration %}
       <section class="tl-section" aria-labelledby="dash-admin" data-dashboard="administration">
         <div class="tl-section-header">
@@ -122,6 +162,26 @@
         </ul>
       {% else %}
         <p class="px-3">{% translate "No posts yet in your communities." %}</p>
+      {% endif %}
+    </section>
+
+    <section class="tl-section tl-section-flush" aria-labelledby="dash-resources" data-dashboard="resources">
+      <div class="tl-section-header"><h2 id="dash-resources">{% translate "Recent resources in my communities" %}</h2></div>
+      {% if recent_documents %}
+        <ul class="tl-list">
+          {% for document in recent_documents %}
+            <li>
+              <a href="{% url 'documents:detail' document.public_id %}">{{ document.title }}</a>
+              <p class="tl-meta mb-0">
+                <i class="bi bi-people" aria-hidden="true"></i> <a href="{% url 'documents:community_documents' document.community.slug %}">{{ document.community.name }}</a>
+                · {{ document.get_doc_type_display }}
+                · <i class="bi bi-clock" aria-hidden="true"></i> <time datetime="{{ document.updated_at|date:'c' }}">{{ document.updated_at|date:"SHORT_DATE_FORMAT" }}</time>
+              </p>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="px-3">{% translate "No documents yet in your communities." %}</p>
       {% endif %}
     </section>
 

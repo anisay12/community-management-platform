@@ -143,3 +143,94 @@ def test_populated_dashboard_query_count_is_bounded(
     with django_assert_max_num_queries(20):
         response = client.get(reverse("home"))
     assert set(_sections(response)) == set(SECTIONS)
+
+
+# --- Documents (L5) -----------------------------------------------------------------------
+
+
+def _document(community, owner, title="A document", scan_status="clean", **extra):
+    from documents.models import Document, DocumentVersion
+
+    document = Document.objects.create(
+        community=community, owner=owner, owner_display="Owner", title=title, **extra
+    )
+    version = DocumentVersion.objects.create(
+        document=document,
+        number=1,
+        version_label="1",
+        storage_key=f"documents/{document.pk}",
+        original_filename="f.pdf",
+        mime_type="application/pdf",
+        size=1,
+        sha256="0" * 64,
+        scan_status=scan_status,
+        is_reference=True,
+    )
+    document.current_version = version
+    document.save(update_fields=["current_version"])
+    return document
+
+
+def test_member_sees_recent_resources_of_their_communities(
+    client, make_user, make_community, add_member
+):
+    alice = make_user()
+    mine = make_community("Python guild")
+    other = make_community("Open forum")
+    add_member(mine, alice)
+    owner = make_user("owner@example.com")
+    _document(mine, owner, title="Mine visible")
+    _document(mine, owner, title="Mine pending", scan_status="pending")
+    _document(other, owner, title="Not a member there")
+    client.force_login(alice)
+    html = client.get(reverse("home")).content.decode()
+    assert 'data-dashboard="resources"' in html
+    assert "Mine visible" in html
+    assert "Mine pending" not in html
+    assert "Not a member there" not in html
+    assert 'data-dashboard="documents-review"' not in html
+    assert 'data-dashboard="scan-errors"' not in html
+
+
+def test_lead_sees_documents_to_review_with_reason(client, make_user, make_community, add_member):
+    lead = make_user()
+    community = make_community()
+    add_member(community, lead, role=CommunityMembership.Role.MODERATOR)
+    owner = make_user("owner@example.com")
+    _document(
+        community, owner, title="Stale guide", review_due_at=timezone.now() - timedelta(days=1)
+    )
+    _document(
+        community, owner, title="Fresh guide", review_due_at=timezone.now() + timedelta(days=9)
+    )
+    client.force_login(lead)
+    html = client.get(reverse("home")).content.decode()
+    assert 'data-dashboard="documents-review"' in html
+    assert "Stale guide" in html and "Review date passed" in html
+    assert (
+        "Fresh guide"
+        not in html.split('data-dashboard="documents-review"')[1].split("</section>")[0]
+    )
+
+
+def test_admin_sees_latest_scan_errors(
+    client, functional_admin, verified_login, make_user, make_community
+):
+    secret = make_community("Secret", access_mode=Community.AccessMode.INVITE)
+    owner = make_user("owner@example.com")
+    infected = _document(secret, owner, title="Bad file", scan_status="infected")
+    verified_login(client, functional_admin)
+    html = client.get(reverse("home")).content.decode()
+    assert 'data-dashboard="scan-errors"' in html
+    assert "Bad file" in html and "Infected" in html
+    # No grant on the private community: listed without a link.
+    assert reverse("documents:detail", args=[infected.public_id]) not in html
+
+
+def test_technical_admin_sees_scan_errors(client, make_user, verified_login):
+    technical = make_user("tech@example.com")
+    technical.groups.add(Group.objects.get(name=Role.TECHNICAL_ADMIN))
+    verified_login(client, technical)
+    html = client.get(reverse("home")).content.decode()
+    assert 'data-dashboard="scan-errors"' in html
+    assert "No scan error." in html

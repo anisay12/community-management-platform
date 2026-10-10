@@ -269,6 +269,28 @@ served by `GET /people/<public_id>/avatar/` (profile visibility checked, `X-Acce
 like documents, `Cache-Control: private, max-age=300` with a `?v=` token that changes on each
 upload). With `DEBUG`, `DOCUMENT_DEV_STREAMING` also makes Django stream avatars itself.
 
+## Documents: pages
+
+- **Resources tab** (`/documents/community/<slug>/`, tab key `resources`, order 20): the
+  documents the viewer may open (`visible_to`), filters on type, tag and title, sort (recent,
+  most downloaded, title), numbered pagination (20 per page, `per_page` up to 50). Owners and
+  moderators get a status filter (archived, expired, scan in progress or failed, all).
+- **Upload** (`/documents/community/<slug>/new/`), **document page** (`/documents/<uuid>/`),
+  edit, new version, reference version, archive (modal, or a confirmation page without
+  JavaScript), restore, link to / unlink from a post. Views in `documents/views.py`, read
+  queries in `documents/selectors_pages.py`; every write calls one `documents.services`
+  function.
+- **Idempotent forms** (`core/idempotency.py`): a form carries a hidden `idempotency_key`
+  UUID; the view wraps its write in `run_once(user, scope, key, operation)`. The result (here
+  the document `public_id`) is kept 24 h in the cache, so a double submit redirects to the
+  same document; a submission still running in another request is refused
+  (`submission_in_progress`, claimed with `cache.add`); a failed write releases the key.
+- Dates typed in the forms are days in the user's time zone: an expiry date is the end of
+  that day, a review date its start.
+- **Dashboard**: "Recent resources in my communities" (members), "Documents to review"
+  (managers, with the reason) and "Latest scan errors" (functional and technical admins,
+  metadata only; linked only when the admin may open the document).
+
 ## Scheduled jobs
 
 The `beat` service (Celery beat) runs these tasks (time zone `Europe/Paris`):
