@@ -1,5 +1,5 @@
 """Write services on interactions (Task 3): comments, reactions, bookmarks and collections,
-content reports.
+content reports. Documents (L5) can be bookmarked and reported too.
 
 Every service is atomic, keyword-only with the actor first, checks its policy itself and
 raises ``core.errors.DomainError`` (``forbidden``, ``own_content``, ``already_reported``, ...).
@@ -17,6 +17,8 @@ from communities.models import Community
 from communities.policies import membership_of
 from communities.roles import CommunityRole, role_at_least
 from core.errors import DomainError
+from documents import policies as document_policies
+from documents.models import Document
 from notifications.services import notify
 
 from . import policies
@@ -36,7 +38,7 @@ from .privacy import author_display_for
 from .ratelimit import hit
 from .rendering import render_body
 from .selectors import community_moderators
-from .selectors_moderation import open_reports, report_target
+from .selectors_moderation import open_reports, report_target, target_field
 from .tasks import schedule_recount
 
 COLLECTION_NAME_MAX_LENGTH = 80
@@ -347,6 +349,27 @@ def set_bookmark(*, actor, post, present: bool, collection=None) -> bool:
     return True
 
 
+@transaction.atomic
+def set_document_bookmark(*, actor, document, present: bool, collection=None) -> bool:
+    """Bookmark a document the actor can read (``documents.policies.can_bookmark_document``),
+    optionally in one of their collections, or remove the bookmark. Same rules as
+    ``set_bookmark``: idempotent, returns ``present``, removing needs no read access."""
+    _ensure_owner(actor, collection)
+    if not present:
+        Bookmark.objects.filter(user=actor, document=document).delete()
+        return False
+    if not document_policies.can_bookmark_document(actor, document):
+        raise _forbidden()
+    try:
+        with transaction.atomic():
+            Bookmark.objects.get_or_create(
+                user=actor, document=document, defaults={"collection": collection}
+            )
+    except IntegrityError:
+        pass  # bookmarked concurrently
+    return True
+
+
 def _clean_name(actor, name: str, *, exclude_pk=None) -> str:
     name = (name or "").strip()
     if not name:
@@ -417,10 +440,6 @@ def move_bookmark(*, actor, bookmark, collection):
 # Reports ---------------------------------------------------------------------------
 
 
-def _target_field(target) -> str:
-    return "comment" if isinstance(target, Comment) else "post"
-
-
 def _after_visibility_change(target) -> None:
     if isinstance(target, Comment):
         schedule_recount(target.post)
@@ -454,15 +473,7 @@ def report(*, actor, target, reason, details=""):
         raise _forbidden()
     if _is_author(actor, target):
         raise _own_content()
-    if reason not in ContentReport.Reason.values:
-        raise DomainError("invalid_reason", _("Choose a reason for your report."))
-    details = (details or "").strip()
-    if len(details) > REPORT_DETAILS_MAX_LENGTH:
-        raise DomainError(
-            "body_too_long",
-            _("This text is too long (%(max)s characters at most).")
-            % {"max": REPORT_DETAILS_MAX_LENGTH},
-        )
+    details = _clean_report(reason, details)
     # The row lock serialises concurrent reports, so the threshold is crossed exactly once.
     target = _lock(target)
     ensure_can_report(actor=actor, target=target)
@@ -473,7 +484,7 @@ def report(*, actor, target, reason, details=""):
                 community=post.community,
                 reason=reason,
                 details=details,
-                **{_target_field(target): target},
+                **{target_field(target): target},
             )
     except IntegrityError as error:
         raise _already_reported() from error
@@ -495,6 +506,69 @@ def _already_reported():
     return DomainError("already_reported", _("You have already reported this content."))
 
 
+def _clean_report(reason, details) -> str:
+    if reason not in ContentReport.Reason.values:
+        raise DomainError("invalid_reason", _("Choose a reason for your report."))
+    details = (details or "").strip()
+    if len(details) > REPORT_DETAILS_MAX_LENGTH:
+        raise DomainError(
+            "body_too_long",
+            _("This text is too long (%(max)s characters at most).")
+            % {"max": REPORT_DETAILS_MAX_LENGTH},
+        )
+    return details
+
+
+def ensure_can_report_document(*, actor, document) -> None:
+    """Raise the refusal ``report_document`` would answer whatever the form says
+    (``forbidden``, ``own_content``, ``invalid_state``, ``already_reported``)."""
+    if not document_policies.can_view_document(actor, document):
+        raise _forbidden()
+    if document.owner_id is not None and document.owner_id == actor.pk:
+        raise _own_content()
+    if document.status != Document.Status.ACTIVE:
+        raise _invalid_state()
+    if not document_policies.can_report_document(actor, document):
+        raise _forbidden()
+    if open_reports(document).filter(reporter=actor).exists():
+        raise _already_reported()
+
+
+@transaction.atomic
+def report_document(*, actor, document, reason, details=""):
+    """Report a document the actor can read (an ``outdated`` report puts it in the "content to
+    review" of its managers, ``documents.selectors_review``).
+
+    Unlike posts, documents are never hidden automatically: every new report alerts the
+    community's moderators+ (``report_document`` notification, one per moderator).
+    """
+    if not document_policies.can_view_document(actor, document):
+        raise _forbidden()
+    details = _clean_report(reason, details)
+    # The row lock serialises concurrent reports of the same document (as for posts).
+    document = _lock(document)
+    ensure_can_report_document(actor=actor, document=document)
+    try:
+        with transaction.atomic():
+            content_report = ContentReport.objects.create(
+                reporter=actor,
+                community=document.community,
+                document=document,
+                reason=reason,
+                details=details,
+            )
+    except IntegrityError as error:
+        raise _already_reported() from error
+    notify(
+        "report_document",
+        community_moderators(document.community),
+        actor=actor,
+        target=document,
+        community=document.community,
+    )
+    return content_report
+
+
 def _locked_open_report(actor, content_report) -> ContentReport:
     """Lock the reported target, then the report.
 
@@ -503,19 +577,31 @@ def _locked_open_report(actor, content_report) -> ContentReport:
     the last two open reports at once still restores an automatically hidden target.
     """
     target = report_target(
-        ContentReport.objects.select_related("post", "comment").get(pk=content_report.pk)
+        ContentReport.objects.select_related("post", "comment", "document").get(
+            pk=content_report.pk
+        )
     )
     _lock(target)
     content_report = ContentReport.objects.select_for_update().get(pk=content_report.pk)
     if content_report.status != ContentReport.Status.OPEN:
         raise _invalid_state()
-    target = report_target(content_report)
-    if not (
-        policies.can_view_post(actor, _post_of(target))
-        and policies.can_moderate(actor, content_report.community)
-    ):
+    if not can_decide_report(actor, content_report):
         raise _forbidden()
     return content_report
+
+
+def can_decide_report(user, content_report) -> bool:
+    """Whether ``user`` may resolve or dismiss ``content_report``: a moderator who can read
+    the reported post (or comment's post), or a document moderator who can read the reported
+    document."""
+    target = report_target(content_report)
+    if isinstance(target, Document):
+        return document_policies.can_view_document(
+            user, target
+        ) and document_policies.is_document_moderator(user, target.community)
+    return policies.can_view_post(user, _post_of(target)) and policies.can_moderate(
+        user, content_report.community
+    )
 
 
 def _close(actor, content_report, status, note: str) -> None:
@@ -537,7 +623,10 @@ def _close(actor, content_report, status, note: str) -> None:
 
 
 def _restore_if_cleared(actor, target) -> None:
-    """An automatically hidden target comes back once no open report remains."""
+    """An automatically hidden target comes back once no open report remains (documents are
+    never hidden automatically)."""
+    if isinstance(target, Document):
+        return
     target.refresh_from_db()
     if is_auto_hidden(target) and not open_reports(target).exists():
         mark_visible(target, actor=actor)
@@ -552,10 +641,14 @@ def resolve_report(*, actor, report, note="", hide=False):
     report of the target is resolved with it; an automatically hidden target becomes hidden by
     the moderator (``confirm_hidden``), a target a moderator already hid stays as it is.
     Without ``hide``, an automatically hidden target is restored once no open report remains.
+    A document cannot be hidden (``invalid_state``): it is archived instead
+    (``posts.services_moderation``).
     """
     content_report = _locked_open_report(actor, report)
     note = (note or "").strip()
     target = report_target(content_report)
+    if hide and isinstance(target, Document):
+        raise _invalid_state()
     if hide:
         if is_auto_hidden(target):
             confirm_hidden(target, actor=actor, reason=note)

@@ -47,15 +47,25 @@
           {% for entry in page_obj %}
             <li class="card tl-card mb-3 tl-bookmark-entry">
               <div class="card-body">
-                {% if entry.accessible %}
+                {% if entry.document_id %}
+                  {% url 'posts:collection_move_document' entry.document.public_id as move_url %}
+                  {% url 'posts:bookmark_document_remove' entry.document.public_id as remove_url %}
+                {% else %}
+                  {% url 'posts:collection_move' entry.post.public_id as move_url %}
+                  {% url 'posts:bookmark_remove' entry.post.public_id as remove_url %}
+                {% endif %}
+                {% if not entry.accessible %}
+                  <p class="mb-2 text-body-secondary fst-italic">{% translate "Content not accessible" %}</p>
+                {% elif entry.document_id %}
+                  <h3 class="h6 mb-1"><a href="{{ entry.url }}">{{ entry.document.title }}</a></h3>
+                  <p class="tl-meta mb-2"><span><i class="bi bi-file-earmark-text" aria-hidden="true"></i>{% translate "Document" %} · {{ entry.document.get_doc_type_display }}</span><span><i class="bi bi-people" aria-hidden="true"></i>{{ entry.document.community.name }}</span>{% if entry.collection %}<span class="tl-chip"><i class="bi bi-folder" aria-hidden="true"></i>{{ entry.collection.name }}</span>{% endif %}</p>
+                {% else %}
                   <h3 class="h6 mb-1"><a href="{% url 'posts:detail' entry.post.community.slug entry.post.public_id %}">{{ entry.post.title }}</a></h3>
                   <p class="tl-meta mb-2"><span><i class="bi bi-people" aria-hidden="true"></i>{{ entry.post.community.name }}</span>{% if entry.collection %}<span class="tl-chip"><i class="bi bi-folder" aria-hidden="true"></i>{{ entry.collection.name }}</span>{% endif %}</p>
-                {% else %}
-                  <p class="mb-2 text-body-secondary fst-italic">{% translate "Content not accessible" %}</p>
                 {% endif %}
                 <div class="d-flex flex-wrap gap-2 align-items-end">
                   {% if collections %}
-                    <form method="post" action="{% url 'posts:collection_move' entry.post.public_id %}" class="d-flex gap-2 align-items-end">{% csrf_token %}
+                    <form method="post" action="{{ move_url }}" class="d-flex gap-2 align-items-end">{% csrf_token %}
                       <div>
                         <label class="form-label small mb-0" for="move-{{ entry.pk }}">{% translate "Collection" %}</label>
                         <select class="form-select form-select-sm" id="move-{{ entry.pk }}" name="collection">
@@ -63,11 +73,11 @@
                           {% for collection in collections %}<option value="{{ collection.public_id }}"{% if collection.pk == entry.collection_id %} selected{% endif %}>{{ collection.name }}</option>{% endfor %}
                         </select>
                       </div>
-                      <button type="submit" class="btn btn-sm btn-outline-secondary">{% translate "Move" %}<span class="visually-hidden">: {% if entry.accessible %}{{ entry.post.title }}{% else %}{% translate "Content not accessible" %}{% endif %}</span></button>
+                      <button type="submit" class="btn btn-sm btn-outline-secondary">{% translate "Move" %}<span class="visually-hidden">: {% if not entry.accessible %}{% translate "Content not accessible" %}{% elif entry.document_id %}{{ entry.document.title }}{% else %}{{ entry.post.title }}{% endif %}</span></button>
                     </form>
                   {% endif %}
-                  <form method="post" action="{% url 'posts:bookmark_remove' entry.post.public_id %}">{% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger">{% translate "Remove" %}<span class="visually-hidden">: {% if entry.accessible %}{{ entry.post.title }}{% else %}{% translate "Content not accessible" %}{% endif %}</span></button>
+                  <form method="post" action="{{ remove_url }}">{% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">{% translate "Remove" %}<span class="visually-hidden">: {% if not entry.accessible %}{% translate "Content not accessible" %}{% elif entry.document_id %}{{ entry.document.title }}{% else %}{{ entry.post.title }}{% endif %}</span></button>
                   </form>
                 </div>
               </div>

@@ -1,4 +1,5 @@
-"""Read side of the moderation queue: reports grouped by target, pending posts, counts."""
+"""Read side of the moderation queue: reports grouped by target (a post, a comment or a
+document), pending posts, counts."""
 
 from dataclasses import dataclass, field
 
@@ -18,20 +19,35 @@ from django.db.models import (
 from django.db.models.functions import Coalesce, RowNumber
 
 from communities.models import Community
+from documents.models import Document
 
 from .hiding import is_auto_hidden
 from .models import Comment, ContentReport, Post
 
 
 def report_target(content_report):
-    """The post or comment ``content_report`` is about."""
-    return content_report.post if content_report.post_id else content_report.comment
+    """The post, comment or document ``content_report`` is about."""
+    if content_report.post_id:
+        return content_report.post
+    if content_report.document_id:
+        return content_report.document
+    return content_report.comment
+
+
+def target_field(target) -> str:
+    """The ``ContentReport`` foreign key that points at ``target``."""
+    if isinstance(target, Comment):
+        return "comment"
+    if isinstance(target, Document):
+        return "document"
+    return "post"
 
 
 def open_reports(target):
-    """The open reports of a post or comment."""
-    field = "comment" if isinstance(target, Comment) else "post"
-    return ContentReport.objects.filter(**{field: target}, status=ContentReport.Status.OPEN)
+    """The open reports of a post, comment or document."""
+    return ContentReport.objects.filter(
+        **{target_field(target): target}, status=ContentReport.Status.OPEN
+    )
 
 
 # Reports listed under one target in the queue (the most recent); the count shows them all.
@@ -40,25 +56,37 @@ REPORTS_SHOWN_PER_GROUP = 10
 
 @dataclass
 class ReportGroup:
-    """The reports of one target (a post or a comment), open or already handled."""
+    """The reports of one target (a post, a comment or a document), open or already handled.
+
+    ``document_url`` is set by the view for a document target (the document page may not be
+    routed yet, see ``posts.views_interactions.document_url``)."""
 
     target: object
     is_open: bool
     report_count: int
     latest: object
     reports: list = field(default_factory=list)
+    document_url: str = ""
+    can_archive: bool = False
 
     @property
     def is_post(self) -> bool:
         return isinstance(self.target, Post)
 
     @property
-    def post(self) -> Post:
+    def is_document(self) -> bool:
+        return isinstance(self.target, Document)
+
+    @property
+    def post(self) -> Post | None:
+        if self.is_document:
+            return None
         return self.target if self.is_post else self.target.post
 
     @property
     def auto_hidden(self) -> bool:
-        return is_auto_hidden(self.target)
+        # Documents are never hidden automatically (reports only alert their moderators).
+        return not self.is_document and is_auto_hidden(self.target)
 
     @property
     def hidden_count(self) -> int:
@@ -77,14 +105,14 @@ class ReportGroup:
 
 
 def report_groups(community):
-    """A values queryset of ``(post_id, comment_id, is_open)`` groups with ``report_count``
-    and ``latest``: groups with open reports first, then the most recent."""
+    """A values queryset of ``(post_id, comment_id, document_id, is_open)`` groups with
+    ``report_count`` and ``latest``: groups with open reports first, then the most recent."""
     return (
         ContentReport.objects.filter(community=community)
         .annotate(is_open=_is_open_expression())
-        .values("post_id", "comment_id", "is_open")
+        .values("post_id", "comment_id", "document_id", "is_open")
         .annotate(report_count=Count("pk"), latest=Max("created_at"))
-        .order_by("-is_open", "-latest", "post_id", "comment_id")
+        .order_by("-is_open", "-latest", "post_id", "comment_id", "document_id")
     )
 
 
@@ -97,18 +125,29 @@ def _is_open_expression() -> Case:
 
 
 def load_report_groups(community, rows) -> list[ReportGroup]:
-    """Turn a page of ``report_groups`` rows into ``ReportGroup`` objects (three queries:
-    posts, comments, reports). Each group lists its ``REPORTS_SHOWN_PER_GROUP`` most recent
-    reports, oldest first; ``report_count`` keeps the full number."""
+    """Turn a page of ``report_groups`` rows into ``ReportGroup`` objects (at most four
+    queries: posts, comments, documents, reports). Each group lists its
+    ``REPORTS_SHOWN_PER_GROUP`` most recent reports, oldest first; ``report_count`` keeps the
+    full number."""
     rows = list(rows)
     post_ids = {row["post_id"] for row in rows if row["post_id"]}
     comment_ids = {row["comment_id"] for row in rows if row["comment_id"]}
+    document_ids = {row.get("document_id") for row in rows if row.get("document_id")}
     posts = Post.objects.in_bulk(post_ids)
     comments = Comment.objects.select_related("post").in_bulk(comment_ids)
+    documents = (
+        Document.objects.select_related("community").in_bulk(document_ids) if document_ids else {}
+    )
     groups = {}
     for row in rows:
-        target = posts[row["post_id"]] if row["post_id"] else comments[row["comment_id"]]
-        key = (row["post_id"], row["comment_id"], row["is_open"])
+        document_id = row.get("document_id")
+        if row["post_id"]:
+            target = posts[row["post_id"]]
+        elif document_id:
+            target = documents[document_id]
+        else:
+            target = comments[row["comment_id"]]
+        key = (row["post_id"], row["comment_id"], document_id, row["is_open"])
         groups[key] = ReportGroup(
             target=target,
             is_open=row["is_open"],
@@ -117,18 +156,27 @@ def load_report_groups(community, rows) -> list[ReportGroup]:
         )
     recent_first = Window(
         RowNumber(),
-        partition_by=[F("post_id"), F("comment_id"), _is_open_expression()],
+        partition_by=[F("post_id"), F("comment_id"), F("document_id"), _is_open_expression()],
         order_by=[F("created_at").desc(), F("pk").desc()],
     )
     reports = (
         ContentReport.objects.filter(community=community)
-        .filter(Q(post_id__in=post_ids) | Q(comment_id__in=comment_ids))
+        .filter(
+            Q(post_id__in=post_ids)
+            | Q(comment_id__in=comment_ids)
+            | Q(document_id__in=document_ids)
+        )
         .annotate(rank=recent_first)
         .filter(rank__lte=REPORTS_SHOWN_PER_GROUP)
         .order_by("created_at", "pk")
     )
     for report in reports:
-        key = (report.post_id, report.comment_id, report.status == ContentReport.Status.OPEN)
+        key = (
+            report.post_id,
+            report.comment_id,
+            report.document_id,
+            report.status == ContentReport.Status.OPEN,
+        )
         if key in groups:
             groups[key].reports.append(report)
     return list(groups.values())
@@ -153,17 +201,19 @@ def _count(queryset, expression) -> Coalesce:
 
 
 def queue_counts(community) -> tuple[int, int]:
-    """``(reported, pending)`` in one query: posts and comments of ``community`` with at least
-    one open report, and posts awaiting review."""
+    """``(reported, pending)`` in one query: posts, comments and documents of ``community``
+    with at least one open report, and posts awaiting review."""
     reports = ContentReport.objects.filter(community=community, status=ContentReport.Status.OPEN)
     row = (
         Community.objects.filter(pk=community.pk)
         .annotate(
             reported_posts=_count(reports, Count("post", distinct=True)),
             reported_comments=_count(reports, Count("comment", distinct=True)),
+            reported_documents=_count(reports, Count("document", distinct=True)),
             pending=_count(pending_posts(community), Count("pk")),
         )
-        .values("reported_posts", "reported_comments", "pending")
+        .values("reported_posts", "reported_comments", "reported_documents", "pending")
         .get()
     )
-    return row["reported_posts"] + row["reported_comments"], row["pending"]
+    reported = row["reported_posts"] + row["reported_comments"] + row["reported_documents"]
+    return reported, row["pending"]

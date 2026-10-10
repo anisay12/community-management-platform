@@ -124,8 +124,27 @@ class UserProfile(models.Model):
     )
     job_title = models.CharField(_("job title"), max_length=150, blank=True)
     bio = models.TextField(_("bio"), blank=True, validators=[MaxLengthValidator(2000)])
-    # Upload UI is deferred to L5 (antivirus scan and private file serving).
+
+    class AvatarScan(models.TextChoices):
+        NONE = "", _("None")
+        PENDING = "pending", _("Being checked")
+        INFECTED = "infected", _("Refused by the virus scan")
+        ERROR = "error", _("Check failed")
+
+    # The visible photo: only ever a clean, re-encoded image under ``avatars/<hex>.webp``
+    # (see ``accounts.avatars``). Optional: initials are shown without it.
     avatar = models.ImageField(_("avatar"), upload_to="avatars/", blank=True, null=True)
+    # A new photo waiting for its virus scan: its quarantine key and the scan outcome. The
+    # status stays ``infected`` or ``error`` (with an empty key) until the next upload or
+    # removal, so that the owner sees why the photo did not change.
+    avatar_pending_key = models.CharField(_("pending avatar key"), max_length=255, blank=True)
+    avatar_scan_status = models.CharField(
+        _("avatar scan status"),
+        max_length=16,
+        blank=True,
+        choices=AvatarScan.choices,
+        default=AvatarScan.NONE,
+    )
     timezone = models.CharField(
         _("time zone"), max_length=64, default="Europe/Paris", validators=[validate_timezone]
     )

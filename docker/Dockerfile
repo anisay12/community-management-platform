@@ -15,7 +15,7 @@ RUN --mount=type=secret,id=extra_ca,required=false \
     pip install --disable-pip-version-check uv==0.11.32 \
     && uv sync --frozen --no-dev --no-install-project
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gettext \
+    && apt-get install -y --no-install-recommends gettext libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 COPY manage.py ./
 COPY src ./src
@@ -32,7 +32,11 @@ RUN export DJANGO_SETTINGS_MODULE=config.settings.prod \
     && cd src && /app/.venv/bin/python ../manage.py compilemessages
 
 FROM ${PYTHON_IMAGE} AS runtime
-RUN useradd --uid 10001 --create-home --shell /usr/sbin/nologin app
+# libmagic: content-based type detection of uploaded documents (python-magic).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libmagic1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --uid 10001 --create-home --shell /usr/sbin/nologin app
 WORKDIR /app
 COPY --from=build --chown=app:app /app /app
 ENV PATH="/app/.venv/bin:$PATH" \

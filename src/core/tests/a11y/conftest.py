@@ -39,10 +39,12 @@ def _ensure_role_groups():
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_teardown(item):
-    """Recreate the role groups (created by a migration) that the table flush just removed."""
+def pytest_runtest_teardown(item, nextitem):
+    """Recreate the role groups (created by a migration) that the table flush just removed.
+
+    Not after the last test: the session teardown has already dropped the test database."""
     yield
-    if item.get_closest_marker("a11y"):
+    if nextitem is not None and item.get_closest_marker("a11y"):
         with item.config.stash[blocking_manager_key].unblock():
             _ensure_role_groups()
 

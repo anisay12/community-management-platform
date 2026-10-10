@@ -19,6 +19,7 @@ from django.views.decorators.http import require_safe
 from communities.models import Community
 from communities.policies import is_functional_admin
 from communities.views import community_page
+from documents.selectors_pages import post_documents
 
 from . import policies, selectors
 from .mentions import handles_of, resolve_mentions
@@ -135,6 +136,7 @@ def detail(request, slug, public_id):
         "is_moderator": is_moderator,
         "can_view_revisions": is_moderator,
         "breadcrumb": _breadcrumb(post),
+        "linked_documents": post_documents(request.user, post),
     }
     return render(request, "posts/detail.html", context)
 

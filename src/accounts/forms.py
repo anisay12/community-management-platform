@@ -352,3 +352,16 @@ class PreferencesForm(forms.ModelForm):
         help_texts: ClassVar[dict] = {
             "language": _("“Automatic” follows your browser settings."),
         }
+
+
+class AvatarForm(forms.Form):
+    """A new profile photo. A plain ``FileField``: the image is only decoded after its virus
+    scan (``accounts.avatars``), never by form validation."""
+
+    photo = forms.FileField(
+        label=_("New photo"),
+        help_text=_(
+            "PNG, JPEG or WebP, 2 MB at most. Optional: your initials are shown otherwise."
+        ),
+        widget=forms.FileInput(attrs={"accept": "image/png,image/jpeg,image/webp"}),
+    )

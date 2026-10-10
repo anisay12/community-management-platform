@@ -37,6 +37,8 @@ urlpatterns = [
     path("accounts/", include(auth_patterns)),
     path("me/", views_profile.profile_me, name="profile_me"),
     path("me/edit/", views_profile.profile_edit, name="profile_edit"),
+    path("me/avatar/", views_profile.avatar_upload, name="avatar_upload"),
+    path("me/avatar/remove/", views_profile.avatar_remove, name="avatar_remove"),
     path("me/preferences/", views_profile.preferences, name="preferences"),
     path("me/data-export/", views_privacy.data_export, name="data_export"),
     path(
@@ -45,6 +47,7 @@ urlpatterns = [
         name="data_export_download",
     ),
     path("people/<uuid:public_id>/", views_profile.profile_detail, name="profile_detail"),
+    path("people/<uuid:public_id>/avatar/", views_profile.avatar, name="avatar"),
 ]
 
 # Account administration, mounted at /manage/ under the "manage" namespace.

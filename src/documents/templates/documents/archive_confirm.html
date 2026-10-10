@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}{% comment %}
+  Archive confirmation (the path without JavaScript; the document page opens a modal).
+  Context: community, document, breadcrumb.
+{% endcomment %}
+{% block title %}{% translate "Archive the document" %} - {{ document.title }} - {% translate "Communities" %}{% endblock %}
+{% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
+{% block content %}
+  {% translate "Archive the document" as page_title %}
+  {% include "components/page_header.html" with title=page_title eyebrow=document.title eyebrow_icon="archive" %}
+  <form method="post" class="tl-section tl-form col-12 col-lg-8">{% csrf_token %}
+    {% include "documents/_archive_body.html" %}
+    <div class="tl-form-actions mt-3">
+      <button type="submit" class="btn btn-danger">{% translate "Archive" %}</button>
+      <a class="btn btn-link" href="{% url 'documents:detail' document.public_id %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}{% comment %}
+  New version of a document. Context: community, document, form, breadcrumb.
+{% endcomment %}
+{% block title %}{% translate "New version" %} - {{ document.title }} - {% translate "Communities" %}{% endblock %}
+{% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
+{% block content %}
+  {% translate "Upload a new version" as form_title %}
+  {% include "components/page_header.html" with title=form_title eyebrow=document.title eyebrow_icon="file-earmark-plus" %}
+  <form method="post" enctype="multipart/form-data" class="tl-section tl-form col-12 col-lg-9" novalidate data-tl-single-submit>{% csrf_token %}
+    {% include "components/form_errors.html" %}
+    {% for field in form.visible_fields %}{% include "components/form_field.html" %}{% endfor %}
+    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+    <div class="tl-form-actions">
+      <button type="submit" class="btn btn-primary">{% translate "Upload" %}</button>
+      <a class="btn btn-link" href="{% url 'documents:detail' document.public_id %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+{% endblock %}

@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "communities",
     "notifications",
     "posts",
+    "documents",
 ]
 
 MIDDLEWARE = [
@@ -306,6 +307,18 @@ CELERY_BEAT_SCHEDULE = {
         "task": "posts.tasks.verify_counters",
         "schedule": crontab(hour=4, minute=0),
     },
+    "documents-expire": {
+        "task": "documents.tasks.expire_documents",
+        "schedule": crontab(hour=4, minute=15),
+    },
+    "documents-purge-download-logs": {
+        "task": "documents.tasks.purge_download_logs",
+        "schedule": crontab(hour=4, minute=30),
+    },
+    "documents-verify-download-counters": {
+        "task": "documents.tasks.verify_download_counters",
+        "schedule": crontab(hour=4, minute=45),
+    },
 }
 
 # Posts: hourly write limits per user, automatic hiding after N open reports, pinned posts.
@@ -314,3 +327,25 @@ POSTS_REPORT_AUTOHIDE_THRESHOLD = 3
 POSTS_PIN_LIMIT = 3
 # Bookmark collections one user may keep (bounds the bookmarks page).
 POSTS_MAX_BOOKMARK_COLLECTIONS = 50
+
+# Documents (L5): upload limit, ClamAV daemon, private serving and retention.
+DOCUMENT_MAX_UPLOAD_BYTES = env.int("DOCUMENT_MAX_UPLOAD_BYTES", default=100 * 1024 * 1024)
+CLAMAV_HOST = env("CLAMAV_HOST", default="clamav")
+CLAMAV_PORT = env.int("CLAMAV_PORT", default=3310)
+CLAMAV_TIMEOUT_SECONDS = env.int("CLAMAV_TIMEOUT_SECONDS", default=60)
+# Internal Nginx location that relays reads to the private object store (ADR-0001).
+DOCUMENT_PROTECTED_PREFIX = "/_protected/"
+DOWNLOAD_LOG_RETENTION_DAYS = env.int("DOWNLOAD_LOG_RETENTION_DAYS", default=365)
+# Uploads (new documents and new versions) one user may make per hour: a ``document`` bucket
+# of the generic hourly limiter ``posts.ratelimit``.
+DOCUMENT_UPLOAD_RATE_LIMIT = env.int("DOCUMENT_UPLOAD_RATE_LIMIT", default=20)
+POSTS_RATE_LIMITS = {**POSTS_RATE_LIMITS, "document": DOCUMENT_UPLOAD_RATE_LIMIT}
+# Development only: with DEBUG, Django streams document files itself instead of answering
+# X-Accel-Redirect. Set to false to try the Nginx path locally (never used without DEBUG).
+DOCUMENT_DEV_STREAMING = env.bool("DOCUMENT_DEV_STREAMING", default=True)
+
+# Profile photos (L5): upload limit, pixel cap against decompression bombs, and the browser
+# cache lifetime of the private avatar URL (``accounts.views_profile.avatar``).
+AVATAR_MAX_UPLOAD_BYTES = env.int("AVATAR_MAX_UPLOAD_BYTES", default=2 * 1024 * 1024)
+AVATAR_MAX_PIXELS = env.int("AVATAR_MAX_PIXELS", default=25_000_000)
+AVATAR_CACHE_SECONDS = 300

@@ -1,0 +1,8 @@
+{% load i18n %}{% comment %}
+  Status badges of a document. Context: document (with ``current_version`` loaded).
+{% endcomment %}
+{% with version=document.current_version %}
+  {% if document.is_restricted %}<span class="badge text-bg-info"><i class="bi bi-lock me-1" aria-hidden="true"></i>{% translate "Restricted" %}</span>{% endif %}
+  {% if document.status == "archived" %}<span class="badge text-bg-dark">{% translate "Archived" %}</span>{% elif document.status == "expired" %}<span class="badge text-bg-warning">{% translate "Expired" %}</span>{% endif %}
+  {% if version and version.scan_status == "pending" %}<span class="badge text-bg-secondary"><i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{% translate "Scan in progress" %}</span>{% elif version and version.scan_status == "error" %}<span class="badge text-bg-danger">{% translate "Scan failed" %}</span>{% elif version and version.scan_status == "infected" %}<span class="badge text-bg-danger">{% translate "Infected" %}</span>{% endif %}
+{% endwith %}

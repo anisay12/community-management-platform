@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load i18n component_tags %}{% comment %}
+  Document page. Context: document, community, reference (DocumentVersion), versions (the ones
+  the viewer may see, with can_download / can_preview / can_set_reference), links, can_edit,
+  can_download, can_preview, can_archive, is_manager, can_bookmark, can_report, bookmarked,
+  link_form (LinkPostForm or None), breadcrumb, resources_url.
+{% endcomment %}
+{% block title %}{{ document.title }} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
+{% block content %}
+  <div class="row justify-content-center"><div class="col-12 col-xl-10">
+  <article class="tl-section mb-4" aria-labelledby="document-title">
+    <header class="mb-3">
+      <p class="d-flex flex-wrap gap-2 mb-2 small">
+        <span class="badge text-bg-secondary">{{ document.get_doc_type_display }}</span>
+        {% include "documents/_badges.html" %}
+      </p>
+      <h1 id="document-title" class="h2">{{ document.title }}</h1>
+      <p class="tl-meta mb-2">
+        <i class="bi bi-person" aria-hidden="true"></i> {{ document.owner_display }}
+        · <i class="bi bi-people" aria-hidden="true"></i> <a href="{{ resources_url }}">{{ community.name }}</a>
+        · {% translate "Updated" %} <time datetime="{{ document.updated_at|date:'c' }}">{{ document.updated_at|date:"SHORT_DATE_FORMAT" }}</time>
+        · <i class="bi bi-download" aria-hidden="true"></i> {% blocktranslate count counter=document.download_count trimmed %}{{ counter }} download{% plural %}{{ counter }} downloads{% endblocktranslate %}
+      </p>
+      {% with tags=document.tags.all %}{% if tags %}
+        <ul class="list-inline mb-2" aria-label="{% translate 'Tags' %}">{% for tag in tags %}<li class="list-inline-item"><span class="tl-chip">{{ tag.name }}</span></li>{% endfor %}</ul>
+      {% endif %}{% endwith %}
+    </header>
+    {% if document.status == "archived" %}
+      <div class="alert alert-secondary" role="status">{% translate "This document is archived: readers no longer see it." %}</div>
+    {% elif document.status == "expired" %}
+      <div class="alert alert-warning" role="status">{% translate "This document has expired: readers no longer see it." %}</div>
+    {% endif %}
+    {% if document.description %}<div class="mb-3">{{ document.description|linebreaks }}</div>{% endif %}
+    <dl class="row small mb-3">
+      <dt class="col-sm-4">{% translate "Who can read it" %}</dt>
+      <dd class="col-sm-8">{% if document.is_restricted %}{% blocktranslate with role=document.get_min_role_display %}Members with the role {{ role }} or above{% endblocktranslate %}{% else %}{% translate "Everyone who can read the community" %}{% endif %}</dd>
+      <dt class="col-sm-4">{% translate "Who can download it" %}</dt>
+      <dd class="col-sm-8">{% blocktranslate with role=document.get_download_min_role_display %}Members with the role {{ role }} or above{% endblocktranslate %}</dd>
+      <dt class="col-sm-4">{% translate "Created" %}</dt>
+      <dd class="col-sm-8"><time datetime="{{ document.created_at|date:'c' }}">{{ document.created_at|date:"SHORT_DATE_FORMAT" }}</time></dd>
+      {% if document.expires_at %}<dt class="col-sm-4">{% translate "Expiry date" %}</dt><dd class="col-sm-8"><time datetime="{{ document.expires_at|date:'c' }}">{{ document.expires_at|date:"SHORT_DATE_FORMAT" }}</time></dd>{% endif %}
+      {% if is_manager and document.review_due_at %}<dt class="col-sm-4">{% translate "Review date" %}</dt><dd class="col-sm-8"><time datetime="{{ document.review_due_at|date:'c' }}">{{ document.review_due_at|date:"SHORT_DATE_FORMAT" }}</time></dd>{% endif %}
+    </dl>
+    <div class="d-flex flex-wrap gap-2">
+      {% if can_bookmark or bookmarked %}{% include "posts/_document_bookmark_button.html" with document=document bookmarked=bookmarked %}{% endif %}
+      {% if can_edit %}
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'documents:edit' document.public_id %}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>{% translate "Edit" %}</a>
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'documents:add_version' document.public_id %}"><i class="bi bi-file-earmark-plus me-1" aria-hidden="true"></i>{% translate "Upload a new version" %}</a>
+      {% endif %}
+      {% if can_archive %}
+        {% if document.status == "archived" %}
+          <form method="post" action="{% url 'documents:restore' document.public_id %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{% translate "Restore" %}</button></form>
+        {% else %}
+          <a class="btn btn-sm btn-outline-danger" href="{% url 'documents:archive' document.public_id %}" role="button" data-bs-toggle="modal" data-bs-target="#archive-document"><i class="bi bi-archive me-1" aria-hidden="true"></i>{% translate "Archive" %}</a>
+        {% endif %}
+      {% endif %}
+      {% if can_report %}{% include "posts/_document_report_link.html" with document=document %}{% endif %}
+    </div>
+  </article>
+
+  <section class="tl-section mb-4" aria-labelledby="reference-title" data-documents="reference">
+    <div class="tl-section-header"><h2 id="reference-title">{% translate "Reference version" %}</h2></div>
+    {% if reference %}
+      <dl class="row small mb-3">
+        <dt class="col-sm-4">{% translate "Version" %}</dt><dd class="col-sm-8">{{ reference.version_label }}</dd>
+        <dt class="col-sm-4">{% translate "File name" %}</dt><dd class="col-sm-8 text-break">{{ reference.original_filename }}</dd>
+        <dt class="col-sm-4">{% translate "Size" %}</dt><dd class="col-sm-8">{{ reference.size|filesizeformat }}</dd>
+        <dt class="col-sm-4">{% translate "Content type" %}</dt><dd class="col-sm-8">{{ reference.mime_type }}</dd>
+        <dt class="col-sm-4">{% translate "SHA-256" %}</dt><dd class="col-sm-8"><code title="{{ reference.sha256 }}">{{ reference.sha256|slice:":12" }}…</code></dd>
+        <dt class="col-sm-4">{% translate "Uploaded" %}</dt><dd class="col-sm-8">{% if reference.uploaded_by %}{{ reference.uploaded_by|member_name }} · {% endif %}<time datetime="{{ reference.created_at|date:'c' }}">{{ reference.created_at|date:"SHORT_DATETIME_FORMAT" }}</time></dd>
+        <dt class="col-sm-4">{% translate "Scan status" %}</dt><dd class="col-sm-8">{{ reference.get_scan_status_display }}</dd>
+      </dl>
+      {% if can_download %}
+        <div class="d-flex flex-wrap gap-2">
+          <a class="btn btn-primary" href="{% url 'documents:download' document.public_id %}"><i class="bi bi-download me-1" aria-hidden="true"></i>{% translate "Download" %}</a>
+          {% if can_preview %}<a class="btn btn-outline-primary" href="{% url 'documents:preview' document.public_id %}" target="_blank" rel="noopener">{% translate "Preview" %}<span class="visually-hidden"> {% translate "(opens in a new tab)" %}</span><i class="bi bi-box-arrow-up-right ms-1" aria-hidden="true"></i></a>{% endif %}
+        </div>
+      {% elif reference.scan_status == "pending" %}
+        <p class="mb-0"><span class="badge text-bg-secondary"><i class="bi bi-hourglass-split me-1" aria-hidden="true"></i>{% translate "Scan in progress" %}</span> {% translate "The file can be downloaded once the antivirus scan is clean." %}</p>
+      {% elif reference.scan_status == "clean" %}
+        <p class="text-body-secondary mb-0">{% translate "Your role in the community does not allow you to download this document." %}</p>
+      {% else %}
+        <p class="text-body-secondary mb-0">{% translate "This file cannot be downloaded: upload a new version." %}</p>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <section class="tl-section tl-section-flush mb-4" aria-labelledby="versions-title" data-documents="versions">
+    <div class="tl-section-header"><h2 id="versions-title">{% translate "Versions" %}</h2></div>
+    <ul class="tl-list">
+      {% for version in versions %}
+        <li class="d-block">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <strong>{% blocktranslate with label=version.version_label %}Version {{ label }}{% endblocktranslate %}</strong>
+            {% if version.is_reference %}<span class="badge text-bg-primary">{% translate "Reference" %}</span>{% endif %}
+            {% if not version.is_clean %}<span class="badge text-bg-{% if version.scan_status == 'pending' %}secondary{% else %}danger{% endif %}">{{ version.get_scan_status_display }}</span>{% endif %}
+          </div>
+          {% if version.change_note %}<p class="mb-1">{{ version.change_note }}</p>{% endif %}
+          <p class="tl-meta mb-1">{{ version.size|filesizeformat }}{% if version.uploaded_by %} · {{ version.uploaded_by|member_name }}{% endif %} · <time datetime="{{ version.created_at|date:'c' }}">{{ version.created_at|date:"SHORT_DATE_FORMAT" }}</time></p>
+          <div class="d-flex flex-wrap gap-2">
+            {% if version.can_download %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'documents:download_version' document.public_id version.number %}"><i class="bi bi-download me-1" aria-hidden="true"></i>{% translate "Download" %}<span class="visually-hidden"> {% blocktranslate with label=version.version_label %}version {{ label }}{% endblocktranslate %}</span></a>{% endif %}
+            {% if version.can_set_reference %}
+              <form method="post" action="{% url 'documents:set_reference' document.public_id version.number %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-primary">{% translate "Make reference" %}<span class="visually-hidden"> {% blocktranslate with label=version.version_label %}version {{ label }}{% endblocktranslate %}</span></button></form>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="tl-section mb-4" aria-labelledby="links-title" data-documents="links">
+    <div class="tl-section-header"><h2 id="links-title">{% translate "Linked posts" %}</h2></div>
+    {% if links %}
+      <ul class="tl-list">
+        {% for entry in links %}
+          <li class="justify-content-between">
+            <a href="{% url 'posts:detail' entry.post.community.slug entry.post.public_id %}">{{ entry.post.title }}</a>
+            {% if can_edit %}<form method="post" action="{% url 'documents:unlink' document.public_id entry.pk %}" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-sm btn-link">{% translate "Remove the link" %}<span class="visually-hidden"> {{ entry.post.title }}</span></button></form>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-body-secondary">{% translate "This document is not linked to any post yet." %}</p>
+    {% endif %}
+    {% if link_form %}
+      {% if link_form.fields.post.choices %}
+        <form method="post" action="{% url 'documents:link' document.public_id %}" class="row g-2 align-items-end mt-2">{% csrf_token %}
+          <div class="col-12 col-md">
+            <label class="form-label" for="id_post">{% translate "Link to a post of this community" %}</label>
+            <select name="post" id="id_post" class="form-select">{% for value, label in link_form.fields.post.choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select>
+          </div>
+          <div class="col-12 col-md-auto"><button type="submit" class="btn btn-outline-primary">{% translate "Link" %}</button></div>
+        </form>
+      {% endif %}
+    {% endif %}
+  </section>
+  </div></div>
+  {% if can_archive and document.status != "archived" %}
+    {% url 'documents:archive' document.public_id as archive_url %}
+    {% translate "Archive the document" as modal_title %}{% translate "Archive" as confirm_label %}{% translate "Cancel" as cancel_label %}
+    {% include "components/modal.html" with id="archive-document" title=modal_title body_template="documents/_archive_body.html" confirm_action=archive_url confirm_label=confirm_label cancel_label=cancel_label confirm_class="btn-danger" %}
+  {% endif %}
+{% endblock %}

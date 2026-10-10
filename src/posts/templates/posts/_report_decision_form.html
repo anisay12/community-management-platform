@@ -1,17 +1,22 @@
 {% load i18n %}{% comment %}
   Decision on the open reports of one target (moderation queue, and the decision page shown
-  again when hiding lacks a note). Context: group (selectors_moderation.ReportGroup), note
+  again when hiding lacks a note). A document target offers "resolve and archive" (when
+  ``group.can_archive``) instead of hiding. Context: group (selectors_moderation.ReportGroup), note
   (optional: the note typed before), error (optional: the refusal to show).
 {% endcomment %}{% with target=group.target %}
 <form method="post" action="{% url 'posts:report_decide' group.action_report.public_id %}" class="row g-2 align-items-end">
   {% csrf_token %}
   <div class="col-12 col-md">
-    <label class="form-label" for="note-{{ target.public_id }}">{% translate "Note (required to hide: shown to the author as the reason)" %}</label>
+    <label class="form-label" for="note-{{ target.public_id }}">{% if group.is_document %}{% translate "Note" %}{% else %}{% translate "Note (required to hide: shown to the author as the reason)" %}{% endif %}</label>
     <input class="form-control{% if error %} is-invalid{% endif %}" type="text" id="note-{{ target.public_id }}" name="note" maxlength="1000" value="{{ note|default:'' }}"{% if error %} aria-invalid="true" aria-describedby="note-{{ target.public_id }}-error"{% endif %}>
     {% if error %}<div class="invalid-feedback d-block" id="note-{{ target.public_id }}-error">{{ error }}</div>{% endif %}
   </div>
   <div class="col-12 col-md-auto d-flex flex-wrap gap-2">
-    <button type="submit" name="decision" value="resolve_hide" aria-describedby="report-group-{{ target.public_id }}" class="btn btn-danger">{% if group.auto_hidden %}{% translate "Confirm hiding" %}{% else %}{% translate "Resolve and hide" %}{% endif %}</button>
+    {% if group.is_document %}
+      {% if group.can_archive %}<button type="submit" name="decision" value="resolve_archive" aria-describedby="report-group-{{ target.public_id }}" class="btn btn-danger">{% translate "Resolve and archive the document" %}</button>{% endif %}
+    {% else %}
+      <button type="submit" name="decision" value="resolve_hide" aria-describedby="report-group-{{ target.public_id }}" class="btn btn-danger">{% if group.auto_hidden %}{% translate "Confirm hiding" %}{% else %}{% translate "Resolve and hide" %}{% endif %}</button>
+    {% endif %}
     <button type="submit" name="decision" value="resolve" aria-describedby="report-group-{{ target.public_id }}" class="btn btn-outline-primary">{% translate "Resolve" %}</button>
     <button type="submit" name="decision" value="dismiss" aria-describedby="report-group-{{ target.public_id }}" class="btn btn-outline-secondary">{% translate "Dismiss" %}</button>
   </div>

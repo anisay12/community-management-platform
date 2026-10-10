@@ -43,6 +43,16 @@
       {% if can_view_revisions %}<a class="btn btn-outline-secondary btn-sm" href="{% url 'posts:revisions' community.slug post.public_id %}"><i class="bi bi-clock-history me-1" aria-hidden="true"></i>{% translate "Revisions" %}</a>{% endif %}
     </div>
   </article>
+  {% if linked_documents %}
+    <section class="tl-section mb-4" aria-labelledby="linked-documents-title" data-post="linked-documents">
+      <div class="tl-section-header"><h2 id="linked-documents-title">{% translate "Linked documents" %}</h2></div>
+      <ul class="tl-list">
+        {% for document in linked_documents %}
+          <li><a href="{% url 'documents:detail' document.public_id %}"><i class="bi bi-file-earmark-text me-1" aria-hidden="true"></i>{{ document.title }}</a> <span class="tl-meta">{{ document.get_doc_type_display }}{% if document.current_version %} · {{ document.current_version.size|filesizeformat }}{% endif %}</span></li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
   {% if accepted_answer %}
     <section class="tl-section border-success bg-success-subtle mb-4" aria-labelledby="accepted-answer-title">
       <h2 class="h5" id="accepted-answer-title"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% translate "Accepted answer" %}</h2>
