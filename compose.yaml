@@ -48,6 +48,7 @@ services:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8333/healthz || exit 1"]
       interval: 5s
       retries: 20
+      start_period: 120s  # the first start creates the data volumes, slow on WSL bind mounts
 
   s3-init:
     image: talan-communities:dev
