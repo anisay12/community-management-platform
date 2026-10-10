@@ -324,3 +324,6 @@ CLAMAV_TIMEOUT_SECONDS = env.int("CLAMAV_TIMEOUT_SECONDS", default=60)
 # Internal Nginx location that relays reads to the private object store (ADR-0001).
 DOCUMENT_PROTECTED_PREFIX = "/_protected/"
 DOWNLOAD_LOG_RETENTION_DAYS = env.int("DOWNLOAD_LOG_RETENTION_DAYS", default=365)
+# Development only: with DEBUG, Django streams document files itself instead of answering
+# X-Accel-Redirect. Set to false to try the Nginx path locally (never used without DEBUG).
+DOCUMENT_DEV_STREAMING = env.bool("DOCUMENT_DEV_STREAMING", default=True)

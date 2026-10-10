@@ -61,6 +61,7 @@ Each business application follows the same layout: `models.py`, `selectors.py` (
 | `DJANGO_READ_DOT_ENV` | Set to `false` to ignore the `.env` file (the settings tests use it so that a developer's `.env` cannot re-supply values) | `true` | no |
 | `DEV_ADMIN_PASSWORD` | Password read by `create_dev_admin --password-from-env` (development only) | none | **yes** |
 | any name, e.g. `BOOTSTRAP_ADMIN_PASSWORD` | Password read by `create_admin --password-from-env <VAR>` (first administrator); unset it afterwards | none | **yes** |
+| `DOCUMENT_DEV_STREAMING` | With `DJANGO_DEBUG`/dev settings only: Django streams document files itself; set to `false` to try the Nginx `X-Accel-Redirect` path locally (ignored when `DEBUG` is off) | `true` | no |
 | `LOG_LEVEL` | Log level | `INFO` | no |
 | `LOG_JSON` | Logs in JSON format | `true` (`false` in dev) | no |
 
@@ -200,6 +201,52 @@ Writes need an `active` community: suspended and archived communities answer `re
 **Mentions.** The handle is `first.last`: each name lowercased, accents removed, slugified (underscores become hyphens), e.g. `@jean.dupont`. A mention resolves only when exactly one current member with that handle can read the post; otherwise it stays plain text. Resolved mentions are rendered as `<span class="mention">` (no profile link yet); `posts.rendering.render_body` takes the resolved handles, so an unresolved `@first.last` stays plain text. The editor suggests up to 8 members matching what follows `@` (members, and functional administrators writing an announcement).
 
 **Anonymization.** The author name is frozen on each post and comment; anonymizing an account replaces it with "Former employee" (FR « Ancien collaborateur »).
+
+## Documents: private download
+
+Routes (namespace `documents`): `/documents/<public_id>/download/` (reference version),
+`/documents/<public_id>/download/<number>/` (a given version), and the same with `preview/`.
+They are `GET` only and require a signed-in user (MFA rules apply as everywhere).
+
+- Hidden document, unknown version number, version the user may not see, or infected version
+  (for everyone) → 404. Preview of anything but PDF, PNG, JPEG, GIF and WebP → 404 (download
+  only). Visible version whose download is refused (`download_min_role`) → 403; a manager
+  asking for a version still being scanned (or whose scan failed) also gets 403, with a toast
+  saying why.
+- Every served request writes a `DownloadLog` row (`is_preview` for previews) through
+  `documents.downloads.record_download`; downloads, not previews, schedule the deferred
+  `download_count` recount.
+- **Production** (`DEBUG` off): Django answers an empty response with
+  `X-Accel-Redirect: /_protected/<bucket>/<key>?<signature>`, the path and query of a
+  60-second presigned URL of the object, plus `Content-Type`, `Content-Disposition`
+  (`attachment`/`inline`, ASCII `filename` and UTF-8 `filename*`), `X-Content-Type-Options`,
+  `Cache-Control: private, no-store` and, for previews, `Content-Security-Policy: sandbox;
+  default-src 'none'`. The internal Nginx location `/_protected/` relays the request to
+  `STORAGE_ORIGIN` (see ADR-0001, "Implementation"). The signed URL never reaches the browser.
+- **Development** (`DEBUG` on, `DOCUMENT_DEV_STREAMING=true`, the default): Django streams the
+  file from the default storage with the same headers. It is never used when `DEBUG` is off.
+
+`docker/nginx/default.conf` is an Nginx *template*: mount it as
+`/etc/nginx/templates/default.conf.template` in the official image and set
+`STORAGE_ORIGIN` to the scheme and host of the URLs Django signs (`NGINX_ENVSUBST_FILTER=^STORAGE_`
+limits substitution to that variable). In development it is `http://s3:8333`
+(`S3_ENDPOINT_URL`). Without `S3_ENDPOINT_URL`, boto3 signs AWS URLs for
+`https://<bucket>.s3.amazonaws.com`; check the host with
+`python manage.py shell -c "from django.core.files.storage import default_storage as s; print(s.url('x', expire=60))"`.
+`make image` validates the template with `nginx -t`.
+
+To try the Nginx path locally:
+
+```bash
+echo DOCUMENT_DEV_STREAMING=false >> .env
+docker compose up -d                       # restarts web with the new value
+docker compose --profile proxy up -d nginx
+# sign in on http://localhost:8080 and open a document's download link
+curl -i http://localhost:8080/_protected/anything   # 404: the location is internal
+```
+
+Static files under Nginx come from `src/core/static` only in this setup; use port 8000 for
+everyday work.
 
 ## Scheduled jobs
 
