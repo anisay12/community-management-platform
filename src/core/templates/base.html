@@ -6,22 +6,27 @@
   <meta name="color-scheme" content="light dark">
   <title>{% block title %}{% translate "Communities" %}{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'core/dist/app.css' %}">
+  <script src="{% static 'core/js/sidebar-state.js' %}"></script>
   {% block extra_head %}{% endblock %}
 </head>
-<body class="d-flex flex-column min-vh-100" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="tl-body" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
   <a class="skip-link" href="#main">{% translate "Skip to main content" %}</a>
-  <header>
-    {% block site_header %}{% include "components/navbar.html" %}{% endblock %}
-  </header>
   {% include "components/messages.html" %}
-  <main id="main" tabindex="-1" class="{% block main_class %}container py-4 flex-grow-1{% endblock %}">
-    {% block breadcrumb %}{% endblock %}
-    {% block page_header %}{% endblock %}
-    {% block content %}{% endblock %}
-  </main>
-  <footer class="border-top py-3 text-body-secondary small">
-    <div class="container">{% translate "Communities — internal platform" %}</div>
-  </footer>
+  {% block layout %}
+    <div class="tl-shell">
+      <header class="tl-shell-nav">
+        {% block site_header %}{% include "components/navbar.html" %}{% endblock %}
+      </header>
+      <div class="tl-shell-content">
+        <main id="main" tabindex="-1" class="{% block main_class %}tl-main flex-grow-1{% endblock %}">
+          {% block breadcrumb %}{% endblock %}
+          {% block page_header %}{% endblock %}
+          {% block content %}{% endblock %}
+        </main>
+        <footer class="tl-footer">{% translate "Communities — internal platform" %}</footer>
+      </div>
+    </div>
+  {% endblock %}
   <script src="{% static 'core/dist/bootstrap.bundle.min.js' %}" defer></script>
   <script src="{% static 'core/dist/htmx.min.js' %}" defer></script>
   <script src="{% static 'core/js/app.js' %}" defer></script>

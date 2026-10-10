@@ -1,16 +1,29 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n navigation_tags %}
 {% block content %}
   {% if user.is_authenticated %}
-    <h1 class="h3 mb-4">{% blocktranslate with name=user.get_short_name|default:user.get_username %}Hello, {{ name }}.{% endblocktranslate %}</h1>
-    {% translate "No communities yet" as empty_title %}
-    {% translate "Communities will appear here as soon as they exist. In the meantime, complete your profile so colleagues can find you." as empty_text %}
-    {% translate "Go to my profile" as empty_action %}
-    {% url 'accounts:profile_me' as profile_url %}
-    {% include "components/empty_state.html" with icon="people" title=empty_title text=empty_text action_url=profile_url action_label=empty_action %}
+    {% blocktranslate asvar hero_title with name=user.get_short_name|default:user.get_username %}Hello {{ name }}{% endblocktranslate %}
+    {% translate "Find your communities, share what you know and follow your colleagues' posts." as hero_subtitle %}
+    {% include "components/hero.html" with title=hero_title subtitle=hero_subtitle show_avatar=True %}
+    {% main_navigation as nav_items %}
+    <h2 class="h4 mb-3">{% translate "Where to start" %}</h2>
+    <ul class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3 list-unstyled mb-0">
+      {% for item in nav_items %}{% if item.key != "home" %}
+        <li class="col">
+          <article class="card h-100">
+            <div class="card-body d-flex align-items-center gap-3">
+              <span class="tl-tile-icon" aria-hidden="true"><i class="bi bi-{{ item.icon }}"></i></span>
+              <h3 class="h6 mb-0"><a class="stretched-link text-reset text-decoration-none" href="{{ item.url }}">{{ item.label }}</a></h3>
+              <i class="bi bi-arrow-right ms-auto text-body-secondary" aria-hidden="true"></i>
+            </div>
+          </article>
+        </li>
+      {% endif %}{% endfor %}
+    </ul>
   {% else %}
-    <h1 class="h3 mb-3">{% translate "Communities" %}</h1>
-    <p>{% translate "Welcome to the Talan communities platform." %}</p>
-    <p><a class="btn btn-primary" href="{% url 'accounts:login' %}">{% translate "Sign in" %}</a></p>
+    {% translate "Welcome to the Talan communities platform." as hero_subtitle %}
+    {% translate "Communities" as hero_title %}
+    {% include "components/hero.html" with title=hero_title subtitle=hero_subtitle %}
+    <p><a class="btn btn-primary btn-lg" href="{% url 'accounts:login' %}">{% translate "Sign in" %}</a></p>
   {% endif %}
 {% endblock %}

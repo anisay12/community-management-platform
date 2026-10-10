@@ -1,0 +1,13 @@
+{% load i18n accounts_tags %}
+{% comment %}
+  Welcome banner. Arguments: title (heading text); subtitle (optional); show_avatar (optional).
+{% endcomment %}
+<section class="tl-hero" aria-labelledby="hero-title">
+  <div>
+    <h1 class="tl-hero-title" id="hero-title">
+      {% if show_avatar %}<span class="avatar-initials tl-avatar-xl" aria-hidden="true">{{ user|initials }}</span>{% endif %}
+      <span>{{ title }}</span>
+    </h1>
+    {% if subtitle %}<p class="tl-hero-subtitle">{{ subtitle }}</p>{% endif %}
+  </div>
+</section>

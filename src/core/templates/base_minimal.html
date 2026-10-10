@@ -1,3 +1,26 @@
 {% extends "base.html" %}
-{% block site_header %}{% include "components/navbar.html" with minimal=True %}{% endblock %}
-{% block main_class %}container py-5 flex-grow-1 mx-auto tl-narrow{% endblock %}
+{% load i18n static %}
+{% comment %}
+  Split screen for the pages seen before or outside a session (sign in, MFA, password reset,
+  errors): artwork on the left from the lg breakpoint, the form on the right.
+{% endcomment %}
+{% block layout %}
+  <div class="tl-auth">
+    <div class="tl-auth-art" aria-hidden="true"></div>
+    <div class="tl-auth-panel">
+      <header class="tl-auth-header">
+        <a class="tl-brand" href="{% url 'home' %}">
+          <img src="{% static 'core/brand/logo-mark.svg' %}" alt="" width="40" height="40">
+          <span>{% translate "Communities" %}</span>
+        </a>
+        {% include "components/language_switcher.html" %}
+      </header>
+      <main id="main" tabindex="-1" class="{% block main_class %}tl-auth-main{% endblock %}">
+        {% block breadcrumb %}{% endblock %}
+        {% block page_header %}{% endblock %}
+        {% block content %}{% endblock %}
+      </main>
+      <footer class="tl-footer">{% translate "Communities — internal platform" %}</footer>
+    </div>
+  </div>
+{% endblock %}
