@@ -3,7 +3,7 @@
 {% block title %}{% translate "Moderation" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   {% include "communities/_header.html" %}
-  <h2 class="h4 mt-3">{% translate "Moderation" %}</h2>
+  <div class="tl-section-header mt-4 mb-3"><h2 id="moderation-title">{% translate "Moderation" %}</h2></div>
   <nav aria-label="{% translate 'Moderation queues' %}">
     <ul class="nav nav-pills mb-3">
       {% for label, url, active, count in queue_tabs %}
@@ -16,10 +16,10 @@
   {% querystring_without_page as querystring %}
   {% if tab == "reports" %}
     {% if page_obj.object_list %}
-      <ul class="list-unstyled">
+      <ul class="list-unstyled tl-stagger">
         {% for group in page_obj.object_list %}
           {% with post=group.post target=group.target %}
-            <li class="card mb-3{% if not group.is_open %} border-0 bg-body-tertiary{% endif %}">
+            <li class="card tl-card mb-3{% if not group.is_open %} border-0 bg-body-tertiary{% endif %}">
               <div class="card-body">
                 <h3 class="h5 card-title" id="report-group-{{ target.public_id }}">
                   {% if group.is_post %}
@@ -67,12 +67,12 @@
     {% endif %}
   {% else %}
     {% if page_obj.object_list %}
-      <ul class="list-unstyled">
+      <ul class="list-unstyled tl-stagger">
         {% for post in page_obj.object_list %}
-          <li class="card mb-3">
+          <li class="card tl-card mb-3">
             <div class="card-body">
               <h3 class="h5 card-title" id="pending-{{ post.public_id }}"><a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a></h3>
-              <p class="mb-2 text-body-secondary small">
+              <p class="tl-meta mb-2">
                 {% blocktranslate with kind=post.get_kind_display author=post.author_display date=post.created_at|date:"SHORT_DATETIME_FORMAT" %}{{ kind }} by {{ author }}, submitted on {{ date }}{% endblocktranslate %}
               </p>
               <p>{{ post.body|truncatechars:300 }}</p>

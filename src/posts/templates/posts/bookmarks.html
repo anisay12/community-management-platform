@@ -2,11 +2,12 @@
 {% load i18n %}
 {% block title %}{% translate "Bookmarks" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h2 mb-3">{% translate "Bookmarks" %}</h1>
+  {% translate "Bookmarks" as bookmarks_title %}
+  {% include "components/page_header.html" with title=bookmarks_title eyebrow_icon="bookmark" %}
   <div class="row g-4">
     <div class="col-12 col-lg-4">
-      <section aria-labelledby="collections-title">
-        <h2 class="h5" id="collections-title">{% translate "Collections" %}</h2>
+      <section class="tl-section" aria-labelledby="collections-title">
+        <div class="tl-section-header"><h2 id="collections-title">{% translate "Collections" %}</h2></div>
         <ul class="nav nav-pills flex-column mb-3">
           <li class="nav-item"><a class="nav-link{% if not selected %} active{% endif %}" href="{% url 'posts:bookmarks' %}"{% if not selected %} aria-current="page"{% endif %}>{% translate "All bookmarks" %}</a></li>
           <li class="nav-item"><a class="nav-link{% if selected == 'none' %} active{% endif %}" href="?collection=none"{% if selected == 'none' %} aria-current="page"{% endif %}>{% translate "Not in a collection" %}</a></li>
@@ -40,15 +41,15 @@
       </section>
     </div>
     <div class="col-12 col-lg-8">
-      <h2 class="h5">{% if current %}{{ current.name }}{% elif selected == "none" %}{% translate "Not in a collection" %}{% else %}{% translate "All bookmarks" %}{% endif %}</h2>
+      <h2 class="h5 mb-3">{% if current %}{{ current.name }}{% elif selected == "none" %}{% translate "Not in a collection" %}{% else %}{% translate "All bookmarks" %}{% endif %}</h2>
       {% if page_obj.object_list %}
-        <ul class="list-unstyled">
+        <ul class="list-unstyled tl-stagger">
           {% for entry in page_obj %}
             <li class="card tl-card mb-3 tl-bookmark-entry">
               <div class="card-body">
                 {% if entry.accessible %}
                   <h3 class="h6 mb-1"><a href="{% url 'posts:detail' entry.post.community.slug entry.post.public_id %}">{{ entry.post.title }}</a></h3>
-                  <p class="small text-body-secondary mb-2">{{ entry.post.community.name }}{% if entry.collection %} <span aria-hidden="true">·</span> {{ entry.collection.name }}{% endif %}</p>
+                  <p class="tl-meta mb-2"><span><i class="bi bi-people" aria-hidden="true"></i>{{ entry.post.community.name }}</span>{% if entry.collection %}<span class="tl-chip"><i class="bi bi-folder" aria-hidden="true"></i>{{ entry.collection.name }}</span>{% endif %}</p>
                 {% else %}
                   <p class="mb-2 text-body-secondary fst-italic">{% translate "Content not accessible" %}</p>
                 {% endif %}

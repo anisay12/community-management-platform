@@ -3,15 +3,15 @@
 {% block title %}{% translate "Feed" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   {% include "communities/_header.html" %}
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-2">
-    <h2 class="h4 mb-0">{% translate "Feed" %}</h2>
+  <div class="tl-section-header mt-4 mb-3">
+    <h2 id="community-feed-title">{% translate "Feed" %}</h2>
     <div class="d-flex flex-wrap gap-2">
       {% include "posts/_feed_create_button.html" %}
     </div>
   </div>
   {% include "posts/_feed_filters.html" %}
   {% if page.pinned %}
-    <section aria-label="{% translate 'Pinned posts' %}">
+    <section class="mb-3" aria-label="{% translate 'Pinned posts' %}">
       {% for post in page.pinned %}{% include "components/post_card.html" with post=post pinned=True %}{% endfor %}
     </section>
   {% endif %}

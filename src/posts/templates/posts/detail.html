@@ -3,24 +3,26 @@
 {% block title %}{{ post.title }} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
 {% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
 {% block content %}
-  <article class="tl-post mb-4" aria-labelledby="post-title">
+  <div class="row justify-content-center"><div class="col-12 col-xl-9">
+  <article class="tl-post tl-section mb-4" aria-labelledby="post-title">
     <header class="mb-3">
       <p class="d-flex flex-wrap gap-2 mb-2 small">
         {% if post.pinned_at %}<span class="badge text-bg-primary"><i class="bi bi-pin-angle me-1" aria-hidden="true"></i>{% translate "Pinned" %}</span>{% endif %}
         <span class="badge text-bg-secondary">{{ post.get_kind_display }}</span>
         {% if post.status == "pending_review" %}<span class="badge text-bg-warning">{% translate "Pending review" %}</span>{% elif post.status == "hidden" %}<span class="badge text-bg-danger">{% translate "Hidden" %}</span>{% elif post.status == "archived" %}<span class="badge text-bg-dark">{% translate "Archived" %}</span>{% elif post.status == "draft" %}<span class="badge text-bg-light border">{% translate "Draft" %}</span>{% endif %}
       </p>
-      <h1 id="post-title" class="h2">{{ post.title }}</h1>
+      <h1 id="post-title" class="h2 tl-post-title">{{ post.title }}</h1>
       {% with date=post.published_at|default:post.created_at %}
-      <p class="text-body-secondary small mb-2">
-        {{ post.author_display }} <span aria-hidden="true">·</span>
+      <p class="tl-meta mb-2">
+        <span class="avatar-initials tl-avatar-sm" aria-hidden="true">{{ post.author_display|slice:":1"|upper }}</span>
+        <strong class="text-body">{{ post.author_display }}</strong> <span aria-hidden="true">·</span>
         <a href="{% url 'posts:feed' community.slug %}">{{ community.name }}</a> <span aria-hidden="true">·</span>
         <time datetime="{{ date|date:'c' }}" title="{{ date|date:'DATETIME_FORMAT' }}">{% blocktranslate with delay=date|timesince %}{{ delay }} ago{% endblocktranslate %}</time>
       </p>
       {% endwith %}
       {% with tags=post.tags.all %}{% if tags %}
         <ul class="list-inline mb-2" aria-label="{% translate 'Tags' %}">
-          {% for tag in tags %}<li class="list-inline-item"><span class="badge rounded-pill text-bg-light border">{{ tag.name }}</span></li>{% endfor %}
+          {% for tag in tags %}<li class="list-inline-item"><span class="tl-chip">{{ tag.name }}</span></li>{% endfor %}
         </ul>
       {% endif %}{% endwith %}
       {% if post.shared_from_id %}
@@ -42,13 +44,13 @@
     </div>
   </article>
   {% if accepted_answer %}
-    <section class="border border-success rounded p-3 mb-4 bg-success-subtle" aria-labelledby="accepted-answer-title">
+    <section class="tl-section border-success bg-success-subtle mb-4" aria-labelledby="accepted-answer-title">
       <h2 class="h5" id="accepted-answer-title"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% translate "Accepted answer" %}</h2>
       {% include "posts/_comment.html" with comment=accepted_answer reply=False %}
     </section>
   {% endif %}
-  <section aria-labelledby="comments-title">
-    <h2 class="h4" id="comments-title">{% translate "Comments" %}</h2>
+  <section class="tl-section" aria-labelledby="comments-title">
+    <div class="tl-section-header"><h2 id="comments-title">{% translate "Comments" %}</h2></div>
     {% for comment in comments %}
       {% if comment != accepted_answer %}{% include "posts/_comment.html" with comment=comment reply=False %}{% endif %}
     {% empty %}
@@ -56,4 +58,5 @@
     {% endfor %}
     {% include "posts/_comment_form.html" %}
   </section>
+  </div></div>
 {% endblock %}

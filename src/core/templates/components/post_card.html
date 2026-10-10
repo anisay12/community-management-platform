@@ -5,32 +5,35 @@
   show_community (bool, the home feed). The "Hidden" and "Pending review" badges only reach
   the author and moderators, who alone receive such posts from the selectors.
 {% endcomment %}
-<article class="card tl-card tl-post-card mb-3">
+<article class="card tl-card tl-post-card mb-3{% if pinned %} border-primary{% endif %}">
   <div class="card-body">
-    <p class="d-flex flex-wrap gap-2 mb-2 small">
-      {% if pinned %}<span class="badge text-bg-primary"><i class="bi bi-pin-angle me-1" aria-hidden="true"></i>{% translate "Pinned" %}</span>{% endif %}
-      <span class="badge text-bg-secondary">{{ post.get_kind_display }}</span>
-      {% if post.status == "pending_review" %}<span class="badge text-bg-warning">{% translate "Pending review" %}</span>{% elif post.status == "hidden" %}<span class="badge text-bg-danger">{% translate "Hidden" %}</span>{% endif %}
-    </p>
-    <h3 class="card-title h5"><a href="{% url 'posts:detail' post.community.slug post.public_id %}">{{ post.title }}</a></h3>
     {% with date=post.published_at|default:post.created_at %}
-    <p class="card-subtitle small text-body-secondary mb-2">
-      <span>{{ post.author_display }}</span>
+    <p class="tl-meta mb-3">
+      <span class="avatar-initials tl-avatar-sm" aria-hidden="true">{{ post.author_display|slice:":1"|upper }}</span>
+      <strong class="text-body">{{ post.author_display }}</strong>
       {% if show_community %}<span aria-hidden="true">·</span> <a href="{% url 'posts:feed' post.community.slug %}">{{ post.community.name }}</a>{% endif %}
       <span aria-hidden="true">·</span> <time datetime="{{ date|date:'c' }}" title="{{ date|date:'DATETIME_FORMAT' }}">{% blocktranslate with delay=date|timesince %}{{ delay }} ago{% endblocktranslate %}</time>
     </p>
     {% endwith %}
+    <p class="d-flex flex-wrap gap-2 mb-2 small">
+      {% if pinned %}<span class="badge text-bg-primary"><i class="bi bi-pin-angle me-1" aria-hidden="true"></i>{% translate "Pinned" %}</span>{% endif %}
+      <span class="badge text-bg-secondary">{{ post.get_kind_display }}</span>
+      {% if post.accepted_answer_id %}<span class="badge text-bg-success"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% translate "Accepted answer" %}</span>{% endif %}
+      {% if post.status == "pending_review" %}<span class="badge text-bg-warning">{% translate "Pending review" %}</span>{% elif post.status == "hidden" %}<span class="badge text-bg-danger">{% translate "Hidden" %}</span>{% endif %}
+    </p>
+    <h3 class="card-title h5"><a href="{% url 'posts:detail' post.community.slug post.public_id %}">{{ post.title }}</a></h3>
+    {% if post.body %}<p class="card-text text-body-secondary">{{ post.body|striptags|truncatechars:180 }}</p>{% endif %}
     {% if post.shared_from_id %}
       <p class="small mb-2"><i class="bi bi-share me-1" aria-hidden="true"></i>{% if post.share_original_visible %}{% translate "Also published in" %} <a href="{% url 'posts:detail' post.shared_from.community.slug post.shared_from.public_id %}">{{ post.shared_from.community.name }}</a>{% else %}<span class="text-body-secondary">{% translate "Content not accessible" %}</span>{% endif %}</p>
     {% endif %}
     {% with tags=post.tags.all %}{% if tags %}
       <ul class="list-inline mb-0" aria-label="{% translate 'Tags' %}">
-        {% for tag in tags %}<li class="list-inline-item"><span class="badge rounded-pill text-bg-light border">{{ tag.name }}</span></li>{% endfor %}
+        {% for tag in tags %}<li class="list-inline-item"><span class="tl-chip">{{ tag.name }}</span></li>{% endfor %}
       </ul>
     {% endif %}{% endwith %}
   </div>
-  <div class="card-footer d-flex flex-wrap gap-3 small text-body-secondary">
-    <span><i class="bi bi-chat me-1" aria-hidden="true"></i>{% blocktranslate count counter=post.comment_count %}{{ counter }} comment{% plural %}{{ counter }} comments{% endblocktranslate %}</span>
+  <div class="card-footer tl-meta">
+    <span><i class="bi bi-chat" aria-hidden="true"></i>{% blocktranslate count counter=post.comment_count %}{{ counter }} comment{% plural %}{{ counter }} comments{% endblocktranslate %}</span>
     {% for kind, label, count in post.reaction_counts|reaction_items %}<span class="tl-reaction-count">{{ label }}&nbsp;{{ count }}</span>{% endfor %}
   </div>
 </article>
