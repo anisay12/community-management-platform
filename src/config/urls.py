@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from django.views.generic import TemplateView
 
 from accounts.urls import manage_patterns
 from core import views, views_i18n, views_styleguide
@@ -11,11 +10,7 @@ handler404 = "core.views_errors.page_not_found"
 handler500 = "core.views_errors.server_error"
 
 urlpatterns = [
-    path(
-        "",
-        TemplateView.as_view(template_name="core/home.html"),
-        name="home",
-    ),
+    path("", views.home, name="home"),
     path("", include("accounts.urls")),
     path("manage/", include(manage_patterns)),
     path("audit/", include("audit.urls")),
