@@ -256,6 +256,50 @@ def test_update_comment_by_moderator_and_refused_for_others(
     assert _code(services.update_comment, actor=author, comment=comment, body="x") == "forbidden"
 
 
+def test_moderator_edit_of_a_comment_is_audited_and_tells_its_author(
+    post, reader, moderator, make_comment, django_capture_on_commit_callbacks
+):
+    comment = make_comment(post, reader)
+    with django_capture_on_commit_callbacks(execute=True):
+        services.update_comment(actor=moderator, comment=comment, body="Moderated")
+    event = AuditEvent.objects.get(action="comment.moderator_edited")
+    assert (event.actor, event.community_id) == (moderator, post.community_id)
+    notification = _notifications("system", reader).get()
+    assert notification.actor == moderator
+    # Their own comment, or an author editing theirs: neither audited nor notified.
+    with django_capture_on_commit_callbacks(execute=True):
+        mine = make_comment(post, moderator)
+        services.update_comment(actor=moderator, comment=mine, body="Mine")
+        services.update_comment(actor=reader, comment=comment, body="Back")
+    assert AuditEvent.objects.filter(action="comment.moderator_edited").count() == 1
+    assert _notifications("system").count() == 1
+
+
+def _former_member_comment(make_community, make_user, make_post, make_comment, add_member):
+    """A comment of a member who then left the private community, and its moderator."""
+    private = make_community("Private", access_mode=Community.AccessMode.INVITE)
+    left = make_user("left@example.com", first_name="Lea", last_name="Left")
+    moderator = make_user("pmod@example.com", first_name="Pia", last_name="Mod")
+    add_member(private, left)
+    add_member(private, moderator, Role.MODERATOR)
+    comment = make_comment(make_post(private, moderator), left)
+    CommunityMembership.objects.filter(community=private, user=left).delete()
+    return comment, moderator
+
+
+def test_moderator_edit_not_notified_to_a_former_member(
+    make_community, make_user, make_post, make_comment, add_member,
+    django_capture_on_commit_callbacks,
+):  # fmt: skip
+    comment, moderator = _former_member_comment(
+        make_community, make_user, make_post, make_comment, add_member
+    )
+    with django_capture_on_commit_callbacks(execute=True):
+        services.update_comment(actor=moderator, comment=comment, body="Moderated")
+    assert AuditEvent.objects.filter(action="comment.moderator_edited").exists()
+    assert not _notifications("system").exists()
+
+
 def test_update_comment_on_an_archived_post_is_refused(post, reader, moderator, make_comment):
     comment = make_comment(post, reader)
     Post.objects.filter(pk=post.pk).update(status=Post.Status.ARCHIVED)
@@ -295,6 +339,19 @@ def test_hide_and_unhide_comment_audited(
     assert AuditEvent.objects.filter(action="comment.unhidden", actor=moderator).exists()
     post.refresh_from_db()
     assert post.comment_count == 1
+
+
+def test_hide_comment_not_notified_to_a_former_member(
+    make_community, make_user, make_post, make_comment, add_member,
+    django_capture_on_commit_callbacks,
+):  # fmt: skip
+    comment, moderator = _former_member_comment(
+        make_community, make_user, make_post, make_comment, add_member
+    )
+    with django_capture_on_commit_callbacks(execute=True):
+        services.hide_comment(actor=moderator, comment=comment, reason="Rude")
+    assert AuditEvent.objects.filter(action="comment.hidden").exists()
+    assert not _notifications("system").exists()
 
 
 def test_hide_comment_needs_reason_and_moderator(post, reader, author, moderator, make_comment):

@@ -197,7 +197,11 @@ def add_comment(*, actor, post, body, parent=None):
 
 @transaction.atomic
 def update_comment(*, actor, comment, body):
-    """Edit a comment: its author, or a moderator+ (no revision kept, last write wins)."""
+    """Edit a comment: its author, or a moderator+ (no revision kept, last write wins).
+
+    A moderator's edit of someone else's comment is audited (``comment.moderator_edited``)
+    and tells its author (``system``) if they can still read the post.
+    """
     post = comment.post
     if not policies.can_view_comment(actor, comment):
         raise _forbidden()
@@ -213,7 +217,22 @@ def update_comment(*, actor, comment, body):
     comment.body_html = render_body(body)
     comment.save(update_fields=["body", "body_html", "updated_at"])
     _notify_mentions(actor, comment)
+    if not _is_author(actor, comment):
+        record(
+            actor=actor,
+            action="comment.moderator_edited",
+            target=comment,
+            community=post.community,
+        )
+        _notify_author(actor, comment)
     return comment
+
+
+def _notify_author(actor, comment: Comment) -> None:
+    """``system`` notification to the comment's author, if they can still read the post."""
+    author = comment.author
+    if author is not None and policies.can_view_post(author, comment.post):
+        notify("system", [author], actor=actor, target=comment, community=comment.post.community)
 
 
 def _ensure_moderator(actor, comment: Comment) -> None:
@@ -226,17 +245,11 @@ def _ensure_moderator(actor, comment: Comment) -> None:
 
 @transaction.atomic
 def hide_comment(*, actor, comment, reason):
-    """Hide a comment (audited ``comment.hidden`` with the reason) and tell its author."""
+    """Hide a comment (audited ``comment.hidden`` with the reason) and tell its author if they
+    can still read the post."""
     _ensure_moderator(actor, comment)
     mark_hidden(comment, actor=actor, reason=reason)
-    if comment.author is not None:
-        notify(
-            "system",
-            [comment.author],
-            actor=actor,
-            target=comment,
-            community=comment.post.community,
-        )
+    _notify_author(actor, comment)
     schedule_recount(comment.post)
     return comment
 
