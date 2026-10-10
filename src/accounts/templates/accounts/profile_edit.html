@@ -2,11 +2,16 @@
 {% load i18n %}
 {% block title %}{% translate "Edit my profile" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h3 mb-4">{% translate "Edit my profile" %}</h1>
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {% include "accounts/_form_fields.html" %}
-    <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
-    <a class="btn btn-outline-secondary" href="{% url 'accounts:profile_me' %}">{% translate "Cancel" %}</a>
-  </form>
+  {% translate "Edit my profile" as page_title %}
+  {% include "components/page_header.html" with title=page_title %}
+  <section class="tl-section">
+    <form method="post" class="tl-form" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" %}
+      <div class="tl-form-actions">
+        <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+        <a class="btn btn-outline-secondary" href="{% url 'accounts:profile_me' %}">{% translate "Cancel" %}</a>
+      </div>
+    </form>
+  </section>
 {% endblock %}

@@ -2,12 +2,21 @@
 {% load i18n %}
 {% block title %}{% translate "Preferences" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h3 mb-4">{% translate "Preferences" %}</h1>
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {% include "accounts/_form_fields.html" %}
-    <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
-  </form>
-  <h2 class="h4 mt-5">{% translate "My data" %}</h2>
-  <p><a href="{% url 'accounts:data_export' %}">{% translate "Download a copy of my data" %}</a></p>
+  {% translate "Preferences" as page_title %}
+  {% include "components/page_header.html" with title=page_title eyebrow_icon="gear" %}
+  <section class="tl-section">
+    <form method="post" class="tl-form" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" %}
+      <div class="tl-form-actions">
+        <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
+      </div>
+    </form>
+  </section>
+  <section class="tl-section" aria-labelledby="my-data-title">
+    <div class="tl-section-header">
+      <h2 id="my-data-title">{% translate "My data" %}</h2>
+      <a class="tl-section-link" href="{% url 'accounts:data_export' %}">{% translate "Download a copy of my data" %}</a>
+    </div>
+  </section>
 {% endblock %}
