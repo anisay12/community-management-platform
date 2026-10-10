@@ -2,13 +2,15 @@ from unittest import mock
 
 import pytest
 from django.core.cache import cache
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from audit.models import AuditEvent
 from communities.models import Community, CommunityMembership
 from core.errors import DomainError
 from notifications.models import Notification
 from posts import services_interactions as services
-from posts.models import Bookmark, BookmarkCollection, Comment, Mention, Post, Reaction
+from posts.models import COMMENT_BODY_MAX_LENGTH, Bookmark, BookmarkCollection, Comment, Mention, Post, Reaction
 
 pytestmark = pytest.mark.django_db
 
@@ -216,6 +218,20 @@ def test_comment_rate_limit(post, reader, settings):
     assert _code(services.add_comment, actor=reader, post=post, body="3") == "rate_limited"
 
 
+def test_refused_writes_do_not_count_towards_the_rate_limit(post, reader, author, settings):
+    settings.POSTS_RATE_LIMITS = {**settings.POSTS_RATE_LIMITS, "comment": 1, "reaction": 1}
+    assert _code(services.add_comment, actor=reader, post=post, body=" ") == "body_required"
+    too_long = "x" * (COMMENT_BODY_MAX_LENGTH + 1)
+    assert _code(services.add_comment, actor=reader, post=post, body=too_long) == "body_too_long"
+    services.add_comment(actor=reader, post=post, body="Counted")
+    assert _code(services.add_comment, actor=reader, post=post, body="Again") == "rate_limited"
+    react = {"target": post, "present": True}
+    assert _code(services.set_reaction, actor=author, kind="useful", **react) == "own_content"
+    assert _code(services.set_reaction, actor=reader, kind="nope", **react) == "invalid_state"
+    services.set_reaction(actor=reader, kind="useful", **react)
+    assert _code(services.set_reaction, actor=reader, kind="thanks", **react) == "rate_limited"
+
+
 def test_mentions_notified_once_per_newly_mentioned_user(
     post, reader, author, moderator, django_capture_on_commit_callbacks
 ):
@@ -374,6 +390,42 @@ def test_hide_comment_in_read_only_community_is_allowed(post, reader, moderator,
     services.hide_comment(actor=moderator, comment=comment, reason="Spam")
     comment.refresh_from_db()
     assert comment.status == Comment.Status.HIDDEN
+
+
+def _for_update_tables(context) -> list[str]:
+    """The tables locked ``FOR UPDATE`` in ``context``, in order."""
+    return [
+        query["sql"].split(" FROM ")[1].split()[0].strip('"')
+        for query in context.captured_queries
+        if query["sql"].startswith("SELECT") and "FOR UPDATE" in query["sql"]
+    ]
+
+
+def test_add_comment_locks_the_post_and_reads_its_status_again(post, reader, make_comment):
+    Post.objects.filter(pk=post.pk).update(status=Post.Status.ARCHIVED)  # ``post`` is stale
+    assert _code(services.add_comment, actor=reader, post=post, body="Late") == "invalid_state"
+    assert not Comment.objects.exists()
+    Post.objects.filter(pk=post.pk).update(status=Post.Status.PUBLISHED)
+    with CaptureQueriesContext(connection) as context:
+        services.add_comment(actor=reader, post=post, body="On time")
+    assert _for_update_tables(context)[0] == "posts_post"
+
+
+def test_set_reaction_locks_the_post_and_reads_the_target_again(
+    post, reader, author, make_comment
+):
+    comment = make_comment(post, author)
+    Comment.objects.filter(pk=comment.pk).update(status=Comment.Status.HIDDEN)
+    react = {"actor": reader, "kind": "useful", "present": True}
+    assert _code(services.set_reaction, target=comment, **react) == "forbidden"  # now hidden
+    Post.objects.filter(pk=post.pk).update(status=Post.Status.ARCHIVED)
+    assert _code(services.set_reaction, target=post, **react) == "invalid_state"
+    assert not Reaction.objects.exists()
+    Post.objects.filter(pk=post.pk).update(status=Post.Status.PUBLISHED)
+    Comment.objects.filter(pk=comment.pk).update(status=Comment.Status.VISIBLE)
+    with CaptureQueriesContext(connection) as context:
+        services.set_reaction(actor=reader, target=comment, kind="useful", present=True)
+    assert _for_update_tables(context)[:2] == ["posts_post", "posts_comment"]
 
 
 # Reactions -------------------------------------------------------------------------

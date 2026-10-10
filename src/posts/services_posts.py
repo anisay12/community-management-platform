@@ -293,6 +293,7 @@ def _create(*, actor, community, kind, title, body, tags, publish, shared_from=N
     title, body = _clean_content(title, body)
     tag_objects = _resolve_tags(actor, community, tags)
     mentioned = resolve_mentions(community, body)
+    # Counted once every check has passed, right before the write: a refusal costs nothing.
     ratelimit.hit(actor, "post")
     post = Post.objects.create(
         community=community,

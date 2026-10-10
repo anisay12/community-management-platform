@@ -212,6 +212,16 @@ def test_post_rate_limit(member, community, settings, broadcasts):
     assert error.value.retry_after > 0
 
 
+def test_refused_posts_do_not_count_towards_the_rate_limit(member, community, settings, broadcasts):
+    settings.POSTS_RATE_LIMITS = {**settings.POSTS_RATE_LIMITS, "post": 1}
+    kwargs = {"actor": member, "community": community, "kind": Post.Kind.DISCUSSION, "body": "B"}
+    assert _code(services.create_post, title=" ", **kwargs) == "title_required"
+    refused = _code(services.create_post, title="T", tags=["Brand new"], **kwargs)
+    assert refused == "tag_creation_forbidden"
+    services.create_post(title="Counted", **kwargs)
+    assert _code(services.create_post, title="Again", **kwargs) == "rate_limited"
+
+
 def test_mentions_are_stored_and_notified_on_publish(
     member, people, community, broadcasts, django_capture_on_commit_callbacks
 ):

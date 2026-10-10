@@ -154,6 +154,11 @@ def _lock(obj):
     return type(obj).objects.select_for_update().get(pk=obj.pk)
 
 
+def _lock_in_place(obj) -> None:
+    """Re-read ``obj`` under a row lock (in place: callers keep using their instance)."""
+    obj.refresh_from_db(from_queryset=type(obj).objects.select_for_update())
+
+
 # Comments --------------------------------------------------------------------------
 
 
@@ -161,7 +166,12 @@ def _lock(obj):
 def add_comment(*, actor, post, body, parent=None):
     """Comment ``post`` (or answer ``parent``; a reply to a reply goes under its top-level
     comment). Notifies the author of the post or comment answered (``reply``) and the newly
-    mentioned members (``mention``)."""
+    mentioned members (``mention``).
+
+    The post is locked first (then its community, by ``_touch``) and its status read under
+    the lock: a post archived or hidden meanwhile is not commented.
+    """
+    _lock_in_place(post)
     _ensure_participation(actor, post)
     if post.status != Post.Status.PUBLISHED:
         raise _invalid_state()
@@ -181,8 +191,9 @@ def add_comment(*, actor, post, body, parent=None):
                 raise _invalid_state()
     body = _clean_body(body)
     mentioned = _mentioned_readers(post, body)
-    hit(actor, "comment")
     membership = membership_of(actor, post.community)
+    # Counted once every check has passed, right before the write: a refusal costs nothing.
+    hit(actor, "comment")
     comment = Comment.objects.create(
         post=post,
         author=actor,
@@ -279,8 +290,13 @@ def set_reaction(*, actor, target, kind, present: bool) -> bool:
 
     Idempotent: the request states the wanted outcome, so a repeated or concurrent request
     (double click, two tabs) leaves the same state. Returns ``present``.
+
+    The post is locked first, then a comment target: their status is read under the lock.
     """
     post = _post_of(target)
+    _lock_in_place(post)
+    if isinstance(target, Comment):
+        _lock_in_place(target)
     if not _can_view_target(actor, target):
         raise _forbidden()
     if _is_author(actor, target):
@@ -290,7 +306,7 @@ def set_reaction(*, actor, target, kind, present: bool) -> bool:
     _ensure_participation(actor, post)
     if not policies.can_react(actor, target):
         raise _forbidden()
-    hit(actor, "reaction")
+    hit(actor, "reaction")  # every check has passed: only the write follows
     field = "comment" if isinstance(target, Comment) else "post"
     lookup = {"user": actor, field: target, "kind": kind}
     if present:
