@@ -17,6 +17,7 @@ dependencies = [
     "nh3>=0.3.7",
     "pillow>=12.3.0",
     "psycopg[binary]>=3.2",
+    "python-magic>=0.4.27",
     "redis>=5",
     "segno>=1.6.6",
     "structlog>=24",

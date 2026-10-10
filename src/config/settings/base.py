@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "communities",
     "notifications",
     "posts",
+    "documents",
 ]
 
 MIDDLEWARE = [
@@ -314,3 +315,12 @@ POSTS_REPORT_AUTOHIDE_THRESHOLD = 3
 POSTS_PIN_LIMIT = 3
 # Bookmark collections one user may keep (bounds the bookmarks page).
 POSTS_MAX_BOOKMARK_COLLECTIONS = 50
+
+# Documents (L5): upload limit, ClamAV daemon, private serving and retention.
+DOCUMENT_MAX_UPLOAD_BYTES = env.int("DOCUMENT_MAX_UPLOAD_BYTES", default=100 * 1024 * 1024)
+CLAMAV_HOST = env("CLAMAV_HOST", default="clamav")
+CLAMAV_PORT = env.int("CLAMAV_PORT", default=3310)
+CLAMAV_TIMEOUT_SECONDS = env.int("CLAMAV_TIMEOUT_SECONDS", default=60)
+# Internal Nginx location that relays reads to the private object store (ADR-0001).
+DOCUMENT_PROTECTED_PREFIX = "/_protected/"
+DOWNLOAD_LOG_RETENTION_DAYS = env.int("DOWNLOAD_LOG_RETENTION_DAYS", default=365)
