@@ -16,11 +16,12 @@ class AccountsConfig(AppConfig):
         navigation.register(
             navigation.NavItem(
                 key="manage_users",
-                label=_("Administration"),
+                label=_("Users"),
                 url_name="manage:user_list",
-                icon="people",
+                icon="person-gear",
                 order=90,
                 is_visible=can_manage_users,
+                section=navigation.ADMINISTRATION,
                 active_prefixes=("/manage/",),
             )
         )

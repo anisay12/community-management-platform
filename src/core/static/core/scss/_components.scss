@@ -1,0 +1,478 @@
+// Design system components: the shared vocabulary every page uses.
+//
+//   .tl-page-header   page title block (eyebrow, h1, lead, actions)   -> components/page_header.html
+//   .tl-section       titled white panel with an optional header action
+//   .tl-stat          key figure tile (icon, value, label)            -> components/stat_card.html
+//   .tl-toolbar       filter / search bar above a list
+//   .tl-table         data table inside a panel
+//   .tl-list          stacked rows inside a panel (members, requests, notifications)
+//   .tl-meta          small muted metadata line with icons
+//   .tl-chip          compact tag / filter pill
+//   .tl-form          form column with generous spacing
+//   tabs              Bootstrap .nav-tabs restyled as underline tabs
+
+// ---- Typography ---------------------------------------------------------------------------
+
+body {
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, .h1, h2, .h2 {
+  letter-spacing: -0.02em;
+}
+
+h3, .h3, h4, .h4 {
+  letter-spacing: -0.01em;
+}
+
+.text-muted-tl,
+.text-body-secondary {
+  color: var(--tl-color-text-muted) !important;
+}
+
+// ---- Page header -----------------------------------------------------------------------
+
+.tl-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.75rem;
+
+  h1 {
+    margin: 0;
+  }
+}
+
+.tl-page-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-bottom: 0.375rem;
+  color: var(--tl-color-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tl-page-lead {
+  max-width: 48rem;
+  margin: 0.5rem 0 0;
+  color: var(--tl-color-text-muted);
+  font-size: 1.0625rem;
+}
+
+.tl-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+// ---- Sections and panels -----------------------------------------------------------------
+
+.tl-section {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: var(--tl-color-surface);
+  border: 1px solid var(--tl-color-hairline);
+  border-radius: var(--tl-radius-lg);
+  box-shadow: var(--tl-shadow-sm);
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+.tl-section-flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tl-section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+
+  h2, h3 {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 650;
+  }
+
+  .tl-section-flush > & {
+    margin: 0;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--tl-color-hairline);
+  }
+}
+
+.tl-section-link {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// ---- Key figures -------------------------------------------------------------------------
+
+.tl-stat {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  height: 100%;
+  padding: 1.25rem;
+  background: var(--tl-color-surface);
+  border: 1px solid var(--tl-color-hairline);
+  border-radius: var(--tl-radius-lg);
+  box-shadow: var(--tl-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:has(.stretched-link):hover {
+    transform: translateY(-2px);
+    box-shadow: var(--tl-shadow-md);
+  }
+}
+
+.tl-stat-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--tl-radius);
+  background: var(--tl-color-nav-active);
+  color: var(--tl-color-primary);
+  font-size: 1.375rem;
+}
+
+.tl-stat-warning .tl-stat-icon {
+  background: rgb(240 138 36 / 15%);
+  color: var(--tl-color-warning);
+}
+
+.tl-stat-danger .tl-stat-icon {
+  background: rgb(176 0 32 / 10%);
+  color: var(--tl-color-danger);
+}
+
+.tl-stat-value {
+  display: block;
+  color: var(--tl-color-text);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-stat-label {
+  display: block;
+  margin-top: 0.125rem;
+  color: var(--tl-color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+// ---- Toolbar, chips, metadata ----------------------------------------------------------
+
+.tl-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--tl-color-surface);
+  border: 1px solid var(--tl-color-hairline);
+  border-radius: var(--tl-radius-lg);
+
+  .form-label {
+    margin-bottom: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+}
+
+.tl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid var(--tl-color-hairline);
+  border-radius: 999px;
+  background: var(--tl-color-nav-active);
+  color: var(--tl-color-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a.tl-chip:hover {
+  border-color: var(--tl-color-primary);
+}
+
+.tl-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  color: var(--tl-color-text-muted);
+  font-size: 0.875rem;
+
+  .bi {
+    margin-right: 0.25rem;
+  }
+}
+
+// ---- Lists and tables --------------------------------------------------------------------
+
+.tl-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 1rem 1.5rem;
+
+    + li {
+      border-top: 1px solid var(--tl-color-hairline);
+    }
+  }
+}
+
+.tl-table,
+.tl-section .table {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: var(--tl-color-hairline);
+  margin-bottom: 0;
+
+  > thead th {
+    color: var(--tl-color-text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  > tbody tr {
+    transition: background-color 0.15s ease;
+  }
+
+  > tbody tr:hover {
+    background: var(--tl-color-bg);
+  }
+}
+
+// ---- Tabs: underline style -------------------------------------------------------------
+
+.nav-tabs {
+  --bs-nav-tabs-border-color: var(--tl-color-hairline);
+  --bs-nav-tabs-link-active-border-color: transparent;
+  --bs-nav-tabs-link-hover-border-color: transparent;
+  --bs-nav-tabs-link-active-color: var(--tl-color-primary);
+  --bs-nav-tabs-link-active-bg: transparent;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+
+  .nav-link {
+    position: relative;
+    border: 0;
+    color: var(--tl-color-text-muted);
+    font-weight: 600;
+
+    &:hover {
+      color: var(--tl-color-text);
+    }
+
+    &.active::after {
+      content: "";
+      position: absolute;
+      right: 0.75rem;
+      bottom: -1px;
+      left: 0.75rem;
+      height: 3px;
+      border-radius: 3px 3px 0 0;
+      background: var(--tl-color-primary);
+    }
+  }
+}
+
+// ---- Forms -----------------------------------------------------------------------------
+
+.form-label {
+  font-weight: 600;
+}
+
+.form-control,
+.form-select {
+  background-color: var(--tl-color-surface);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-text {
+  color: var(--tl-color-text-muted);
+}
+
+.tl-form {
+  max-width: 44rem;
+
+  .mb-3 {
+    margin-bottom: 1.25rem !important;
+  }
+}
+
+.tl-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--tl-color-hairline);
+}
+
+// ---- Misc Bootstrap refinements --------------------------------------------------------
+
+.breadcrumb {
+  --bs-breadcrumb-margin-bottom: 1rem;
+  font-size: 0.875rem;
+
+  a {
+    color: var(--tl-color-text-muted);
+    text-decoration: none;
+
+    &:hover {
+      color: var(--tl-color-primary);
+      text-decoration: underline;
+    }
+  }
+}
+
+.dropdown-menu {
+  --bs-dropdown-border-color: var(--tl-color-hairline);
+  --bs-dropdown-border-radius: var(--tl-radius);
+  --bs-dropdown-link-active-bg: var(--tl-color-nav-active);
+  --bs-dropdown-link-active-color: var(--tl-color-primary);
+  box-shadow: var(--tl-shadow-md);
+}
+
+.modal-content {
+  border: 0;
+  box-shadow: 0 24px 48px rgb(16 24 64 / 20%);
+}
+
+.pagination {
+  --bs-pagination-border-radius: var(--tl-radius);
+  gap: 0.25rem;
+
+  .page-link {
+    border-radius: var(--tl-radius) !important;
+  }
+}
+
+.alert {
+  --bs-alert-border-radius: var(--tl-radius);
+}
+
+.tl-empty-state {
+  padding: 3rem 1.5rem !important;
+  background: var(--tl-color-surface);
+  border: 1px dashed var(--tl-color-border);
+  border-radius: var(--tl-radius-lg);
+
+  > .bi {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 50%;
+    background: var(--tl-color-nav-active);
+    color: var(--tl-color-primary) !important;
+    font-size: 2rem !important;
+  }
+}
+
+// Staggered entrance for grids of cards.
+.tl-stagger > * {
+  animation: tl-fade-in 0.35s ease-out both;
+}
+
+@for $i from 1 through 12 {
+  .tl-stagger > :nth-child(#{$i}) {
+    animation-delay: #{($i - 1) * 40}ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-stagger > *,
+  .tl-stat {
+    animation: none;
+    transition: none;
+  }
+}
+
+// Plain text directly inside a flush panel (empty messages) keeps the panel padding.
+.tl-section-flush > p {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  color: var(--tl-color-text-muted);
+}
+
+// Titles of content cards read as headings; the underline comes back on hover and focus.
+.card-title a,
+.tl-list a.fw-semibold {
+  color: var(--tl-color-text);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--tl-color-primary);
+    text-decoration: underline;
+  }
+}
+
+// Long readable column for a post or an article.
+.tl-article {
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+// Label / figure rows.
+.tl-kv {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--tl-color-hairline);
+
+    span {
+      color: var(--tl-color-text-muted);
+    }
+
+    strong {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}

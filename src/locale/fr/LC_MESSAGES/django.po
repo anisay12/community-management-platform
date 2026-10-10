@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-10 11:56+0200\n"
+"POT-Creation-Date: 2026-10-10 12:35+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -29,8 +29,8 @@ msgstr "Dates"
 msgid "A user with this email address already exists."
 msgstr "Un utilisateur avec cette adresse e-mail existe déjà."
 
-msgid "Administration"
-msgstr "Administration"
+msgid "Users"
+msgstr "Utilisateurs"
 
 msgid "Email"
 msgstr "E-mail"
@@ -565,6 +565,9 @@ msgstr "Enregistrer"
 msgid "Download a copy of my data"
 msgstr "Télécharger une copie de mes données"
 
+msgid "Edit my profile"
+msgstr "Modifier mon profil"
+
 #, python-format
 msgid "Account status: %(status)s"
 msgstr "Statut du compte : %(status)s"
@@ -574,9 +577,6 @@ msgstr "Dernière activité"
 
 msgid "About"
 msgstr "À propos"
-
-msgid "Edit my profile"
-msgstr "Modifier mon profil"
 
 msgid "Cancel"
 msgstr "Annuler"
@@ -622,8 +622,14 @@ msgstr ""
 "vous n’êtes pas à l’origine de cette demande, ignorez cet e-mail : votre mot "
 "de passe ne sera pas modifié."
 
+msgid "Administration"
+msgstr "Administration"
+
 msgid "Anonymize the account"
 msgstr "Anonymiser le compte"
+
+msgid "Confirmation"
+msgstr "Confirmation"
 
 #, python-format
 msgid "You are about to anonymize the account of %(name)s (%(email)s)."
@@ -667,6 +673,9 @@ msgid ""
 msgstr ""
 "Les données personnelles du compte seront anonymisées à l’issue de la durée "
 "de conservation."
+
+msgid "Account"
+msgstr "Compte"
 
 msgid "Manager"
 msgstr "Manager"
@@ -739,9 +748,6 @@ msgstr[1] "%(counter)s comptes ont été créés et invités par e-mail."
 
 msgid "Import another file"
 msgstr "Importer un autre fichier"
-
-msgid "Users"
-msgstr "Utilisateurs"
 
 msgid "Search"
 msgstr "Rechercher"
@@ -883,6 +889,9 @@ msgstr "événements d'audit"
 
 msgid "Audit event"
 msgstr "Événement d'audit"
+
+msgid "Details"
+msgstr "Détails"
 
 msgid "Date"
 msgstr "Date"
@@ -1310,6 +1319,15 @@ msgstr "Demander à rejoindre"
 msgid "Join"
 msgstr "Rejoindre"
 
+msgid "My invitations"
+msgstr "Mes invitations"
+
+msgid "Create a community"
+msgstr "Créer une communauté"
+
+msgid "Request a community"
+msgstr "Demander une communauté"
+
 msgid "Breadcrumb"
 msgstr "Fil d’Ariane"
 
@@ -1364,14 +1382,9 @@ msgstr "Accéder au contenu"
 msgid "Communities catalogue"
 msgstr "Catalogue des communautés"
 
-msgid "My invitations"
-msgstr "Mes invitations"
-
-msgid "Create a community"
-msgstr "Créer une communauté"
-
-msgid "Request a community"
-msgstr "Demander une communauté"
+msgid "Find the communities of Talan and join the ones that matter to you."
+msgstr ""
+"Trouvez les communautés de Talan et rejoignez celles qui comptent pour vous."
 
 #, python-format
 msgid "%(counter)s community"
@@ -1477,11 +1490,11 @@ msgstr "Invitation de %(inviter)s en tant que %(role)s, jusqu’au %(date)s"
 msgid "You have no pending invitations."
 msgstr "Vous n’avez aucune invitation en attente."
 
-msgid "Edit the category"
-msgstr "Modifier la catégorie"
-
 msgid "New category"
 msgstr "Nouvelle catégorie"
+
+msgid "Edit the category"
+msgstr "Modifier la catégorie"
 
 #, python-format
 msgid "Edit the category “%(name)s”"
@@ -1641,18 +1654,21 @@ msgstr "Précédent"
 msgid "Next"
 msgstr "Suivant"
 
+#, python-format
+msgid "%(delay)s ago"
+msgstr "il y a %(delay)s"
+
 msgid "Pinned"
 msgstr "Épinglé"
+
+msgid "Accepted answer"
+msgstr "Réponse acceptée"
 
 msgid "Pending review"
 msgstr "En attente de validation"
 
 msgid "Hidden"
 msgstr "Masqué"
-
-#, python-format
-msgid "%(delay)s ago"
-msgstr "il y a %(delay)s"
 
 msgid "Also published in"
 msgstr "Également publié dans"
@@ -1685,6 +1701,72 @@ msgstr ""
 "Retrouvez vos communautés, partagez vos connaissances et suivez les "
 "publications de vos collègues."
 
+msgid "At a glance"
+msgstr "En un coup d’œil"
+
+msgid "My bookmarks"
+msgstr "Mes favoris"
+
+msgid "Pending invitations"
+msgstr "Invitations en attente"
+
+msgid "To moderate"
+msgstr "À modérer"
+
+#, python-format
+msgid "%(counter)s post pending review"
+msgid_plural "%(counter)s posts pending review"
+msgstr[0] "%(counter)s publication en attente de validation"
+msgstr[1] "%(counter)s publications en attente de validation"
+
+#, python-format
+msgid "%(counter)s open report"
+msgid_plural "%(counter)s open reports"
+msgstr[0] "%(counter)s signalement ouvert"
+msgstr[1] "%(counter)s signalements ouverts"
+
+msgid "Manage users"
+msgstr "Gérer les utilisateurs"
+
+msgid "Users by status"
+msgstr "Utilisateurs par statut"
+
+msgid "Communities by status"
+msgstr "Communautés par statut"
+
+#, python-format
+msgid "%(counter)s pending community creation request"
+msgid_plural "%(counter)s pending community creation requests"
+msgstr[0] "%(counter)s demande de création de communauté en attente"
+msgstr[1] "%(counter)s demandes de création de communauté en attente"
+
+msgid "Audit"
+msgstr "Audit"
+
+msgid "Open the audit log"
+msgstr "Ouvrir le journal d’audit"
+
+#, python-format
+msgid "%(counter)s audit event in the last 7 days"
+msgid_plural "%(counter)s audit events in the last 7 days"
+msgstr[0] "%(counter)s événement d’audit au cours des 7 derniers jours"
+msgstr[1] "%(counter)s événements d’audit au cours des 7 derniers jours"
+
+msgid "Browse the catalogue"
+msgstr "Parcourir le catalogue"
+
+msgid "You have not joined any community yet."
+msgstr "Vous n’avez encore rejoint aucune communauté."
+
+msgid "Latest in my communities"
+msgstr "Dernières nouveautés de mes communautés"
+
+msgid "Open feed"
+msgstr "Ouvrir le fil"
+
+msgid "No posts yet in your communities."
+msgstr "Aucune publication pour l’instant dans vos communautés."
+
 msgid "Where to start"
 msgstr "Par où commencer"
 
@@ -1699,17 +1781,41 @@ msgstr ""
 "Tous les composants partagés, affichés avec des données d’exemple. Réservé "
 "au développement."
 
+msgid "Design system"
+msgstr "Système de design"
+
+msgid "Key figures"
+msgstr "Chiffres clés"
+
+msgid "Pending requests"
+msgstr "Demandes en attente"
+
+msgid "Overview"
+msgstr "Vue d’ensemble"
+
+msgid "Panels, lists and tables"
+msgstr "Panneaux, listes et tableaux"
+
+msgid "Updated yesterday"
+msgstr "Mis à jour hier"
+
+msgid "See all"
+msgstr "Tout voir"
+
+msgid "A short introduction to the platform."
+msgstr "Une courte introduction à la plateforme."
+
+msgid "Submit"
+msgstr "Envoyer"
+
+msgid "Delete"
+msgstr "Supprimer"
+
 msgid "Cards"
 msgstr "Cartes"
 
 msgid "Welcome guide"
 msgstr "Guide de bienvenue"
-
-msgid "Updated yesterday"
-msgstr "Mis à jour hier"
-
-msgid "A short introduction to the platform."
-msgstr "Une courte introduction à la plateforme."
 
 msgid "3 comments"
 msgstr "3 commentaires"
@@ -1765,14 +1871,8 @@ msgstr "Supprimer cet élément ?"
 msgid "This cannot be undone."
 msgstr "Cette action est irréversible."
 
-msgid "Delete"
-msgstr "Supprimer"
-
 msgid "Form"
 msgstr "Formulaire"
-
-msgid "Submit"
-msgstr "Envoyer"
 
 msgid "Access denied"
 msgstr "Accès refusé"
@@ -1821,9 +1921,6 @@ msgstr "Composants"
 
 msgid "Current page"
 msgstr "Page courante"
-
-msgid "Overview"
-msgstr "Vue d’ensemble"
 
 msgid "recipient"
 msgstr "destinataire"
@@ -1916,9 +2013,6 @@ msgstr "Le Markdown est pris en charge. Mentionnez un membre avec @prenom.nom."
 
 msgid "Reason for hiding"
 msgstr "Motif du masquage"
-
-msgid "Details"
-msgstr "Détails"
 
 msgid "Optional: what should the moderators look at?"
 msgstr "Facultatif : que doivent examiner les modérateurs ?"
@@ -2204,9 +2298,6 @@ msgstr ""
 msgid "Bookmark"
 msgstr "Favori"
 
-msgid "Accepted answer"
-msgstr "Réponse acceptée"
-
 msgid "Expert answer"
 msgstr "Réponse d’expert"
 
@@ -2468,12 +2559,6 @@ msgstr "Files de modération"
 #, python-format
 msgid "Comment on “%(title)s”"
 msgstr "Commentaire sur « %(title)s »"
-
-#, python-format
-msgid "%(counter)s open report"
-msgid_plural "%(counter)s open reports"
-msgstr[0] "%(counter)s signalement ouvert"
-msgstr[1] "%(counter)s signalements ouverts"
 
 #, python-format
 msgid "%(counter)s handled report"

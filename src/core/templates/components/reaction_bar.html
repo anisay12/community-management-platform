@@ -14,7 +14,7 @@
         {% csrf_token %}
         <input type="hidden" name="kind" value="{{ kind }}">
         <input type="hidden" name="present" value="{% if pressed %}0{% else %}1{% endif %}">
-        <button type="submit" id="{{ id_prefix }}-{{ kind }}" class="btn btn-sm {% if pressed %}btn-primary{% else %}btn-outline-secondary{% endif %}" aria-pressed="{% if pressed %}true{% else %}false{% endif %}">{{ kind_label }} <span class="badge text-bg-light tl-reaction-count">{{ count }}</span></button>
+        <button type="submit" id="{{ id_prefix }}-{{ kind }}" class="btn btn-sm rounded-pill {% if pressed %}btn-primary{% else %}btn-outline-secondary{% endif %}" aria-pressed="{% if pressed %}true{% else %}false{% endif %}">{{ kind_label }} <span class="badge text-bg-light tl-reaction-count">{{ count }}</span></button>
       </form>
     {% endfor %}
   </div>

@@ -2,7 +2,12 @@
 {% load i18n %}
 {% block title %}{% translate "Access denied" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h3 mb-3">{% translate "Access denied" %}</h1>
-  <p>{% translate "You do not have permission to view this page." %}</p>
-  <a class="btn btn-primary" href="{% url 'home' %}">{% translate "Back to the home page" %}</a>
+  <div class="tl-empty-state text-start py-4">
+    <i class="bi bi-lock display-4 text-body-secondary" aria-hidden="true"></i>
+    <h1 class="mt-3">{% translate "Access denied" %}</h1>
+    <p class="tl-page-lead">{% translate "You do not have permission to view this page." %}</p>
+    <div class="tl-form-actions">
+      <a class="btn btn-primary" href="{% url 'home' %}">{% translate "Back to the home page" %}</a>
+    </div>
+  </div>
 {% endblock %}

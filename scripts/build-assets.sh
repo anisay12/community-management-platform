@@ -31,6 +31,8 @@ for js in bootstrap/dist/js/bootstrap.bundle.min.js htmx.org/dist/htmx.min.js; d
 done
 cp node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2 "$DIST/fonts/"
 cp node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff "$DIST/fonts/"
+cp node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2 "$DIST/fonts/"
+cp node_modules/@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2 "$DIST/fonts/"
 
 {
   echo "Third-party software shipped in this directory"
@@ -47,4 +49,8 @@ cp node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff "$DIST/fonts/"
   echo "HTMX 2.0.11 - Zero-Clause BSD licence"
   echo "-------------------------------------"
   cat node_modules/htmx.org/LICENSE
+  echo
+  echo "Inter (variable) 5.3.0 - SIL Open Font Licence 1.1"
+  echo "--------------------------------------------------"
+  cat node_modules/@fontsource-variable/inter/LICENSE
 } > "$DIST/LICENSES.txt"

@@ -2,8 +2,8 @@
 {% load i18n %}
 {% block title %}{% translate "Invalid link" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h3 mb-3">{% translate "Invalid link" %}</h1>
+  <h1>{% translate "Invalid link" %}</h1>
   {% translate "This activation link is invalid, has expired or has already been used. Contact an administrator to receive a new one." as message %}
   {% include "components/alert.html" with level="danger" text=message %}
-  <a class="btn btn-primary" href="{% url 'accounts:login' %}">{% translate "Back to sign in" %}</a>
+  <a class="btn btn-primary w-100 mt-3" href="{% url 'accounts:login' %}">{% translate "Back to sign in" %}</a>
 {% endblock %}

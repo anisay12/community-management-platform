@@ -2,7 +2,10 @@
 {% load i18n %}
 {% block title %}{% translate "Edit conflict" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h3 mb-3">{% translate "Edit conflict" %}</h1>
-  <p>{{ message }}</p>
-  <a class="btn btn-primary" href="{{ reload_url }}">{% translate "Reload the latest version" %}</a>
+  {% translate "Edit conflict" as conflict_title %}
+  {% include "components/page_header.html" with title=conflict_title eyebrow_icon="exclamation-triangle" %}
+  <section class="tl-section">
+    <p>{{ message }}</p>
+    <div class="tl-form-actions"><a class="btn btn-primary" href="{{ reload_url }}">{% translate "Reload the latest version" %}</a></div>
+  </section>
 {% endblock %}

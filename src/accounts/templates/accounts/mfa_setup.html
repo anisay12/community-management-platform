@@ -2,13 +2,13 @@
 {% load i18n %}
 {% block title %}{% translate "Set up two-step verification" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h3 mb-3">{% translate "Set up two-step verification" %}</h1>
-  <p>{% translate "Your role gives you access to sensitive features, so your account must be protected by a second factor." %}</p>
-  <ol>
+  <h1>{% translate "Set up two-step verification" %}</h1>
+  <p class="text-center text-body-secondary mb-4">{% translate "Your role gives you access to sensitive features, so your account must be protected by a second factor." %}</p>
+  <ol class="tl-section py-3 ps-5 mb-4">
     <li>{% translate "Scan this QR code with an authenticator app (for example Microsoft Authenticator or FreeOTP)." %}</li>
     <li>{% translate "Enter the 6-digit code shown by the app to confirm." %}</li>
   </ol>
-  <figure class="mfa-qr">
+  <figure class="mfa-qr text-center">
     {{ qr_svg }}
     <figcaption>
       {% translate "Cannot scan the code? Enter this key manually:" %}

@@ -3,17 +3,18 @@
 {% block title %}{% translate "Members" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   {% include "communities/_manage_tabs.html" %}
-  <h2 class="h4 mt-3">{% translate "Members" %}</h2>
-  <form method="get" class="row g-2 align-items-end mb-3" role="search">
-    <div class="col-12 col-md-6">
+  <h2 class="visually-hidden">{% translate "Members" %}</h2>
+  <form method="get" class="tl-toolbar" role="search">
+    <div class="flex-grow-1">
       <label class="form-label" for="{{ form.q.id_for_label }}">{{ form.q.label }}</label>
       {{ form.q }}
     </div>
-    <div class="col-auto"><button type="submit" class="btn btn-outline-primary">{% translate "Search" %}</button></div>
+    <div><button type="submit" class="btn btn-outline-primary">{% translate "Search" %}</button></div>
   </form>
   {% if page_obj.object_list %}
+    <section class="tl-section tl-section-flush">
     <div class="table-responsive">
-      <table class="table align-middle">
+      <table class="table tl-table align-middle">
         <thead><tr><th scope="col">{% translate "Name" %}</th><th scope="col">{% translate "Role" %}</th><th scope="col"><span class="visually-hidden">{% translate "Actions" %}</span></th></tr></thead>
         <tbody>
           {% for member in page_obj %}
@@ -46,6 +47,7 @@
         </tbody>
       </table>
     </div>
+    </section>
     {% querystring_without_page as querystring %}
     {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
   {% else %}

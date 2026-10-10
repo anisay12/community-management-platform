@@ -4,34 +4,39 @@
 {% block content %}
   {% include "communities/_manage_tabs.html" %}
   {% if not read_only %}
-    <h2 class="h4 mt-3">{% translate "Invite an employee" %}</h2>
     {% include "components/form_errors.html" with form=form %}
-    <form method="post" class="col-12 col-lg-8 mb-4" novalidate>
-      {% csrf_token %}
-      {% include "components/form_field.html" with field=form.email %}
-      {% include "components/form_field.html" with field=form.role %}
-      <button type="submit" class="btn btn-primary">{% translate "Invite" %}</button>
-    </form>
+    <section class="tl-section" aria-labelledby="invite-heading">
+      <div class="tl-section-header"><h2 id="invite-heading">{% translate "Invite an employee" %}</h2></div>
+      <form method="post" class="tl-form" novalidate>
+        {% csrf_token %}
+        {% include "components/form_field.html" with field=form.email %}
+        {% include "components/form_field.html" with field=form.role %}
+        <div class="tl-form-actions"><button type="submit" class="btn btn-primary">{% translate "Invite" %}</button></div>
+      </form>
+    </section>
   {% endif %}
-  <h2 class="h4 mt-3">{% translate "Invitations" %}</h2>
   {% if invitations %}
-    <ul class="list-group mb-3">
-      {% for item in invitations %}
-        <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <span>{{ item.invited_user|member_name }} {% include "components/community_role_badge.html" with role=item.role %}</span>
-          <span class="d-flex align-items-center gap-2">
-            <span class="badge text-bg-secondary">{{ item.get_status_display }}</span>
-            {% if item.status == "pending" and not read_only %}
-              <form method="post" action="{% url 'communities:manage_invitation_revoke' community.slug item.public_id %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger">{% translate "Revoke" %}</button>
-              </form>
-            {% endif %}
-          </span>
-        </li>
-      {% endfor %}
-    </ul>
+    <section class="tl-section tl-section-flush" aria-labelledby="invitations-heading">
+      <div class="tl-section-header"><h2 id="invitations-heading">{% translate "Invitations" %}</h2></div>
+      <ul class="tl-list">
+        {% for item in invitations %}
+          <li class="justify-content-between">
+            <span>{{ item.invited_user|member_name }} {% include "components/community_role_badge.html" with role=item.role %}</span>
+            <span class="d-flex align-items-center gap-2">
+              <span class="badge text-bg-secondary">{{ item.get_status_display }}</span>
+              {% if item.status == "pending" and not read_only %}
+                <form method="post" action="{% url 'communities:manage_invitation_revoke' community.slug item.public_id %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger">{% translate "Revoke" %}</button>
+                </form>
+              {% endif %}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
   {% else %}
+    <h2 class="visually-hidden">{% translate "Invitations" %}</h2>
     {% translate "No invitation yet" as empty_title %}
     {% include "components/empty_state.html" with icon="envelope" title=empty_title %}
   {% endif %}

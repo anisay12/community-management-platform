@@ -3,15 +3,17 @@
 {% block title %}{% translate "Members" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   {% include "communities/_header.html" %}
-  <h2 class="h4 mt-3">{% translate "Members" %}</h2>
-  <ul class="list-group mb-3">
-    {% for member in page_obj %}
-      <li class="list-group-item d-flex justify-content-between align-items-center">
-        <span>{{ member.user|member_name }}</span>
-        {% include "components/community_role_badge.html" with role=member.role %}
-      </li>
-    {% endfor %}
-  </ul>
+  <section class="tl-section tl-section-flush" aria-labelledby="members-heading">
+    <div class="tl-section-header"><h2 id="members-heading">{% translate "Members" %}</h2></div>
+    <ul class="tl-list">
+      {% for member in page_obj %}
+        <li class="justify-content-between">
+          <span class="d-inline-flex align-items-center gap-2"><span class="tl-avatar tl-avatar-md" aria-hidden="true">{{ member.user|member_name|slice:":1"|upper }}</span>{{ member.user|member_name }}</span>
+          {% include "components/community_role_badge.html" with role=member.role %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
   {% querystring_without_page as querystring %}
   {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
 {% endblock %}

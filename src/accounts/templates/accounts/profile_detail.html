@@ -2,34 +2,39 @@
 {% load i18n accounts_tags %}
 {% block title %}{{ owner.get_full_name|default:owner.email }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <div class="d-flex align-items-center gap-3 mb-4">
-    {% include "components/avatar.html" with initials=owner|initials size="lg" hidden=True %}
-    <div>
-      <h1 class="h3 mb-1">{{ owner.get_full_name|default:owner.email }}</h1>
+  <header class="tl-section d-flex align-items-center flex-wrap gap-4">
+    {% include "components/avatar.html" with initials=owner|initials size="xl" hidden=True %}
+    <div class="flex-grow-1">
+      <h1 class="h2 mb-1">{{ owner.get_full_name|default:owner.email }}</h1>
       {% if profile.job_title %}<p class="text-body-secondary mb-1">{{ profile.job_title }}</p>{% endif %}
+      {% if owner.employment.unit.name %}<p class="tl-meta mb-2"><span><i class="bi bi-building" aria-hidden="true"></i>{{ owner.employment.unit.name }}</span></p>{% endif %}
       {% for role in roles %}{% include "components/role_badge.html" with role=role %} {% endfor %}
     </div>
-  </div>
+    {% if is_self %}
+      <div class="tl-page-actions">
+        <a class="btn btn-primary" href="{% url 'accounts:profile_edit' %}">{% translate "Edit my profile" %}</a>
+        <a class="btn btn-outline-secondary" href="{% url 'accounts:preferences' %}">{% translate "Preferences" %}</a>
+      </div>
+    {% endif %}
+  </header>
   {% if not is_active %}
     {% blocktranslate with status=owner.get_status_display asvar status_text %}Account status: {{ status }}{% endblocktranslate %}
     {% include "components/alert.html" with level="warning" text=status_text %}
   {% endif %}
-  <dl class="row">
-    <dt class="col-sm-3">{% translate "Unit" %}</dt><dd class="col-sm-9">{{ owner.employment.unit.name|default:"—" }}</dd>
-    {% if show_details %}
-      <dt class="col-sm-3">{% translate "Interests" %}</dt>
-      <dd class="col-sm-9">{% for tag in interests %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
-      <dt class="col-sm-3">{% translate "Last seen" %}</dt><dd class="col-sm-9">{{ owner.last_seen_at|default:"—" }}</dd>
-    {% endif %}
-  </dl>
+  <section class="tl-section">
+    <dl class="row mb-0">
+      <dt class="col-sm-3">{% translate "Unit" %}</dt><dd class="col-sm-9">{{ owner.employment.unit.name|default:"—" }}</dd>
+      {% if show_details %}
+        <dt class="col-sm-3">{% translate "Interests" %}</dt>
+        <dd class="col-sm-9">{% for tag in interests %}<span class="tl-chip">{{ tag.name }}</span> {% empty %}—{% endfor %}</dd>
+        <dt class="col-sm-3">{% translate "Last seen" %}</dt><dd class="col-sm-9 mb-0">{{ owner.last_seen_at|default:"—" }}</dd>
+      {% endif %}
+    </dl>
+  </section>
   {% if show_details and profile.bio %}
-    <h2 class="h4">{% translate "About" %}</h2>
-    <div class="profile-bio">{{ profile.bio|linebreaks }}</div>
-  {% endif %}
-  {% if is_self %}
-    <div class="mt-4 d-flex gap-2 flex-wrap">
-      <a class="btn btn-primary" href="{% url 'accounts:profile_edit' %}">{% translate "Edit my profile" %}</a>
-      <a class="btn btn-outline-secondary" href="{% url 'accounts:preferences' %}">{% translate "Preferences" %}</a>
-    </div>
+    <section class="tl-section" aria-labelledby="about-title">
+      <div class="tl-section-header"><h2 id="about-title">{% translate "About" %}</h2></div>
+      <div class="profile-bio">{{ profile.bio|linebreaks }}</div>
+    </section>
   {% endif %}
 {% endblock %}

@@ -21,6 +21,7 @@ class AuditConfig(AppConfig):
                 icon="journal-text",
                 order=95,
                 is_visible=can_view_audit_log,
+                section=navigation.ADMINISTRATION,
                 active_prefixes=("/audit/",),
             )
         )

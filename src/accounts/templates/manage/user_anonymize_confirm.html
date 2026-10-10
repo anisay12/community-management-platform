@@ -3,27 +3,32 @@
 {% block title %}{% translate "Anonymize the account" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   {% translate "Anonymize the account" as page_title %}
+  {% translate "Administration" as eyebrow_label %}
   {% manage_breadcrumb account page_title as crumbs %}
   {% include "components/breadcrumb.html" with items=crumbs %}
-  <h1 class="h2">{{ page_title }}</h1>
+  {% include "components/page_header.html" with title=page_title eyebrow=eyebrow_label eyebrow_icon="shield-lock" %}
   {% include "manage/_tabs.html" with active="" %}
-  <div class="card tl-narrow mt-3">
-    <div class="card-body">
-      {% if can_anonymize %}
-        <p>{% blocktranslate with name=account.get_full_name|default:account.email email=account.email %}You are about to anonymize the account of {{ name }} ({{ email }}).{% endblocktranslate %}</p>
-        <ul>
-          <li>{% translate "The name, email address, profile, organization details, sign-in methods and data exports of the account are erased." %}</li>
-          <li>{% translate "The person appears as “Former employee” wherever their contributions remain." %}</li>
-          <li>{% translate "Anonymization cannot be undone." %}</li>
-        </ul>
+  <section class="tl-section tl-narrow mt-4" aria-labelledby="anonymize-heading">
+    <div class="tl-section-header"><h2 id="anonymize-heading">{% translate "Confirmation" %}</h2></div>
+    {% if can_anonymize %}
+      <p>{% blocktranslate with name=account.get_full_name|default:account.email email=account.email %}You are about to anonymize the account of {{ name }} ({{ email }}).{% endblocktranslate %}</p>
+      <ul>
+        <li>{% translate "The name, email address, profile, organization details, sign-in methods and data exports of the account are erased." %}</li>
+        <li>{% translate "The person appears as “Former employee” wherever their contributions remain." %}</li>
+        <li>{% translate "Anonymization cannot be undone." %}</li>
+      </ul>
+      <div class="tl-form-actions">
         <form method="post" action="{% url 'manage:user_anonymize' account.public_id %}" class="d-inline">
           {% csrf_token %}
           <button type="submit" class="btn btn-danger">{% translate "Anonymize the account" %}</button>
         </form>
-      {% else %}
-        <div class="alert alert-warning" role="alert">{{ status_message }}</div>
-      {% endif %}
-      <a class="btn btn-outline-secondary" href="{% url 'manage:user_detail' account.public_id %}">{% translate "Cancel" %}</a>
-    </div>
-  </div>
+        <a class="btn btn-outline-secondary" href="{% url 'manage:user_detail' account.public_id %}">{% translate "Cancel" %}</a>
+      </div>
+    {% else %}
+      <div class="alert alert-warning" role="alert">{{ status_message }}</div>
+      <div class="tl-form-actions">
+        <a class="btn btn-outline-secondary" href="{% url 'manage:user_detail' account.public_id %}">{% translate "Cancel" %}</a>
+      </div>
+    {% endif %}
+  </section>
 {% endblock %}

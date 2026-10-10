@@ -5,21 +5,135 @@
     {% blocktranslate asvar hero_title with name=user.get_short_name|default:user.get_username %}Hello {{ name }}{% endblocktranslate %}
     {% translate "Find your communities, share what you know and follow your colleagues' posts." as hero_subtitle %}
     {% include "components/hero.html" with title=hero_title subtitle=hero_subtitle show_avatar=True %}
+
+    <h2 class="visually-hidden">{% translate "At a glance" %}</h2>
+    <div class="row g-3 tl-stagger mb-4" data-dashboard="stats">
+      <div class="col-sm-6 col-xl-3">
+        {% translate "My communities" as label %}{% url "communities:catalogue" as catalogue_url %}
+        {% include "components/stat_card.html" with value=my_community_count label=label icon="people" url=catalogue_url %}
+      </div>
+      <div class="col-sm-6 col-xl-3">
+        {% translate "My bookmarks" as label %}{% url "posts:bookmarks" as bookmarks_url %}
+        {% include "components/stat_card.html" with value=bookmark_count label=label icon="bookmark" url=bookmarks_url %}
+      </div>
+      {% if invitation_count %}
+        <div class="col-sm-6 col-xl-3">
+          {% translate "Pending invitations" as label %}{% url "communities:my_invitations" as invitations_url %}
+          {% include "components/stat_card.html" with value=invitation_count label=label icon="envelope" url=invitations_url tone="warning" %}
+        </div>
+      {% endif %}
+    </div>
+
+    {% if moderation %}
+      <section class="tl-section tl-section-flush" aria-labelledby="dash-moderation" data-dashboard="moderation">
+        <div class="tl-section-header"><h2 id="dash-moderation">{% translate "To moderate" %}</h2></div>
+        <p class="tl-meta px-3">
+          {% blocktranslate count counter=moderation.pending trimmed %}{{ counter }} post pending review{% plural %}{{ counter }} posts pending review{% endblocktranslate %}
+          ·
+          {% blocktranslate count counter=moderation.reports trimmed %}{{ counter }} open report{% plural %}{{ counter }} open reports{% endblocktranslate %}
+        </p>
+        <ul class="tl-list">
+          {% for community in moderation.communities %}
+            <li>
+              <a href="{% url 'posts:moderation_queue' community.slug %}">{{ community.name }}</a>
+              <span class="tl-meta">
+                <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+                {% blocktranslate count counter=community.pending_count trimmed %}{{ counter }} post pending review{% plural %}{{ counter }} posts pending review{% endblocktranslate %}
+                · <i class="bi bi-flag" aria-hidden="true"></i>
+                {% blocktranslate count counter=community.report_count trimmed %}{{ counter }} open report{% plural %}{{ counter }} open reports{% endblocktranslate %}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if administration %}
+      <section class="tl-section" aria-labelledby="dash-admin" data-dashboard="administration">
+        <div class="tl-section-header">
+          <h2 id="dash-admin">{% translate "Administration" %}</h2>
+          <a class="tl-section-link" href="{% url 'manage:user_list' %}">{% translate "Manage users" %}</a>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <h3 class="h6">{% translate "Users by status" %}</h3>
+            <ul class="tl-kv">
+              {% for row in administration.users %}<li><span>{{ row.label }}</span><strong>{{ row.count }}</strong></li>{% endfor %}
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h3 class="h6">{% translate "Communities by status" %}</h3>
+            <ul class="tl-kv">
+              {% for row in administration.communities %}<li><span>{{ row.label }}</span><strong>{{ row.count }}</strong></li>{% endfor %}
+            </ul>
+          </div>
+        </div>
+        <p class="mt-3 mb-0">
+          <a href="{% url 'manage:creation_request_list' %}">
+            {% blocktranslate count counter=administration.pending_creation_requests trimmed %}{{ counter }} pending community creation request{% plural %}{{ counter }} pending community creation requests{% endblocktranslate %}
+          </a>
+        </p>
+      </section>
+    {% endif %}
+
+    {% if audit_recent_count is not None %}
+      <section class="tl-section" aria-labelledby="dash-audit" data-dashboard="audit">
+        <div class="tl-section-header">
+          <h2 id="dash-audit">{% translate "Audit" %}</h2>
+          <a class="tl-section-link" href="{% url 'audit:event_list' %}">{% translate "Open the audit log" %}</a>
+        </div>
+        <p class="mb-0">{% blocktranslate count counter=audit_recent_count trimmed %}{{ counter }} audit event in the last 7 days{% plural %}{{ counter }} audit events in the last 7 days{% endblocktranslate %}</p>
+      </section>
+    {% endif %}
+
+    <section class="tl-section tl-section-flush" aria-labelledby="dash-communities" data-dashboard="communities">
+      <div class="tl-section-header">
+        <h2 id="dash-communities">{% translate "My communities" %}</h2>
+        <a class="tl-section-link" href="{% url 'communities:catalogue' %}">{% translate "Browse the catalogue" %}</a>
+      </div>
+      {% if my_communities %}
+        <ul class="tl-list">
+          {% for community in my_communities %}
+            <li><a href="{% url 'communities:detail' community.slug %}">{{ community.name }}</a> <span class="tl-meta">{{ community.tagline }}</span></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="px-3">{% translate "You have not joined any community yet." %}</p>
+      {% endif %}
+    </section>
+
+    <section class="tl-section tl-section-flush" aria-labelledby="dash-latest" data-dashboard="latest">
+      <div class="tl-section-header">
+        <h2 id="dash-latest">{% translate "Latest in my communities" %}</h2>
+        <a class="tl-section-link" href="{% url 'posts:home_feed' %}">{% translate "Open feed" %}</a>
+      </div>
+      {% if latest_posts %}
+        <ul class="tl-list">
+          {% for post in latest_posts %}
+            <li>
+              <a href="{% url 'posts:detail' post.community.slug post.public_id %}">{{ post.title }}</a>
+              <p class="tl-meta mb-0">
+                <i class="bi bi-people" aria-hidden="true"></i> {{ post.community.name }}
+                · <i class="bi bi-person" aria-hidden="true"></i> {{ post.author_display }}
+                · <i class="bi bi-clock" aria-hidden="true"></i> <time datetime="{{ post.last_activity_at|date:'c' }}">{{ post.last_activity_at|date:"SHORT_DATE_FORMAT" }}</time>
+              </p>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="px-3">{% translate "No posts yet in your communities." %}</p>
+      {% endif %}
+    </section>
+
     {% main_navigation as nav_items %}
-    <h2 class="h4 mb-3">{% translate "Where to start" %}</h2>
-    <ul class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3 list-unstyled mb-0">
-      {% for item in nav_items %}{% if item.key != "home" %}
-        <li class="col">
-          <article class="card h-100">
-            <div class="card-body d-flex align-items-center gap-3">
-              <span class="tl-tile-icon" aria-hidden="true"><i class="bi bi-{{ item.icon }}"></i></span>
-              <h3 class="h6 mb-0"><a class="stretched-link text-reset text-decoration-none" href="{{ item.url }}">{{ item.label }}</a></h3>
-              <i class="bi bi-arrow-right ms-auto text-body-secondary" aria-hidden="true"></i>
-            </div>
-          </article>
-        </li>
-      {% endif %}{% endfor %}
-    </ul>
+    <section class="tl-section" aria-labelledby="dash-links">
+      <div class="tl-section-header"><h2 id="dash-links">{% translate "Where to start" %}</h2></div>
+      <ul class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-2 list-unstyled mb-0">
+        {% for item in nav_items %}{% if item.key != "home" %}
+          <li class="col"><a class="d-inline-flex align-items-center gap-2" href="{{ item.url }}"><i class="bi bi-{{ item.icon }}" aria-hidden="true"></i>{{ item.label }}</a></li>
+        {% endif %}{% endfor %}
+      </ul>
+    </section>
   {% else %}
     {% translate "Welcome to the Talan communities platform." as hero_subtitle %}
     {% translate "Communities" as hero_title %}

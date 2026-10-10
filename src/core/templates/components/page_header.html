@@ -1,0 +1,14 @@
+{% comment %}
+  Page header. Arguments: title (the page's h1); eyebrow (optional small label above);
+  eyebrow_icon (optional Bootstrap Icons name); lead (optional text under the title);
+  actions_template (optional template included in the actions slot, with the same context).
+  All text is auto-escaped.
+{% endcomment %}
+<div class="tl-page-header">
+  <div>
+    {% if eyebrow %}<p class="tl-page-eyebrow mb-1">{% if eyebrow_icon %}<i class="bi bi-{{ eyebrow_icon }}" aria-hidden="true"></i>{% endif %}{{ eyebrow }}</p>{% endif %}
+    <h1>{{ title }}</h1>
+    {% if lead %}<p class="tl-page-lead">{{ lead }}</p>{% endif %}
+  </div>
+  {% if actions_template %}<div class="tl-page-actions">{% include actions_template %}</div>{% endif %}
+</div>

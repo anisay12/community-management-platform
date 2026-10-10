@@ -3,55 +3,51 @@
 {% block title %}{{ account.get_full_name|default:account.email }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   {% manage_breadcrumb account as crumbs %}
+  {% translate "Administration" as eyebrow_label %}
   {% include "components/breadcrumb.html" with items=crumbs %}
-  <h1 class="h2">{{ account.get_full_name|default:account.email }}</h1>
+  {% include "components/page_header.html" with title=account.get_full_name|default:account.email eyebrow=eyebrow_label eyebrow_icon="shield-lock" %}
   {% include "manage/_tabs.html" with active="" %}
-  <div class="card mt-3 mb-3">
-    <div class="card-body">
-      <dl class="row mb-0">
-        <dt class="col-sm-3">{% translate "Email" %}</dt><dd class="col-sm-9">{{ account.email }}</dd>
-        <dt class="col-sm-3">{% translate "Status" %}</dt><dd class="col-sm-9">{% include "manage/_status_badge.html" %}</dd>
-        <dt class="col-sm-3">{% translate "Unit" %}</dt><dd class="col-sm-9">{{ account.employment.unit|default:"—" }}</dd>
-        <dt class="col-sm-3">{% translate "Manager" %}</dt><dd class="col-sm-9">{{ account.employment.manager.get_full_name|default:"—" }}</dd>
-        <dt class="col-sm-3">{% translate "Roles" %}</dt>
-        <dd class="col-sm-9">{% for role in account|role_codes %}{% include "components/role_badge.html" with role=role %} {% empty %}—{% endfor %}</dd>
-        <dt class="col-sm-3">{% translate "Created" %}</dt><dd class="col-sm-9">{{ account.created_at }}</dd>
-        <dt class="col-sm-3">{% translate "Last seen" %}</dt><dd class="col-sm-9">{{ account.last_seen_at|default:"—" }}</dd>
-      </dl>
-    </div>
-  </div>
+  <section class="tl-section mt-4" aria-labelledby="account-heading">
+    <div class="tl-section-header"><h2 id="account-heading">{% translate "Account" %}</h2></div>
+    <dl class="row mb-0">
+      <dt class="col-sm-3">{% translate "Email" %}</dt><dd class="col-sm-9">{{ account.email }}</dd>
+      <dt class="col-sm-3">{% translate "Status" %}</dt><dd class="col-sm-9">{% include "manage/_status_badge.html" %}</dd>
+      <dt class="col-sm-3">{% translate "Unit" %}</dt><dd class="col-sm-9">{{ account.employment.unit|default:"—" }}</dd>
+      <dt class="col-sm-3">{% translate "Manager" %}</dt><dd class="col-sm-9">{{ account.employment.manager.get_full_name|default:"—" }}</dd>
+      <dt class="col-sm-3">{% translate "Roles" %}</dt>
+      <dd class="col-sm-9">{% for role in account|role_codes %}{% include "components/role_badge.html" with role=role %} {% empty %}—{% endfor %}</dd>
+      <dt class="col-sm-3">{% translate "Created" %}</dt><dd class="col-sm-9">{{ account.created_at }}</dd>
+      <dt class="col-sm-3">{% translate "Last seen" %}</dt><dd class="col-sm-9">{{ account.last_seen_at|default:"—" }}</dd>
+    </dl>
+  </section>
 
   {% if can_administer %}
-    <div class="card mb-3">
-      <div class="card-body">
-        <h2 class="h5 card-title">{% translate "Status" %}</h2>
-        <div class="d-flex flex-wrap gap-2">
-          {% if account.status == "active" %}
-            {% include "manage/_status_button.html" with action="suspend" label=_("Suspend") %}
-          {% elif account.status == "suspended" %}
-            {% include "manage/_status_button.html" with action="reactivate" label=_("Reactivate") %}
-          {% elif account.status == "pending" %}
-            {% include "manage/_status_button.html" with action="resend_activation" label=_("Resend activation email") %}
-          {% endif %}
-          {% if account.status != "deactivated" %}
-            <a class="btn btn-outline-danger" href="{% url 'manage:user_deactivate_confirm' account.public_id %}">{% translate "Deactivate" %}</a>
-          {% elif not account.anonymized_at %}
-            <a class="btn btn-outline-danger" href="{% url 'manage:user_anonymize' account.public_id %}">{% translate "Anonymize" %}</a>
-          {% endif %}
-        </div>
+    <section class="tl-section" aria-labelledby="status-heading">
+      <div class="tl-section-header"><h2 id="status-heading">{% translate "Status" %}</h2></div>
+      <div class="d-flex flex-wrap gap-2">
+        {% if account.status == "active" %}
+          {% include "manage/_status_button.html" with action="suspend" label=_("Suspend") %}
+        {% elif account.status == "suspended" %}
+          {% include "manage/_status_button.html" with action="reactivate" label=_("Reactivate") %}
+        {% elif account.status == "pending" %}
+          {% include "manage/_status_button.html" with action="resend_activation" label=_("Resend activation email") %}
+        {% endif %}
+        {% if account.status != "deactivated" %}
+          <a class="btn btn-outline-danger" href="{% url 'manage:user_deactivate_confirm' account.public_id %}">{% translate "Deactivate" %}</a>
+        {% elif not account.anonymized_at %}
+          <a class="btn btn-outline-danger" href="{% url 'manage:user_anonymize' account.public_id %}">{% translate "Anonymize" %}</a>
+        {% endif %}
       </div>
-    </div>
+    </section>
 
-    <div class="card">
-      <div class="card-body">
-        <h2 class="h5 card-title">{% translate "Roles" %}</h2>
-        <form method="post" action="{% url 'manage:user_roles' account.public_id %}">
-          {% csrf_token %}
-          {% include "accounts/_form_fields.html" with form=roles_form %}
-          <button type="submit" class="btn btn-primary">{% translate "Save roles" %}</button>
-        </form>
-      </div>
-    </div>
+    <section class="tl-section" aria-labelledby="roles-heading">
+      <div class="tl-section-header"><h2 id="roles-heading">{% translate "Roles" %}</h2></div>
+      <form method="post" action="{% url 'manage:user_roles' account.public_id %}" class="tl-form">
+        {% csrf_token %}
+        {% include "accounts/_form_fields.html" with form=roles_form %}
+        <div class="tl-form-actions"><button type="submit" class="btn btn-primary">{% translate "Save roles" %}</button></div>
+      </form>
+    </section>
   {% else %}
     {% translate "Only a superuser can change the status or the roles of this account." as notice %}
     {% include "components/alert.html" with level="info" text=notice %}

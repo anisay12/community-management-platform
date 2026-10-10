@@ -2,8 +2,10 @@
 {% load i18n %}
 {% block title %}{% translate "My data" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h3 mb-3">{% translate "My data" %}</h1>
-  <p>{% translate "You can download a copy of the personal data the platform holds about you, as a JSON file." %}</p>
+  {% translate "My data" as page_title %}
+  {% translate "You can download a copy of the personal data the platform holds about you, as a JSON file." as page_lead %}
+  {% include "components/page_header.html" with title=page_title lead=page_lead eyebrow_icon="shield-lock" %}
+  <section class="tl-section">
   {% if export %}
     {% if downloadable %}
       {% blocktranslate with expires=export.expires_at asvar ready_text %}Your copy is ready. It can be downloaded until {{ expires }}.{% endblocktranslate %}
@@ -25,9 +27,12 @@
     {% include "components/empty_state.html" with icon="file-earmark-arrow-down" title=empty_title text=empty_text %}
   {% endif %}
   {% if can_request %}
-    <form method="post" action="{% url 'accounts:data_export' %}">
+    <form method="post" class="tl-form" action="{% url 'accounts:data_export' %}">
       {% csrf_token %}
-      <button type="submit" class="btn btn-primary">{% translate "Request a copy of my data" %}</button>
+      <div class="tl-form-actions">
+        <button type="submit" class="btn btn-primary">{% translate "Request a copy of my data" %}</button>
+      </div>
     </form>
   {% endif %}
+  </section>
 {% endblock %}

@@ -31,3 +31,21 @@ document.addEventListener("DOMContentLoaded", () => {
     sync();
   });
 });
+
+// Keyboard focus survives HTMX swaps: htmx moves the focus to the new element with the same
+// id, but a swap that lands while the browser is still handling the key press can leave it on
+// <body>. Remember the focused id before the swap and restore it if the focus was lost.
+let tlFocusedId = null;
+document.addEventListener("htmx:beforeSwap", () => {
+  const active = document.activeElement;
+  tlFocusedId = active && active !== document.body && active.id ? active.id : null;
+});
+document.addEventListener("htmx:afterSettle", () => {
+  if (!tlFocusedId) return;
+  const id = tlFocusedId;
+  tlFocusedId = null;
+  const active = document.activeElement;
+  if (active && active !== document.body) return;
+  const element = document.getElementById(id);
+  if (element) element.focus();
+});

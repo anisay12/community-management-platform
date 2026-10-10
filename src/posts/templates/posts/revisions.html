@@ -3,13 +3,14 @@
 {% block title %}{% translate "Revisions" %} - {{ post.title }} - {% translate "Communities" %}{% endblock %}
 {% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
 {% block content %}
-  <h1 class="h2 mb-3">{% blocktranslate with title=post.title %}Revisions of “{{ title }}”{% endblocktranslate %}</h1>
-  <p class="text-body-secondary">{% translate "Earlier versions of the title and body, newest first." %}</p>
+  {% blocktranslate with title=post.title asvar rev_title %}Revisions of “{{ title }}”{% endblocktranslate %}
+  {% translate "Earlier versions of the title and body, newest first." as rev_lead %}
+  {% include "components/page_header.html" with title=rev_title lead=rev_lead eyebrow_icon="clock-history" %}
   {% for revision in revisions %}
-    <article class="card mb-3" aria-labelledby="revision-{{ revision.pk }}">
-      <div class="card-body">
-        <h2 class="h5 card-title" id="revision-{{ revision.pk }}">{{ revision.title }}</h2>
-        <p class="card-subtitle small text-body-secondary mb-2">
+    <article class="tl-section" aria-labelledby="revision-{{ revision.pk }}">
+      <div>
+        <h2 class="h5" id="revision-{{ revision.pk }}">{{ revision.title }}</h2>
+        <p class="tl-meta mb-2">
           {% if revision.editor %}{{ revision.editor|member_name }}{% else %}{% translate "Unknown editor" %}{% endif %}
           <span aria-hidden="true">·</span> <time datetime="{{ revision.created_at|date:'c' }}">{{ revision.created_at|date:"DATETIME_FORMAT" }}</time>
         </p>

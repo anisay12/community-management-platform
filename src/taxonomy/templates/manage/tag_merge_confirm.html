@@ -2,20 +2,27 @@
 {% load i18n %}
 {% block title %}{% translate "Merge two tags" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h2">{% translate "Merge two tags" %}</h1>
+  {% translate "Merge two tags" as page_title %}
+  {% translate "Administration" as eyebrow_label %}
+  {% include "components/page_header.html" with title=page_title eyebrow=eyebrow_label eyebrow_icon="tags" %}
   {% include "manage/_tabs.html" with active="tags" %}
-  <p class="mt-3">{% blocktranslate with source=source.name target=target.name %}“{{ source }}” will be merged into “{{ target }}” and then deleted.{% endblocktranslate %}</p>
-  <ul>
-    <li>{% blocktranslate count counter=post_count %}{{ counter }} post will be tagged with the kept tag.{% plural %}{{ counter }} posts will be tagged with the kept tag.{% endblocktranslate %}</li>
-    <li>{% blocktranslate count counter=community_count %}{{ counter }} community will be tagged with the kept tag.{% plural %}{{ counter }} communities will be tagged with the kept tag.{% endblocktranslate %}</li>
-  </ul>
-  <p>{% translate "This cannot be undone." %}</p>
-  <form method="post" action="{% url 'manage:tag_merge' %}">
-    {% csrf_token %}
-    <input type="hidden" name="source" value="{{ source.name }}">
-    <input type="hidden" name="target" value="{{ target.name }}">
-    <input type="hidden" name="confirm" value="1">
-    <button type="submit" class="btn btn-danger">{% translate "Merge" %}</button>
-    <a class="btn btn-link" href="{% url 'manage:tag_list' %}">{% translate "Cancel" %}</a>
-  </form>
+  <section class="tl-section tl-narrow mt-4" aria-labelledby="merge-confirm-heading">
+    <div class="tl-section-header"><h2 id="merge-confirm-heading">{% translate "Confirmation" %}</h2></div>
+    <p>{% blocktranslate with source=source.name target=target.name %}“{{ source }}” will be merged into “{{ target }}” and then deleted.{% endblocktranslate %}</p>
+    <ul>
+      <li>{% blocktranslate count counter=post_count %}{{ counter }} post will be tagged with the kept tag.{% plural %}{{ counter }} posts will be tagged with the kept tag.{% endblocktranslate %}</li>
+      <li>{% blocktranslate count counter=community_count %}{{ counter }} community will be tagged with the kept tag.{% plural %}{{ counter }} communities will be tagged with the kept tag.{% endblocktranslate %}</li>
+    </ul>
+    <p>{% translate "This cannot be undone." %}</p>
+    <form method="post" action="{% url 'manage:tag_merge' %}">
+      {% csrf_token %}
+      <input type="hidden" name="source" value="{{ source.name }}">
+      <input type="hidden" name="target" value="{{ target.name }}">
+      <input type="hidden" name="confirm" value="1">
+      <div class="tl-form-actions">
+        <button type="submit" class="btn btn-danger">{% translate "Merge" %}</button>
+        <a class="btn btn-outline-secondary" href="{% url 'manage:tag_list' %}">{% translate "Cancel" %}</a>
+      </div>
+    </form>
+  </section>
 {% endblock %}
