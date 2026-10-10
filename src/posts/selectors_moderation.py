@@ -6,18 +6,24 @@ from django.db.models import (
     BooleanField,
     Case,
     Count,
+    F,
     IntegerField,
     Max,
+    Q,
     Subquery,
     Value,
     When,
+    Window,
 )
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, RowNumber
 
 from communities.models import Community
 
 from .hiding import is_auto_hidden
 from .models import Comment, ContentReport, Post
+
+# Reports listed under one target in the queue (the most recent); the count shows them all.
+REPORTS_SHOWN_PER_GROUP = 10
 
 
 @dataclass
@@ -43,6 +49,11 @@ class ReportGroup:
         return is_auto_hidden(self.target)
 
     @property
+    def hidden_count(self) -> int:
+        """Older reports of the group that are not listed."""
+        return max(self.report_count - len(self.reports), 0)
+
+    @property
     def action_report(self) -> ContentReport:
         """The report the decision form posts to (the decision covers the whole group)."""
         return self.reports[0]
@@ -56,23 +67,27 @@ class ReportGroup:
 def report_groups(community):
     """A values queryset of ``(post_id, comment_id, is_open)`` groups with ``report_count``
     and ``latest``: groups with open reports first, then the most recent."""
-    is_open = Case(
-        When(status=ContentReport.Status.OPEN, then=Value(True)),
-        default=Value(False),
-        output_field=BooleanField(),
-    )
     return (
         ContentReport.objects.filter(community=community)
-        .annotate(is_open=is_open)
+        .annotate(is_open=_is_open_expression())
         .values("post_id", "comment_id", "is_open")
         .annotate(report_count=Count("pk"), latest=Max("created_at"))
         .order_by("-is_open", "-latest", "post_id", "comment_id")
     )
 
 
+def _is_open_expression() -> Case:
+    return Case(
+        When(status=ContentReport.Status.OPEN, then=Value(True)),
+        default=Value(False),
+        output_field=BooleanField(),
+    )
+
+
 def load_report_groups(community, rows) -> list[ReportGroup]:
     """Turn a page of ``report_groups`` rows into ``ReportGroup`` objects (three queries:
-    posts, comments, reports)."""
+    posts, comments, reports). Each group lists its ``REPORTS_SHOWN_PER_GROUP`` most recent
+    reports, oldest first; ``report_count`` keeps the full number."""
     rows = list(rows)
     post_ids = {row["post_id"] for row in rows if row["post_id"]}
     comment_ids = {row["comment_id"] for row in rows if row["comment_id"]}
@@ -88,10 +103,19 @@ def load_report_groups(community, rows) -> list[ReportGroup]:
             report_count=row["report_count"],
             latest=row["latest"],
         )
-    reports = ContentReport.objects.filter(community=community).filter(
-        post_id__in=post_ids
-    ) | ContentReport.objects.filter(community=community, comment_id__in=comment_ids)
-    for report in reports.order_by("created_at", "pk"):
+    recent_first = Window(
+        RowNumber(),
+        partition_by=[F("post_id"), F("comment_id"), _is_open_expression()],
+        order_by=[F("created_at").desc(), F("pk").desc()],
+    )
+    reports = (
+        ContentReport.objects.filter(community=community)
+        .filter(Q(post_id__in=post_ids) | Q(comment_id__in=comment_ids))
+        .annotate(rank=recent_first)
+        .filter(rank__lte=REPORTS_SHOWN_PER_GROUP)
+        .order_by("created_at", "pk")
+    )
+    for report in reports:
         key = (report.post_id, report.comment_id, report.status == ContentReport.Status.OPEN)
         if key in groups:
             groups[key].reports.append(report)

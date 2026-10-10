@@ -7,9 +7,11 @@ Notifications and broadcasts go out once the transaction commits.
 """
 
 from django.conf import settings
+from django.contrib.postgres.aggregates import StringAgg
 from django.contrib.postgres.search import SearchVector
-from django.db import transaction
-from django.db.models import TextField, Value
+from django.db import connection, transaction
+from django.db.models import OuterRef, Subquery, TextField, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -127,17 +129,62 @@ def _resolve_tags(actor, community, names) -> list[Tag]:
                 )
             tag = get_or_create_tag(name)
         found.append(tag)
+    _hold_tags(found)
     return found
 
 
-def _refresh_search_vector(post: Post) -> None:
-    """Title (A), tag names (B) and body (C), with the ``simple`` configuration."""
-    tag_text = " ".join(post.tags.values_list("name", flat=True))
-    Post.objects.filter(pk=post.pk).update(
-        search_vector=SearchVector("title", weight="A", config="simple")
-        + SearchVector(Value(tag_text, output_field=TextField()), weight="B", config="simple")
+def _hold_tags(tags) -> None:
+    """Take on ``tags`` the lock a foreign key check takes (``FOR KEY SHARE``) until the end of
+    the transaction, so a tag merged away meanwhile answers ``tag_unavailable`` instead of a
+    foreign key error. ``taxonomy.services.merge_tags`` locks its tags ``FOR UPDATE``: it
+    either waits for this transaction or has deleted the tag before."""
+    ids = sorted({tag.pk for tag in tags})
+    if not ids:
+        return
+    # Django has no ``FOR KEY SHARE`` (``select_for_update`` would block the tag's readers).
+    table = connection.ops.quote_name(Tag._meta.db_table)  # a model constant, not user input
+    sql = f"SELECT id FROM {table} WHERE id = ANY(%s) ORDER BY id FOR KEY SHARE"  # noqa: S608
+    with connection.cursor() as cursor:
+        cursor.execute(sql, [ids])
+        held = {row[0] for row in cursor.fetchall()}
+    if held != set(ids):
+        raise DomainError(
+            "tag_unavailable",
+            _("A tag you chose has just been merged or deleted: check the tags and save again."),
+        )
+
+
+def _search_vector() -> SearchVector:
+    """Title (A), tag names (B) and body (C) of the post updated, ``simple`` configuration."""
+    tag_names = (
+        Post.tags.through.objects.filter(post_id=OuterRef("pk"))
+        .order_by()
+        .values("post_id")
+        .annotate(names=StringAgg("tag__name", delimiter=" ", order_by="tag__name"))
+        .values("names")
+    )
+    return (
+        SearchVector("title", weight="A", config="simple")
+        + SearchVector(
+            Coalesce(
+                Subquery(tag_names, output_field=TextField()),
+                Value("", output_field=TextField()),
+            ),
+            weight="B",
+            config="simple",
+        )
         + SearchVector("body", weight="C", config="simple")
     )
+
+
+def refresh_search_vectors(posts) -> int:
+    """Recompute the search vector of every post of the queryset ``posts`` in one UPDATE."""
+    return posts.update(search_vector=_search_vector())
+
+
+def refresh_search_vector(post: Post) -> None:
+    """Recompute the search vector of ``post`` (after a change of title, body or tags)."""
+    refresh_search_vectors(Post.objects.filter(pk=post.pk))
 
 
 def _moderators(community) -> list:
@@ -242,7 +289,7 @@ def _create(*, actor, community, kind, title, body, tags, publish, shared_from=N
         shared_from=shared_from,
     )
     post.tags.set(tag_objects)
-    _refresh_search_vector(post)
+    refresh_search_vector(post)
     sync_mentions(post, resolve_mentions(community, body))
     if publish:
         _submit(post, actor)
@@ -327,7 +374,7 @@ def update_post(*, actor, post, title, body, tags, version) -> Post:
     post.save(update_fields=["title", "body", "body_html", "version", "updated_at"])
     if tag_objects is not None:
         post.tags.set(tag_objects)
-    _refresh_search_vector(post)
+    refresh_search_vector(post)
     _sync_post_mentions(post, actor)
     if by_other:
         record(
@@ -357,7 +404,7 @@ def set_tags(*, actor, post, names, version=None) -> Post:
     post.tags.set(_resolve_tags(actor, post.community, names))
     post.version += 1
     post.save(update_fields=["version", "updated_at"])
-    _refresh_search_vector(post)
+    refresh_search_vector(post)
     return post
 
 
@@ -464,7 +511,7 @@ def unpin_post(*, actor, post) -> Post:
 def hide_post(*, actor, post, reason) -> Post:
     """Hide a post (moderator+, reason required); its author still reads it, with the reason.
 
-    Works in suspended and archived communities. A hidden post loses its pin.
+    Works in suspended and archived communities. A hidden post loses its pin (``mark_hidden``).
     """
     if not policies.can_moderate(actor, post.community):
         raise _forbidden()
@@ -472,7 +519,6 @@ def hide_post(*, actor, post, reason) -> Post:
     if post.status == Post.Status.DRAFT:
         raise _invalid_state()
     mark_hidden(post, actor=actor, reason=reason)
-    _clear_pin(post)
     _notify_readers("system", post, [post.author], actor=actor)
     return post
 

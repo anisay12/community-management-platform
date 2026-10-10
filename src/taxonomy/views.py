@@ -61,7 +61,7 @@ def tag_merge(request):
     """Without ``confirm``: the confirmation page (nothing changes). With it: the merge."""
     form = TagMergeForm(request.POST)
     if not form.is_valid():
-        return _tag_list_response(request, form)
+        return _tag_list_response(request, form, status=400)
     source, target = form.cleaned_data["source"], form.cleaned_data["target"]
     if not form.cleaned_data["confirm"]:
         context = {

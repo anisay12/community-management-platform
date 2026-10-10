@@ -201,27 +201,42 @@ def comment_unhide(request, public_id):
 # Reactions ---------------------------------------------------------------------------------
 
 
+def _wanted_state(request) -> bool | None:
+    """The ``present`` field of an idempotent action (``"1"`` or ``"0"``); ``None`` if invalid."""
+    return {"1": True, "0": False}.get(request.POST.get("present", ""))
+
+
 @login_required
 @require_POST
 def react(request, target, public_id):
+    """Make the viewer's ``kind`` reaction present or absent (``present``: the wanted state,
+    so a repeated request changes nothing)."""
     target_type = target
     target = _target(request.user, target_type, public_id)
     kind = request.POST.get("kind", "")
-    # Counters are deferred: the bar shows the stored counts adjusted by this toggle.
-    counts = dict(target.reaction_counts or {})
-    try:
-        present = services.toggle_reaction(actor=request.user, target=target, kind=kind)
-    except DomainError as error:
-        return domain_error_response(request, error, redirect_to=_target_url(target))
-    if not _is_htmx(request):
-        return redirect(_target_url(target))
-    current = counts.get(kind) if isinstance(counts.get(kind), int) else 0
-    counts[kind] = current + 1 if present else max(current - 1, 0)
+    present = _wanted_state(request)
+    if present is None:
+        return HttpResponseBadRequest()
     mine = set(
         Reaction.objects.filter(user=request.user, **{target_type: target}).values_list(
             "kind", flat=True
         )
     )
+    # Counters are deferred: the bar shows the stored counts adjusted by this change.
+    counts = dict(target.reaction_counts or {})
+    try:
+        services.set_reaction(actor=request.user, target=target, kind=kind, present=present)
+    except DomainError as error:
+        return domain_error_response(request, error, redirect_to=_target_url(target))
+    if not _is_htmx(request):
+        return redirect(_target_url(target))
+    if present != (kind in mine):
+        current = counts.get(kind) if isinstance(counts.get(kind), int) else 0
+        counts[kind] = current + 1 if present else max(current - 1, 0)
+    if present:
+        mine.add(kind)
+    else:
+        mine.discard(kind)
     context = {
         "target": target,
         "target_type": target_type,
@@ -238,9 +253,13 @@ def react(request, target, public_id):
 @login_required
 @require_POST
 def bookmark_toggle(request, slug, public_id):
+    """Bookmark the post or remove the bookmark (``present``: the wanted state)."""
     post = selectors.get_visible_post_or_404(request.user, slug, public_id)
+    present = _wanted_state(request)
+    if present is None:
+        return HttpResponseBadRequest()
     try:
-        bookmarked = services.toggle_bookmark(actor=request.user, post=post)
+        bookmarked = services.set_bookmark(actor=request.user, post=post, present=present)
     except DomainError as error:
         return domain_error_response(request, error, redirect_to=_detail_url(post))
     if _is_htmx(request):
@@ -307,7 +326,7 @@ def bookmark_remove(request, public_id):
     entry = get_object_or_404(
         Bookmark.objects.select_related("post"), user=request.user, post__public_id=public_id
     )
-    services.toggle_bookmark(actor=request.user, post=entry.post)  # removing needs no access
+    services.set_bookmark(actor=request.user, post=entry.post, present=False)  # needs no access
     return _done(request, _("Bookmark removed."), _bookmarks_url())
 
 

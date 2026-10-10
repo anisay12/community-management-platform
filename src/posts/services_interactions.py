@@ -253,10 +253,11 @@ def unhide_comment(*, actor, comment):
 
 
 @transaction.atomic
-def toggle_reaction(*, actor, target, kind) -> bool:
-    """Add the ``kind`` reaction of ``actor`` to a post or comment, or remove it.
+def set_reaction(*, actor, target, kind, present: bool) -> bool:
+    """Make the ``kind`` reaction of ``actor`` to a post or comment present or absent.
 
-    Returns whether the reaction is now present.
+    Idempotent: the request states the wanted outcome, so a repeated or concurrent request
+    (double click, two tabs) leaves the same state. Returns ``present``.
     """
     post = _post_of(target)
     if not _can_view_target(actor, target):
@@ -271,17 +272,16 @@ def toggle_reaction(*, actor, target, kind) -> bool:
     hit(actor, "reaction")
     field = "comment" if isinstance(target, Comment) else "post"
     lookup = {"user": actor, field: target, "kind": kind}
-    deleted, _rows = Reaction.objects.filter(**lookup).delete()
-    if deleted:
-        present = False
-    else:
+    if present:
         try:
             with transaction.atomic():
-                Reaction.objects.create(**lookup)
+                _row, changed = Reaction.objects.get_or_create(**lookup)
         except IntegrityError:
-            pass  # the same reaction was added concurrently: the outcome is identical
-        present = True
-    schedule_recount(target)
+            changed = False  # added concurrently by the same user: the outcome is identical
+    else:
+        changed, _rows = Reaction.objects.filter(**lookup).delete()
+    if changed:
+        schedule_recount(target)
     return present
 
 
@@ -295,21 +295,24 @@ def _ensure_owner(actor, obj) -> None:
 
 
 @transaction.atomic
-def toggle_bookmark(*, actor, post, collection=None) -> bool:
+def set_bookmark(*, actor, post, present: bool, collection=None) -> bool:
     """Bookmark a post the actor can read (optionally in one of their collections), or remove
-    the bookmark. Returns whether the post is now bookmarked.
+    the bookmark. Idempotent like ``set_reaction``; returns ``present``. An existing bookmark
+    stays in its collection (``move_bookmark`` moves it).
 
     Removing needs no read access: a former member can still clean up their bookmarks.
     """
     _ensure_owner(actor, collection)
-    deleted, _rows = Bookmark.objects.filter(user=actor, post=post).delete()
-    if deleted:
+    if not present:
+        Bookmark.objects.filter(user=actor, post=post).delete()
         return False
     if not policies.can_bookmark(actor, post):
         raise _forbidden()
     try:
         with transaction.atomic():
-            Bookmark.objects.create(user=actor, post=post, collection=collection)
+            Bookmark.objects.get_or_create(
+                user=actor, post=post, defaults={"collection": collection}
+            )
     except IntegrityError:
         pass  # bookmarked concurrently
     return True
@@ -346,7 +349,14 @@ def _save_collection(collection: BookmarkCollection, **kwargs) -> BookmarkCollec
 
 @transaction.atomic
 def create_collection(*, actor, name):
+    """A new bookmark collection (at most ``POSTS_MAX_BOOKMARK_COLLECTIONS`` per user)."""
     _ensure_owner(actor, None)
+    limit = settings.POSTS_MAX_BOOKMARK_COLLECTIONS
+    if BookmarkCollection.objects.filter(user=actor).count() >= limit:
+        raise DomainError(
+            "too_many_collections",
+            _("You already have %(max)s collections: delete one first.") % {"max": limit},
+        )
     collection = BookmarkCollection(user=actor, name=_clean_name(actor, name))
     return _save_collection(collection)
 

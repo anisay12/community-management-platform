@@ -23,9 +23,9 @@ from communities.policies import is_functional_admin
 from communities.views import community_page
 from core.errors import DomainError
 
-from . import policies, selectors, selectors_moderation, services_posts
-from .forms_moderation import ReportDecisionForm, ReviewDecisionForm
-from .models import Comment, ContentReport
+from . import policies, selectors_moderation
+from .forms_moderation import ReportDecisionForm
+from .models import Comment, ContentReport, Post
 from .services_moderation import RESOLVE_AND_HIDE, decide_reports, report_target
 from .views_errors import domain_error_response
 
@@ -105,6 +105,8 @@ def report_decide(request, public_id):
             actor=request.user, report=report, decision=decision, note=form.cleaned_data["note"]
         )
     except DomainError as error:
+        if error.code == "reason_required":
+            return _report_decision_page(request, report, form.cleaned_data["note"], error)
         return domain_error_response(request, error, redirect_to=redirect_to)
     if decision == RESOLVE_AND_HIDE:
         messages.success(request, _("The content has been hidden and the reports resolved."))
@@ -115,25 +117,24 @@ def report_decide(request, public_id):
     return redirect(redirect_to)
 
 
-@login_required
-@require_POST
-def review_decide(request, slug, public_id):
-    post = selectors.get_visible_post_or_404(request.user, slug, public_id)
-    if not policies.can_review(request.user, post.community):
-        raise PermissionDenied
-    form = ReviewDecisionForm(request.POST)
-    if not form.is_valid():
-        return HttpResponseBadRequest()
-    redirect_to = queue_url(post.community, REVIEW)
-    try:
-        if form.cleaned_data["decision"] == "approve":
-            services_posts.approve_review(actor=request.user, post=post)
-            messages.success(request, _("The post has been published."))
-        else:
-            services_posts.reject_review(
-                actor=request.user, post=post, note=form.cleaned_data["note"]
-            )
-            messages.success(request, _("The post has been sent back to its author."))
-    except DomainError as error:
-        return domain_error_response(request, error, redirect_to=redirect_to)
-    return redirect(redirect_to)
+def _report_decision_page(request, report, note, error):
+    """The decision form of ``report``'s target alone, with ``error`` and the typed ``note``."""
+    target = report_target(report)
+    rows = [
+        {
+            "post_id": target.pk if isinstance(target, Post) else None,
+            "comment_id": target.pk if isinstance(target, Comment) else None,
+            "is_open": True,
+            "report_count": 0,
+            "latest": None,
+        }
+    ]
+    group = selectors_moderation.load_report_groups(report.community, rows)[0]
+    context = {
+        "community": report.community,
+        "group": group,
+        "note": note,
+        "error": error.message,
+        "back_url": queue_url(report.community),
+    }
+    return render(request, "posts/report_decision.html", context)

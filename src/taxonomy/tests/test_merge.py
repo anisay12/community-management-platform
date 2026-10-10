@@ -119,3 +119,19 @@ def test_merge_refuses_same_tag(functional_admin, tags):
         services.merge_tags(actor=functional_admin, source=target, target=target)
     assert error.value.code == "same_tag"
     assert Tag.objects.filter(pk=target.pk).exists()
+
+
+def test_merge_refreshes_search_vectors_in_bounded_queries(
+    functional_admin, community, author, make_post, tags, django_assert_max_num_queries
+):
+    target, source = tags
+    other = services.get_or_create_tag("Statistics")
+    posts = [make_post(community, author, title=f"Post {index}") for index in range(25)]
+    for post in posts:
+        post.tags.add(source, other)
+    with django_assert_max_num_queries(20):  # 68 with one UPDATE per post
+        services.merge_tags(actor=functional_admin, source=source, target=target)
+    for word in ("machine", "statistics"):
+        matches = Post.objects.filter(search_vector=SearchQuery(word, config="simple"))
+        assert matches.count() == 25
+    assert set(Post.objects.values_list("version", flat=True)) == {2}

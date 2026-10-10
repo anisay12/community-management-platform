@@ -8,7 +8,7 @@
     <ul class="nav nav-pills mb-3">
       {% for label, url, active, count in queue_tabs %}
         <li class="nav-item">
-          <a class="nav-link{% if active %} active{% endif %}" href="{{ url }}"{% if active %} aria-current="page"{% endif %}>{{ label }} <span class="badge {% if active %}text-bg-light{% else %}text-bg-secondary{% endif %}">{{ count }}</span></a>
+          <a class="nav-link{% if active %} active{% endif %}" href="{{ url }}"{% if active %} aria-current="page"{% endif %}>{{ label }} <span class="badge {% if active %}text-bg-light{% else %}text-bg-secondary{% endif %}" aria-hidden="true">{{ count }}</span><span class="visually-hidden"> ({% blocktranslate count counter=count %}{{ counter }} open item{% plural %}{{ counter }} open items{% endblocktranslate %})</span></a>
         </li>
       {% endfor %}
     </ul>
@@ -54,20 +54,8 @@
                     </li>
                   {% endfor %}
                 </ul>
-                {% if group.is_open %}
-                  <form method="post" action="{% url 'posts:report_decide' group.action_report.public_id %}" class="row g-2 align-items-end">
-                    {% csrf_token %}
-                    <div class="col-12 col-md">
-                      <label class="form-label" for="note-{{ target.public_id }}">{% translate "Note (required to hide: shown to the author as the reason)" %}</label>
-                      <input class="form-control" type="text" id="note-{{ target.public_id }}" name="note" maxlength="1000">
-                    </div>
-                    <div class="col-12 col-md-auto d-flex flex-wrap gap-2">
-                      <button type="submit" name="decision" value="resolve_hide" aria-describedby="report-group-{{ target.public_id }}" class="btn btn-danger">{% if group.auto_hidden %}{% translate "Confirm hiding" %}{% else %}{% translate "Resolve and hide" %}{% endif %}</button>
-                      <button type="submit" name="decision" value="resolve" aria-describedby="report-group-{{ target.public_id }}" class="btn btn-outline-primary">{% translate "Resolve" %}</button>
-                      <button type="submit" name="decision" value="dismiss" aria-describedby="report-group-{{ target.public_id }}" class="btn btn-outline-secondary">{% translate "Dismiss" %}</button>
-                    </div>
-                  </form>
-                {% endif %}
+                {% if group.hidden_count %}<p class="small text-body-secondary">{% blocktranslate count counter=group.hidden_count %}{{ counter }} earlier report not shown{% plural %}{{ counter }} earlier reports not shown{% endblocktranslate %}</p>{% endif %}
+                {% if group.is_open %}{% include "posts/_report_decision_form.html" %}{% endif %}
               </div>
             </li>
           {% endwith %}
@@ -88,8 +76,10 @@
                 {% blocktranslate with kind=post.get_kind_display author=post.author_display date=post.created_at|date:"SHORT_DATETIME_FORMAT" %}{{ kind }} by {{ author }}, submitted on {{ date }}{% endblocktranslate %}
               </p>
               <p>{{ post.body|truncatechars:300 }}</p>
-              <form method="post" action="{% url 'posts:queue_review_decide' community.slug post.public_id %}" class="row g-2 align-items-end">
+              <form method="post" action="{% url 'posts:review_decide' community.slug post.public_id %}" class="row g-2 align-items-end">
                 {% csrf_token %}
+                <input type="hidden" name="from" value="queue">
+                <input type="hidden" name="confirmed" value="1">
                 <div class="col-12 col-md">
                   <label class="form-label" for="review-note-{{ post.public_id }}">{% translate "Note to the author (required to reject)" %}</label>
                   <input class="form-control" type="text" id="review-note-{{ post.public_id }}" name="note" maxlength="1000">

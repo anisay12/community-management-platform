@@ -1,12 +1,15 @@
 import pytest
 from django.core.cache import cache
+from django.utils import timezone
 
 from audit.models import AuditEvent
 from communities.models import Community, CommunityMembership
 from core.errors import DomainError
 from notifications.models import Notification
+from posts import hiding
 from posts import services_interactions as services
 from posts.models import Comment, ContentReport, Post
+from posts.services_moderation import decide_reports
 
 pytestmark = pytest.mark.django_db
 
@@ -294,3 +297,44 @@ def test_report_decisions_in_read_only_community(post, readers, moderator):
     services.resolve_report(actor=moderator, report=report, note="ok")
     report.refresh_from_db()
     assert report.status == ContentReport.Status.RESOLVED
+
+
+def _pin(post, user):
+    Post.objects.filter(pk=post.pk).update(pinned_at=timezone.now(), pinned_by=user)
+    post.refresh_from_db()
+
+
+def test_resolving_with_hiding_unpins_the_post(post, readers, moderator):
+    _pin(post, moderator)
+    content_report = services.report(actor=readers[0], target=post, reason="spam")
+    services.resolve_report(actor=moderator, report=content_report, note="Off topic", hide=True)
+    post.refresh_from_db()
+    assert post.status == Post.Status.HIDDEN
+    assert (post.pinned_at, post.pinned_by) == (None, None)
+
+
+def test_automatic_hiding_unpins_the_post(post, readers, moderator):
+    _pin(post, moderator)
+    for reader in readers[:3]:
+        services.report(actor=reader, target=post, reason="spam")
+    post.refresh_from_db()
+    assert post.status == Post.Status.HIDDEN
+    assert post.pinned_at is None
+
+
+def test_queue_decision_reads_the_target_under_lock(
+    post, readers, moderator, django_capture_on_commit_callbacks
+):
+    """A target hidden by another moderator after the queue page was read is not hidden (or
+    notified) a second time: the decision re-reads it under its lock."""
+    content_report = services.report(actor=readers[0], target=post, reason="spam")
+    stale = ContentReport.objects.select_related("post").get(pk=content_report.pk)
+    assert stale.post.status == Post.Status.PUBLISHED  # loaded before the hiding
+    with django_capture_on_commit_callbacks(execute=True):
+        hiding.mark_hidden(Post.objects.get(pk=post.pk), actor=moderator, reason="Spam")
+    Notification.objects.all().delete()
+    with django_capture_on_commit_callbacks(execute=True):
+        decide_reports(actor=moderator, report=stale, decision="resolve_hide", note="Spam")
+    assert not Notification.objects.filter(recipient=post.author, category="system").exists()
+    content_report.refresh_from_db()
+    assert content_report.status == ContentReport.Status.RESOLVED

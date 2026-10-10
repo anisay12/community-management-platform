@@ -587,6 +587,28 @@ def test_review_by_author_is_403(client, community, author, make_post):
     assert response.status_code == 403
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"decision": "reject"},
+        {"decision": "reject", "confirmed": "1"},
+        {"decision": "reject", "confirmed": "1", "note": "Too vague"},
+        {"decision": "approve"},
+    ],
+)
+def test_review_of_a_post_no_longer_pending_shows_error(
+    client, community, author, moderator, make_post, data
+):
+    post = make_post(community, author)  # already published (e.g. decided in another tab)
+    client.force_login(moderator)
+    response = client.post(_action("review_decide", post), data)
+    assert response.status_code == 302
+    assert response.url == _detail(post)
+    assert "This action is not possible in the current state." in _toasts(client.get(response.url))
+    post.refresh_from_db()
+    assert post.status == S.PUBLISHED
+
+
 def test_review_unknown_decision_is_400(client, community, author, moderator, make_post):
     post = make_post(community, author, status=S.PENDING_REVIEW)
     client.force_login(moderator)

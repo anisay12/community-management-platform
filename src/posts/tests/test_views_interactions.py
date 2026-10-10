@@ -79,6 +79,10 @@ def _bookmark(post):
     return reverse("posts:bookmark_toggle", args=[post.community.slug, post.public_id])
 
 
+def _reaction(kind, *, present=True):
+    return {"kind": kind, "present": "1" if present else "0"}
+
+
 def _report(target, obj):
     return reverse("posts:report", args=[target, obj.public_id])
 
@@ -182,9 +186,9 @@ def test_invisible_post_is_404_for_every_action(
     client.force_login(make_user("stranger@example.com"))
     for url, data in (
         (_comment_create(post), {"body": "x"}),
-        (_react("post", post), {"kind": "useful"}),
-        (_react("comment", comment), {"kind": "useful"}),
-        (_bookmark(post), {}),
+        (_react("post", post), _reaction("useful")),
+        (_react("comment", comment), _reaction("useful")),
+        (_bookmark(post), {"present": "1"}),
         (_report("post", post), {"reason": "spam"}),
         (_report("comment", comment), {"reason": "spam"}),
         (reverse("posts:comment_edit", args=[comment.public_id]), {"body": "x"}),
@@ -196,7 +200,7 @@ def test_invisible_post_is_404_for_every_action(
 
 
 def test_unknown_reaction_or_report_target_is_404(member_client, post):
-    assert member_client.post(_react("document", post), {"kind": "useful"}).status_code == 404
+    assert member_client.post(_react("document", post), _reaction("useful")).status_code == 404
     assert member_client.get(_report("document", post)).status_code == 404
 
 
@@ -224,6 +228,7 @@ def test_non_member_of_open_community_sees_join_prompt(
     assert reverse("communities:join", args=[post.community.slug]) in html
     assert f'action="{_comment_create(post)}"' not in html
     assert 'name="kind"' not in html  # reactions shown read-only
+    assert "Reactions to the post" not in html  # and no empty group without any reaction
     assert _bookmark(post) in html and _report("post", post) in html
 
 
@@ -234,10 +239,10 @@ def test_non_member_cannot_comment_or_react_but_can_report_and_bookmark(
     client.force_login(outsider)
     response = client.post(_comment_create(post), {"body": "Hi"}, follow=True)
     assert "Join this community to take part." in response.content.decode()
-    response = client.post(_react("post", post), {"kind": "useful"}, follow=True)
+    response = client.post(_react("post", post), _reaction("useful"), follow=True)
     assert "Join this community to take part." in response.content.decode()
     assert not Comment.objects.exclude(pk=comment.pk).exists() and not Reaction.objects.exists()
-    assert client.post(_bookmark(post)).status_code == 302
+    assert client.post(_bookmark(post), {"present": "1"}).status_code == 302
     assert Bookmark.objects.filter(user=outsider, post=post).exists()
     client.post(_report("comment", comment), {"reason": "spam"})
     assert ContentReport.objects.filter(reporter=outsider, comment=comment).exists()
@@ -315,49 +320,87 @@ def test_hide_needs_a_reason_and_a_moderator(member_client, post, author, modera
 # --- Reactions ------------------------------------------------------------------------------
 
 
-def test_react_plain_redirects_and_toggles(member_client, member, post):
-    response = member_client.post(_react("post", post), {"kind": "useful"})
+def test_react_plain_redirects_and_sets_the_state(member_client, member, post):
+    response = member_client.post(_react("post", post), _reaction("useful"))
     assert response["Location"] == _detail(post)
     assert Reaction.objects.filter(user=member, post=post, kind="useful").exists()
-    member_client.post(_react("post", post), {"kind": "useful"})
+    member_client.post(_react("post", post), _reaction("useful", present=False))
+    assert not Reaction.objects.exists()
+
+
+def test_react_is_idempotent(member_client, member, post):
+    """The request states the wanted outcome: a double click or a second tab changes nothing."""
+    for _attempt in range(2):
+        member_client.post(_react("post", post), _reaction("useful"))
+    assert Reaction.objects.filter(user=member, post=post, kind="useful").count() == 1
+    for _attempt in range(2):
+        member_client.post(_react("post", post), _reaction("useful", present=False))
+    assert not Reaction.objects.exists()
+
+
+@pytest.mark.parametrize("data", [{"kind": "useful"}, {"kind": "useful", "present": "maybe"}])
+def test_react_without_a_wanted_state_is_400(member_client, post, data):
+    assert member_client.post(_react("post", post), data).status_code == 400
     assert not Reaction.objects.exists()
 
 
 def test_react_htmx_returns_the_bar_with_optimistic_count(member_client, post):
     Post.objects.filter(pk=post.pk).update(reaction_counts={"useful": 4})
     with mock.patch.object(services, "schedule_recount"):
-        response = member_client.post(_react("post", post), {"kind": "useful"}, headers=HTMX)
+        response = member_client.post(_react("post", post), _reaction("useful"), headers=HTMX)
     html = response.content.decode()
     assert response.status_code == 200 and "<html" not in html
     assert 'aria-pressed="true"' in html and ">5<" in html
+    with mock.patch.object(services, "schedule_recount"):  # repeated: not counted twice
+        html = member_client.post(_react("post", post), _reaction("useful"), headers=HTMX)
+    assert 'aria-pressed="true"' in html.content.decode() and ">6<" not in html.content.decode()
     Post.objects.filter(pk=post.pk).update(reaction_counts={"useful": 5})  # the deferred recount
     with mock.patch.object(services, "schedule_recount"):
-        response = member_client.post(_react("post", post), {"kind": "useful"}, headers=HTMX)
+        response = member_client.post(
+            _react("post", post), _reaction("useful", present=False), headers=HTMX
+        )
     html = response.content.decode()
     assert 'aria-pressed="true"' not in html and ">4<" in html
+
+
+def test_reaction_buttons_have_stable_ids_and_send_the_wanted_state(member_client, member, post):
+    """The HTMX swap keeps the focus on the button pressed (same ``id`` in the new bar)."""
+    Reaction.objects.create(user=member, post=post, kind="useful")
+    button_id = f'id="react-post-{post.public_id}-useful"'
+    page = member_client.get(_detail(post)).content.decode()
+    assert button_id in page
+    assert 'name="present" value="0"' in page  # pressing "useful" again removes it
+    with mock.patch.object(services, "schedule_recount"):
+        html = member_client.post(
+            _react("post", post), _reaction("useful", present=False), headers=HTMX
+        ).content.decode()
+    assert button_id in html
+    assert 'name="present" value="0"' not in html
 
 
 def test_react_on_comment_redirects_to_the_comment(member_client, member, post, author,
                                                    make_comment):  # fmt: skip
     comment = make_comment(post, author)
-    response = member_client.post(_react("comment", comment), {"kind": "thanks"})
+    response = member_client.post(_react("comment", comment), _reaction("thanks"))
     assert response["Location"] == f"{_detail(post)}#comment-{comment.public_id}"
     assert Reaction.objects.filter(user=member, comment=comment, kind="thanks").exists()
-    response = member_client.post(_react("comment", comment), {"kind": "thanks"}, headers=HTMX)
+    response = member_client.post(
+        _react("comment", comment), _reaction("thanks", present=False), headers=HTMX
+    )
     assert response.status_code == 200 and 'aria-pressed="false"' in response.content.decode()
 
 
 def test_own_content_reaction_refused(client, author, post):
     client.force_login(author)
-    response = client.post(_react("post", post), {"kind": "useful"}, follow=True)
+    response = client.post(_react("post", post), _reaction("useful"), follow=True)
     assert "You cannot do this on your own content." in response.content.decode()
     assert not Reaction.objects.exists()
-    htmx = client.post(_react("post", post), {"kind": "useful"}, headers=HTMX)
+    htmx = client.post(_react("post", post), _reaction("useful"), headers=HTMX)
     assert (htmx.status_code, htmx["HX-Redirect"]) == (204, _detail(post))
 
 
 def test_unknown_reaction_kind_is_refused(member_client, post):
-    response = member_client.post(_react("post", post), {"kind": "love"}, follow=True)
+    response = member_client.post(_react("post", post), _reaction("love"), follow=True)
     assert response.status_code == 200 and not Reaction.objects.exists()
 
 
@@ -373,16 +416,24 @@ def test_reaction_buttons_reflect_own_reactions(member_client, member, post, aut
 # --- Bookmarks ------------------------------------------------------------------------------
 
 
-def test_bookmark_toggle_plain_and_htmx(member_client, member, post):
-    response = member_client.post(_bookmark(post))
+def test_bookmark_set_plain_and_htmx(member_client, member, post):
+    response = member_client.post(_bookmark(post), {"present": "1"})
     assert response["Location"] == _detail(post)
     assert Bookmark.objects.filter(user=member, post=post).exists()
-    response = member_client.post(_bookmark(post), headers=HTMX)
+    response = member_client.post(_bookmark(post), {"present": "0"}, headers=HTMX)
     html = response.content.decode()
     assert response.status_code == 200 and 'aria-pressed="false"' in html and "<html" not in html
+    assert f'id="bookmark-{post.public_id}"' in html  # stable id: htmx keeps the focus
     assert not Bookmark.objects.exists()
-    html = member_client.post(_bookmark(post), headers=HTMX).content.decode()
-    assert 'aria-pressed="true"' in html
+    html = member_client.post(_bookmark(post), {"present": "1"}, headers=HTMX).content.decode()
+    assert 'aria-pressed="true"' in html and 'name="present" value="0"' in html
+
+
+def test_bookmark_is_idempotent(member_client, member, post):
+    for _attempt in range(2):
+        member_client.post(_bookmark(post), {"present": "1"})
+    assert Bookmark.objects.filter(user=member, post=post).count() == 1
+    assert member_client.post(_bookmark(post)).status_code == 400
 
 
 def test_bookmarks_page_lists_and_filters_by_collection(

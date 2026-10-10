@@ -11,6 +11,7 @@ from communities.models import AdminAccessGrant, Community
 from communities.roles import CommunityRole
 from core.tests.helpers import assert_single_h1
 from notifications.models import Notification
+from posts import selectors_moderation
 from posts.models import Comment, ContentReport, Post
 from taxonomy import services as tag_services
 from taxonomy.models import Tag
@@ -73,7 +74,12 @@ def _decide(report):
 
 
 def _review(post):
-    return reverse("posts:queue_review_decide", args=[post.community.slug, post.public_id])
+    return reverse("posts:review_decide", args=[post.community.slug, post.public_id])
+
+
+def _queue_decision(decision, **extra):
+    """What the review form of the queue posts (the note is typed inline: confirmed)."""
+    return {"decision": decision, "from": "queue", "confirmed": "1", **extra}
 
 
 def _staff(make_user, email, role):
@@ -255,8 +261,14 @@ def test_hide_requires_a_note(client, community, moderator, author, reporters, m
     post = make_post(community, author)
     report = make_report(post, reporters[0])
     client.force_login(moderator)
-    response = client.post(_decide(report), {"decision": "resolve_hide", "note": " "}, follow=True)
-    assert "Give a reason for hiding this content." in response.content.decode()
+    response = client.post(_decide(report), {"decision": "resolve_hide", "note": " "})
+    # The decision form is shown again (no redirect), with the error and the typed note.
+    assert response.status_code == 200
+    assert_single_h1(response)
+    html = response.content.decode()
+    assert "Give a reason for hiding this content." in html
+    assert f'action="{_decide(report)}"' in html
+    assert post.title in html
     post.refresh_from_db()
     report.refresh_from_db()
     assert post.status == S.PUBLISHED
@@ -347,6 +359,24 @@ def test_reports_tab_query_ceiling(
     assert len(response.context["page_obj"].object_list) == 20
 
 
+def test_report_history_is_bounded_per_target(
+    client, community, moderator, author, make_post, make_user, make_report
+):
+    post = make_post(community, author)
+    for index in range(14):
+        reporter = make_user(f"old{index}@example.com")
+        make_report(post, reporter, status=ContentReport.Status.DISMISSED, details=f"Old {index}")
+    client.force_login(moderator)
+    response = client.get(_queue(community))
+    (group,) = response.context["page_obj"].object_list
+    assert group.report_count == 14
+    assert len(group.reports) == selectors_moderation.REPORTS_SHOWN_PER_GROUP
+    html = response.content.decode()
+    assert "Old 13" in html and "Old 4" in html  # the ten most recent ones
+    assert "Old 3" not in html and "Old 0" not in html
+    assert "4 earlier reports not shown" in html
+
+
 # --- Awaiting review tab -------------------------------------------------------------------
 
 
@@ -359,6 +389,8 @@ def test_review_tab_lists_pending_posts(client, community, moderator, author, ma
     assert "Please review" in html
     assert "Already out" not in html
     assert response.context["pending_count"] == 1
+    # The tab counts have a text alternative (the badge alone is a bare number).
+    assert '<span class="visually-hidden"> (1 open item)</span>' in html
 
 
 def test_approve_publishes_audits_and_notifies(
@@ -367,7 +399,7 @@ def test_approve_publishes_audits_and_notifies(
     post = make_post(community, author, status=S.PENDING_REVIEW)
     client.force_login(moderator)
     with django_capture_on_commit_callbacks(execute=True):
-        response = client.post(_review(post), {"decision": "approve"})
+        response = client.post(_review(post), _queue_decision("approve"))
     assert response.status_code == 302
     assert response.url == _queue(community, "review")
     post.refresh_from_db()
@@ -380,12 +412,18 @@ def test_reject_needs_a_note(client, community, moderator, author, make_post,
                              django_capture_on_commit_callbacks):  # fmt: skip
     post = make_post(community, author, status=S.PENDING_REVIEW)
     client.force_login(moderator)
-    response = client.post(_review(post), {"decision": "reject", "note": ""}, follow=True)
-    assert "Explain to the author why the post is refused." in response.content.decode()
+    response = client.post(_review(post), _queue_decision("reject", note="  "))
+    # The note form is shown again (not a redirect), still returning to the queue.
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert "Explain to the author why the post is refused." in html
+    assert 'name="from" value="queue"' in html
+    assert _queue(community, "review") in html
     post.refresh_from_db()
     assert post.status == S.PENDING_REVIEW
     with django_capture_on_commit_callbacks(execute=True):
-        client.post(_review(post), {"decision": "reject", "note": "Add sources"})
+        response = client.post(_review(post), _queue_decision("reject", note="Add sources"))
+    assert response.url == _queue(community, "review")
     post.refresh_from_db()
     assert (post.status, post.review_note) == (S.DRAFT, "Add sources")
     assert AuditEvent.objects.filter(action="post.review_rejected").exists()
@@ -404,6 +442,41 @@ def test_review_decide_access(client, make_user, community, author, make_post, a
     assert client.get(_review(post)).status_code == 405
     post.refresh_from_db()
     assert post.status == S.PENDING_REVIEW
+
+
+def test_review_form_of_the_queue_posts_to_the_post_review_action(
+    client, community, moderator, author, make_post
+):
+    post = make_post(community, author, status=S.PENDING_REVIEW)
+    client.force_login(moderator)
+    html = client.get(_queue(community, "review")).content.decode()
+    assert f'action="{_review(post)}"' in html
+    assert 'name="from" value="queue"' in html
+
+
+def test_queue_decision_on_a_post_no_longer_pending_returns_to_the_queue(
+    client, community, moderator, author, make_post
+):
+    post = make_post(community, author)
+    client.force_login(moderator)
+    for decision in ("approve", "reject"):
+        response = client.post(_review(post), _queue_decision(decision, note="Late"))
+        assert response.status_code == 302
+        assert response.url == _queue(community, "review")
+    page = client.get(_queue(community, "review"))
+    toasts = [str(message) for message in page.context["messages"]]
+    assert "This action is not possible in the current state." in toasts
+
+
+def test_review_tab_query_ceiling(
+    client, community, moderator, author, make_post, django_assert_max_num_queries
+):
+    for index in range(25):
+        make_post(community, author, title=f"Pending {index}", status=S.PENDING_REVIEW)
+    client.force_login(moderator)
+    with django_assert_max_num_queries(14):
+        response = client.get(_queue(community, "review"))
+    assert len(response.context["page_obj"].object_list) == 20
 
 
 def test_review_tab_is_paginated(client, community, moderator, author, make_post):
@@ -511,7 +584,7 @@ def test_tag_merge_confirmation_then_merge(admin_client, functional_admin, commu
 def test_tag_merge_form_errors(admin_client, source, target, message):
     tag_services.get_or_create_tag("AI")
     response = admin_client.post(reverse("manage:tag_merge"), {"source": source, "target": target})
-    assert response.status_code == 200
+    assert response.status_code == 400
     assert message in response.content.decode()
     assert Tag.objects.count() == 1
 

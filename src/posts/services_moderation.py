@@ -40,7 +40,10 @@ def decide_reports(*, actor, report, decision, note="") -> int:
     """
     if decision not in DECISIONS:
         raise ValueError(f"Unknown report decision: {decision!r}")
+    # Lock the target first (as the report services do) and read its state under the lock:
+    # a hiding decided meanwhile by another moderator is neither repeated nor notified twice.
     target = report_target(report)
+    target = type(target).objects.select_for_update().get(pk=target.pk)
     was_hidden_by_moderator = (
         target.status == target.Status.HIDDEN and target.hidden_by_id is not None
     )

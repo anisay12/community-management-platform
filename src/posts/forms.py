@@ -87,6 +87,7 @@ class ReviewRejectForm(forms.Form):
         label=_("Note to the author"),
         max_length=REASON_MAX_LENGTH,
         widget=forms.Textarea(attrs={"rows": 3}),
+        error_messages={"required": _("Explain to the author why the post is refused.")},
     )
 
 

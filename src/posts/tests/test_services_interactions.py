@@ -319,17 +319,29 @@ def test_hide_comment_in_read_only_community_is_allowed(post, reader, moderator,
 # Reactions -------------------------------------------------------------------------
 
 
-def test_toggle_reaction_on_and_off(post, reader, django_capture_on_commit_callbacks):
+def test_set_reaction_on_and_off(post, reader, django_capture_on_commit_callbacks):
     with django_capture_on_commit_callbacks(execute=True):
-        assert services.toggle_reaction(actor=reader, target=post, kind="useful") is True
-        assert services.toggle_reaction(actor=reader, target=post, kind="thanks") is True
+        assert services.set_reaction(actor=reader, target=post, kind="useful", present=True)
+        assert services.set_reaction(actor=reader, target=post, kind="thanks", present=True)
     post.refresh_from_db()
     assert post.reaction_counts == {"useful": 1, "thanks": 1}
     with django_capture_on_commit_callbacks(execute=True):
-        assert services.toggle_reaction(actor=reader, target=post, kind="useful") is False
+        assert services.set_reaction(actor=reader, target=post, kind="useful", present=False) is (
+            False
+        )
     post.refresh_from_db()
     assert post.reaction_counts == {"thanks": 1}
     assert Reaction.objects.filter(user=reader).count() == 1
+
+
+def test_set_reaction_is_idempotent(post, reader):
+    """A repeated request (double click, two tabs, retry) leaves the state it asked for."""
+    for _attempt in range(2):
+        assert services.set_reaction(actor=reader, target=post, kind="useful", present=True)
+    assert Reaction.objects.filter(user=reader, post=post, kind="useful").count() == 1
+    for _attempt in range(2):
+        assert not services.set_reaction(actor=reader, target=post, kind="useful", present=False)
+    assert not Reaction.objects.filter(user=reader).exists()
 
 
 def test_reaction_on_comment(
@@ -337,13 +349,13 @@ def test_reaction_on_comment(
 ):
     comment = make_comment(post, author)
     with django_capture_on_commit_callbacks(execute=True):
-        assert services.toggle_reaction(actor=reader, target=comment, kind="insightful")
+        assert services.set_reaction(actor=reader, target=comment, kind="insightful", present=True)
     comment.refresh_from_db()
     assert comment.reaction_counts == {"insightful": 1}
 
 
 def test_reaction_on_own_content_refused(post, author):
-    assert _code(services.toggle_reaction, actor=author, target=post, kind="useful") == (
+    assert _code(services.set_reaction, actor=author, target=post, kind="useful", present=True) == (
         "own_content"
     )
 
@@ -351,23 +363,25 @@ def test_reaction_on_own_content_refused(post, author):
 @pytest.mark.parametrize("status", [Post.Status.HIDDEN, Post.Status.ARCHIVED])
 def test_reaction_on_hidden_or_archived_post_refused(make_post, community, author, reader, status):
     target = make_post(community, author, status=status)
-    code = _code(services.toggle_reaction, actor=reader, target=target, kind="useful")
+    code = _code(services.set_reaction, actor=reader, target=target, kind="useful", present=True)
     assert code in {"invalid_state", "forbidden"}
 
 
 def test_reaction_on_archived_post_is_invalid_state(make_post, community, author, reader):
     target = make_post(community, author, status=Post.Status.ARCHIVED)
-    assert _code(services.toggle_reaction, actor=reader, target=target, kind="useful") == (
-        "invalid_state"
-    )
+    assert _code(
+        services.set_reaction, actor=reader, target=target, kind="useful", present=True
+    ) == ("invalid_state")
 
 
 def test_reaction_on_hidden_comment_refused(post, author, reader, moderator, make_comment):
     comment = make_comment(post, author, status=Comment.Status.HIDDEN, hidden_reason="r")
     # A reader who cannot see the comment learns nothing about it (404 in the views).
-    code = _code(services.toggle_reaction, actor=reader, target=comment, kind="useful")
+    code = _code(services.set_reaction, actor=reader, target=comment, kind="useful", present=True)
     assert code == "forbidden"
-    code = _code(services.toggle_reaction, actor=moderator, target=comment, kind="useful")
+    code = _code(
+        services.set_reaction, actor=moderator, target=comment, kind="useful", present=True
+    )
     assert code == "invalid_state"
 
 
@@ -381,18 +395,18 @@ def test_report_of_a_hidden_comment_does_not_leak_it(post, author, reader, moder
 
 
 def test_reaction_unknown_kind_and_non_member(post, reader, outsider):
-    assert _code(services.toggle_reaction, actor=reader, target=post, kind="love") == (
+    assert _code(services.set_reaction, actor=reader, target=post, kind="love", present=True) == (
         "invalid_state"
     )
-    assert _code(services.toggle_reaction, actor=outsider, target=post, kind="useful") == (
-        "not_member"
-    )
+    assert _code(
+        services.set_reaction, actor=outsider, target=post, kind="useful", present=True
+    ) == ("not_member")
 
 
 def test_reaction_in_read_only_community(post, reader):
     Community.objects.filter(pk=post.community_id).update(status=Community.Status.SUSPENDED)
     post.community.refresh_from_db()
-    assert _code(services.toggle_reaction, actor=reader, target=post, kind="useful") == (
+    assert _code(services.set_reaction, actor=reader, target=post, kind="useful", present=True) == (
         "read_only"
     )
 
@@ -400,27 +414,29 @@ def test_reaction_in_read_only_community(post, reader):
 def test_121st_reaction_in_the_hour_is_rate_limited(post, reader):
     with mock.patch.object(services, "schedule_recount"):
         for index in range(120):
-            services.toggle_reaction(
-                actor=reader, target=post, kind=("useful", "thanks")[index % 2]
+            services.set_reaction(
+                actor=reader, target=post, kind=("useful", "thanks")[index % 2], present=True
             )
-        assert _code(services.toggle_reaction, actor=reader, target=post, kind="useful") == (
-            "rate_limited"
-        )
+        assert _code(
+            services.set_reaction, actor=reader, target=post, kind="useful", present=True
+        ) == ("rate_limited")
 
 
 # Bookmarks -------------------------------------------------------------------------
 
 
-def test_toggle_bookmark(post, reader):
-    assert services.toggle_bookmark(actor=reader, post=post) is True
-    assert Bookmark.objects.filter(user=reader, post=post).exists()
-    assert services.toggle_bookmark(actor=reader, post=post) is False
+def test_set_bookmark(post, reader):
+    assert services.set_bookmark(actor=reader, post=post, present=True) is True
+    assert services.set_bookmark(actor=reader, post=post, present=True) is True  # idempotent
+    assert Bookmark.objects.filter(user=reader, post=post).count() == 1
+    assert services.set_bookmark(actor=reader, post=post, present=False) is False
+    assert services.set_bookmark(actor=reader, post=post, present=False) is False
     assert not Bookmark.objects.exists()
 
 
 def test_bookmark_into_a_collection(post, reader):
     collection = services.create_collection(actor=reader, name="Later")
-    services.toggle_bookmark(actor=reader, post=post, collection=collection)
+    services.set_bookmark(actor=reader, post=post, present=True, collection=collection)
     assert Bookmark.objects.get().collection == collection
 
 
@@ -428,9 +444,9 @@ def test_bookmark_needs_view(make_community, make_post, author, add_member, outs
     private = make_community("Private", access_mode=Community.AccessMode.INVITE)
     add_member(private, author)
     secret = make_post(private, author)
-    assert _code(services.toggle_bookmark, actor=outsider, post=secret) == "forbidden"
+    assert _code(services.set_bookmark, actor=outsider, post=secret, present=True) == "forbidden"
     draft = make_post(private, author, status=Post.Status.DRAFT)
-    assert _code(services.toggle_bookmark, actor=reader, post=draft) == "forbidden"
+    assert _code(services.set_bookmark, actor=reader, post=draft, present=True) == "forbidden"
 
 
 def test_bookmark_removal_needs_no_read_access(make_community, make_post, author, add_member,
@@ -439,21 +455,23 @@ def test_bookmark_removal_needs_no_read_access(make_community, make_post, author
     add_member(private, author)
     add_member(private, reader)
     secret = make_post(private, author)
-    assert services.toggle_bookmark(actor=reader, post=secret) is True
+    assert services.set_bookmark(actor=reader, post=secret, present=True) is True
     CommunityMembership.objects.filter(community=private, user=reader).delete()
     reader = type(reader).objects.get(pk=reader.pk)  # memberships are memoised per instance
-    assert services.toggle_bookmark(actor=reader, post=secret) is False
+    assert services.set_bookmark(actor=reader, post=secret, present=False) is False
     assert not Bookmark.objects.exists()
-    assert _code(services.toggle_bookmark, actor=reader, post=secret) == "forbidden"
+    assert _code(services.set_bookmark, actor=reader, post=secret, present=True) == "forbidden"
 
 
 def test_bookmark_open_community_without_membership(post, outsider):
-    assert services.toggle_bookmark(actor=outsider, post=post) is True
+    assert services.set_bookmark(actor=outsider, post=post, present=True) is True
 
 
 def test_bookmark_into_someone_elses_collection_refused(post, reader, author):
     collection = services.create_collection(actor=author, name="Mine")
-    code = _code(services.toggle_bookmark, actor=reader, post=post, collection=collection)
+    code = _code(
+        services.set_bookmark, actor=reader, post=post, collection=collection, present=True
+    )
     assert code == "forbidden"
 
 
@@ -482,15 +500,24 @@ def test_collections_crud(reader, author, post):
         == "forbidden"
     )
 
-    services.toggle_bookmark(actor=reader, post=post, collection=other)
+    services.set_bookmark(actor=reader, post=post, present=True, collection=other)
     assert _code(services.delete_collection, actor=author, collection=other) == "forbidden"
     services.delete_collection(actor=reader, collection=other)
     assert not BookmarkCollection.objects.filter(pk=other.pk).exists()
     assert Bookmark.objects.get(user=reader).collection is None
 
 
+def test_collections_are_bounded_per_user(reader, settings):
+    settings.POSTS_MAX_BOOKMARK_COLLECTIONS = 3
+    for index in range(3):
+        services.create_collection(actor=reader, name=f"List {index}")
+    assert _code(services.create_collection, actor=reader, name="One more") == (
+        "too_many_collections"
+    )
+
+
 def test_move_bookmark(post, reader, author):
-    services.toggle_bookmark(actor=reader, post=post)
+    services.set_bookmark(actor=reader, post=post, present=True)
     bookmark = Bookmark.objects.get()
     target = services.create_collection(actor=reader, name="Target")
     services.move_bookmark(actor=reader, bookmark=bookmark, collection=target)

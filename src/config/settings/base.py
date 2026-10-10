@@ -312,3 +312,5 @@ CELERY_BEAT_SCHEDULE = {
 POSTS_RATE_LIMITS = {"post": 10, "comment": 60, "reaction": 120}
 POSTS_REPORT_AUTOHIDE_THRESHOLD = 3
 POSTS_PIN_LIMIT = 3
+# Bookmark collections one user may keep (bounds the bookmarks page).
+POSTS_MAX_BOOKMARK_COLLECTIONS = 50

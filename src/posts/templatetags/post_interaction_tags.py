@@ -123,5 +123,11 @@ def reaction_buttons(counts, mine) -> list[tuple[str, str, int, bool]]:
     ]
 
 
+@register.filter
+def has_reactions(items) -> bool:
+    """Whether any of the ``reaction_buttons`` items has a non-zero count."""
+    return any(count for _kind, _label, count, _pressed in items)
+
+
 def _count(value) -> int:
     return value if isinstance(value, int) and value > 0 else 0

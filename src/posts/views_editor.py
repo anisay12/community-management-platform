@@ -32,11 +32,12 @@ from taxonomy.models import Tag
 
 from . import policies, selectors, services_posts
 from .forms import PostForm, ReasonForm, ReviewRejectForm, ShareForm
-from .mentions import _NON_ASCII, _folded, _key, handle_for
+from .mentions import NON_ASCII, folded, handle_for, name_key
 from .models import POST_BODY_MAX_LENGTH, Comment, Post
 from .rendering import render_body
 from .templatetags.post_actions import creatable_kinds, publish_label, share_targets
 from .views_errors import domain_error_response
+from .views_moderation import REVIEW, queue_url
 
 MENTION_SUGGESTIONS = 8
 TAG_SUGGESTIONS = 200
@@ -46,6 +47,7 @@ FIELD_ERRORS = {
     "title_too_long": "title",
     "body_too_long": "body",
     "tag_creation_forbidden": "tags",
+    "tag_unavailable": "tags",
 }
 
 
@@ -76,15 +78,16 @@ def _confirmed(request) -> bool:
     return request.POST.get("confirmed") == "1"
 
 
-def _act(request, post, operation, success, *, redirect_to=None):
-    """Run ``operation`` (a service call); PRG to ``redirect_to`` (default: the post)."""
+def _act(request, post, operation, success, *, redirect_to=None, error_to=None):
+    """Run ``operation`` (a service call); PRG to ``redirect_to`` (default: the post), or to
+    ``error_to`` (default: the post) with an error toast when the service refuses."""
     redirect_to = redirect_to or _detail_url(post)
     try:
         operation()
     except DomainError as error:
         if error.code == "forbidden":
             raise PermissionDenied from error
-        return domain_error_response(request, error, redirect_to=_detail_url(post))
+        return domain_error_response(request, error, redirect_to=error_to or _detail_url(post))
     messages.success(request, success)
     return redirect(redirect_to)
 
@@ -275,20 +278,20 @@ def mention_suggestions(request, slug):
             .exclude(user=request.user)
             .select_related("user")
             .alias(
-                first_key=_key(_folded("user__first_name")),
-                last_key=_key(_folded("user__last_name")),
-                first_folded=_folded("user__first_name"),
-                last_folded=_folded("user__last_name"),
+                first_key=name_key(folded("user__first_name")),
+                last_key=name_key(folded("user__last_name")),
+                first_folded=folded("user__first_name"),
+                last_folded=folded("user__last_name"),
             )
             .order_by("user__first_name", "user__last_name", "pk")
         )
         # SQL pre-filter on the accent-free names; the exact handle is checked below.
         members = members.filter(
-            Q(first_key__startswith=first_key) | Q(first_folded__regex=_NON_ASCII)
+            Q(first_key__startswith=first_key) | Q(first_folded__regex=NON_ASCII)
         )
         if dot:
             members = members.filter(
-                Q(last_key__startswith=last_key) | Q(last_folded__regex=_NON_ASCII)
+                Q(last_key__startswith=last_key) | Q(last_folded__regex=NON_ASCII)
             )
         for membership in members.iterator(chunk_size=200):
             handle = handle_for(membership.user)
@@ -475,33 +478,50 @@ def _uuid_or_404(value):
 @login_required
 @require_POST
 def review_decide(request, slug, public_id):
+    """Approve or reject a pending post, from the post page or the moderation queue
+    (``from=queue``: the decision returns to the queue's review tab).
+
+    Rejecting needs a note: without one the note form is shown (again), keeping what was
+    typed. A post that is no longer pending (decided elsewhere) answers an error toast.
+    """
     post = _post(request, slug, public_id)
     decision = request.POST.get("decision")
     if decision not in ("approve", "reject"):
         return HttpResponseBadRequest()
     if not policies.can_review(request.user, post.community):
         raise PermissionDenied
+    from_queue = request.POST.get("from") == "queue"
+    back_url = queue_url(post.community, REVIEW) if from_queue else _detail_url(post)
     if decision == "approve":
         return _act(
             request,
             post,
             lambda: services_posts.approve_review(actor=request.user, post=post),
             _("The post has been approved and published."),
+            redirect_to=back_url,
+            error_to=back_url,
         )
-    form = ReviewRejectForm(request.POST if _confirmed(request) else None)
-    if post.status == Post.Status.PENDING_REVIEW and not form.is_valid():
-        return render(
-            request,
-            "posts/review_reject.html",
-            {"post": post, "community": post.community, "form": form},
-        )
+    note = ""
+    if post.status == Post.Status.PENDING_REVIEW:
+        form = ReviewRejectForm(request.POST if _confirmed(request) else None)
+        if not form.is_valid():
+            context = {
+                "post": post,
+                "community": post.community,
+                "form": form,
+                "from_queue": from_queue,
+                "back_url": back_url,
+            }
+            return render(request, "posts/review_reject.html", context)
+        note = form.cleaned_data["note"]
+    # Otherwise the service refuses (``invalid_state``), whatever the note.
     return _act(
         request,
         post,
-        lambda: services_posts.reject_review(
-            actor=request.user, post=post, note=form.cleaned_data.get("note", "")
-        ),
+        lambda: services_posts.reject_review(actor=request.user, post=post, note=note),
         _("The post has been sent back to its author."),
+        redirect_to=back_url,
+        error_to=back_url,
     )
 
 

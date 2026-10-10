@@ -12,6 +12,7 @@ from notifications.models import Notification
 from posts import services_posts as services
 from posts.models import Comment, Mention, Post, PostRevision
 from taxonomy.models import Tag
+from taxonomy.services import get_or_create_tag
 
 pytestmark = pytest.mark.django_db
 
@@ -873,3 +874,16 @@ def test_tags_given_as_instances_and_title_length(member, community, broadcasts)
     post = services.create_post(title="T", tags=[tag, tag], **kwargs)
     assert list(post.tags.all()) == [tag]
     assert _code(services.create_post, title="x" * 201, **kwargs) == "title_too_long"
+
+
+def test_tag_merged_away_meanwhile_is_refused(community, member):
+    """The editor resolved a tag that a merge deleted before the save: a domain error, never
+    a foreign key violation at commit."""
+    ghost = get_or_create_tag("Ghost")
+    Tag.objects.filter(pk=ghost.pk).delete()
+    with pytest.raises(DomainError) as error:
+        services.create_post(
+            actor=member, community=community, kind=Post.Kind.DISCUSSION, title="T", body="",
+            tags=[ghost],
+        )  # fmt: skip
+    assert error.value.code == "tag_unavailable"

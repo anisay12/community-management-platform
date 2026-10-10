@@ -17,8 +17,3 @@ class ReportDecisionForm(forms.Form):
         ]
     )
     note = forms.CharField(label=_("Note"), required=False, max_length=NOTE_MAX_LENGTH)
-
-
-class ReviewDecisionForm(forms.Form):
-    decision = forms.ChoiceField(choices=[("approve", _("Approve")), ("reject", _("Reject"))])
-    note = forms.CharField(label=_("Note"), required=False, max_length=NOTE_MAX_LENGTH)

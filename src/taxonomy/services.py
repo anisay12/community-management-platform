@@ -71,13 +71,21 @@ def merge_tags(*, actor, source: Tag, target: Tag) -> Tag:
 
     # Same title/tags/body vector as the post services (posts depends on taxonomy, not the
     # reverse, hence the local imports).
-    from posts.services_posts import _refresh_search_vector
+    from posts.services_posts import refresh_search_vectors
 
     if not post_policies.can_merge_tags(actor):
         raise DomainError("forbidden", _("You are not allowed to perform this action."))
     if source.pk == target.pk:
         raise DomainError("same_tag", _("Choose two different tags."))
-    # Lock both tags in a stable order so concurrent merges serialise.
+    # Lock order: the posts tagged ``source``, then the tags (in a stable order, so concurrent
+    # merges serialise). An editor locks its post, then holds its tags (``FOR KEY SHARE``):
+    # it waits for the merge, or the merge waits for it, never both.
+    list(
+        Post.objects.select_for_update(of=("self",))
+        .filter(tags=source)
+        .order_by("pk")
+        .values_list("pk", flat=True)
+    )
     locked = {
         tag.pk: tag
         for tag in Tag.objects.select_for_update()
@@ -90,9 +98,9 @@ def merge_tags(*, actor, source: Tag, target: Tag) -> Tag:
     post_ids = list(Post.tags.through.objects.filter(tag=source).values_list("post_id", flat=True))
     posts = _move_links(Post.tags.through, "post_id", source, target)
     communities = _move_links(Community.tags.through, "community_id", source, target)
-    Post.objects.filter(pk__in=post_ids).update(version=F("version") + 1)
-    for post in Post.objects.filter(pk__in=post_ids):
-        _refresh_search_vector(post)
+    tagged = Post.objects.filter(pk__in=post_ids)
+    tagged.update(version=F("version") + 1)
+    refresh_search_vectors(tagged)
     record(
         actor=actor,
         action="tag.merged",

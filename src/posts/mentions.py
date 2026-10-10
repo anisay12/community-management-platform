@@ -42,23 +42,26 @@ def _build_fold_table() -> tuple[str, str, str]:
     for start, end in ranges:
         for code in range(start, end):
             char = chr(code)
-            folded = re.sub(r"[^a-z0-9]", "", _handle_part(char))
-            if len(folded) == 1:
+            kept = re.sub(r"[^a-z0-9]", "", _handle_part(char))
+            if len(kept) == 1:
                 mapped_from.append(char)
-                mapped_to.append(folded)
-            elif not folded:
+                mapped_to.append(kept)
+            elif not kept:
                 deleted.append(char)
     return "".join(mapped_from + deleted), "".join(mapped_to), "[^\x01-\x7f]"
 
 
-_FOLD_FROM, _FOLD_TO, _NON_ASCII = _build_fold_table()
+_FOLD_FROM, _FOLD_TO, NON_ASCII = _build_fold_table()
+# ``NON_ASCII`` matches a name still holding a non-ASCII character after ``folded``: such a
+# name is always a candidate of the SQL pre-filters (resolution and suggestions).
 
 
-def _folded(field: str) -> Func:
+def folded(field: str) -> Func:
+    """SQL: the value of ``field`` with its Latin letters folded to ASCII (``é`` → ``e``)."""
     return Func(F(field), Value(_FOLD_FROM), Value(_FOLD_TO), function="translate")
 
 
-def _key(expression) -> Func:
+def name_key(expression) -> Func:
     """Lowercase ASCII letters and digits only: ``Jean-Rémi`` → ``jeanremi``."""
     stripped = Func(
         expression, Value("[^a-zA-Z0-9]+"), Value(""), Value("g"), function="regexp_replace"
@@ -88,14 +91,14 @@ def resolve_mentions(community, text: str) -> list:
     members = (
         User.objects.filter(community_memberships__community=community, status=User.Status.ACTIVE)
         .alias(
-            first_folded=_folded("first_name"),
-            last_folded=_folded("last_name"),
-            first_key=_key(_folded("first_name")),
-            last_key=_key(_folded("last_name")),
+            first_folded=folded("first_name"),
+            last_folded=folded("last_name"),
+            first_key=name_key(folded("first_name")),
+            last_key=name_key(folded("last_name")),
         )
         .filter(
-            (Q(first_key__in=firsts) | Q(first_folded__regex=_NON_ASCII))
-            & (Q(last_key__in=lasts) | Q(last_folded__regex=_NON_ASCII))
+            (Q(first_key__in=firsts) | Q(first_folded__regex=NON_ASCII))
+            & (Q(last_key__in=lasts) | Q(last_folded__regex=NON_ASCII))
         )
         .order_by("pk")
     )

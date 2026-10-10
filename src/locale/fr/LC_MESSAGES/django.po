@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-09 22:16+0200\n"
+"POT-Creation-Date: 2026-10-10 02:39+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -770,6 +770,9 @@ msgstr "Catégories"
 msgid "Creation requests"
 msgstr "Demandes de création"
 
+msgid "Tags"
+msgstr "Étiquettes"
+
 msgid "Your account is active. You can now sign in."
 msgstr "Votre compte est actif. Vous pouvez maintenant vous connecter."
 
@@ -974,9 +977,6 @@ msgstr "Le Markdown est pris en charge."
 
 msgid "Show in the catalogue even when invitation-only"
 msgstr "Afficher dans le catalogue même sur invitation"
-
-msgid "Tags"
-msgstr "Étiquettes"
 
 msgid "Justification"
 msgstr "Justification"
@@ -1894,11 +1894,41 @@ msgstr ""
 msgid "Note to the author"
 msgstr "Note à l’auteur"
 
+msgid "Explain to the author why the post is refused."
+msgstr "Expliquez à l’auteur pourquoi la publication est refusée."
+
 msgid "Community"
 msgstr "Communauté"
 
 msgid "Comment (optional)"
 msgstr "Commentaire (facultatif)"
+
+msgid "Your comment"
+msgstr "Votre commentaire"
+
+msgid "Markdown is supported. Mention a member with @first.last."
+msgstr "Le Markdown est pris en charge. Mentionnez un membre avec @prenom.nom."
+
+msgid "Reason for hiding"
+msgstr "Motif du masquage"
+
+msgid "Details"
+msgstr "Détails"
+
+msgid "Optional: what should the moderators look at?"
+msgstr "Facultatif : que doivent examiner les modérateurs ?"
+
+msgid "Collection name"
+msgstr "Nom de la collection"
+
+msgid "Resolve and hide"
+msgstr "Traiter et masquer"
+
+msgid "Resolve"
+msgstr "Traiter"
+
+msgid "Dismiss"
+msgstr "Rejeter"
 
 msgid "Give a reason for hiding this content."
 msgstr "Indiquez la raison du masquage de ce contenu."
@@ -2119,6 +2149,10 @@ msgstr "Ce nom est trop long (%(max)s caractères au maximum)."
 msgid "You already have a collection with this name."
 msgstr "Vous avez déjà une collection portant ce nom."
 
+#, python-format
+msgid "You already have %(max)s collections: delete one first."
+msgstr "Vous avez déjà %(max)s collections : supprimez-en une d’abord."
+
 msgid "Choose a reason for your report."
 msgstr "Choisissez un motif pour votre signalement."
 
@@ -2146,17 +2180,24 @@ msgstr ""
 "Vous ne pouvez choisir que des étiquettes existantes : « %(name)s » n’existe "
 "pas."
 
+msgid ""
+"A tag you chose has just been merged or deleted: check the tags and save "
+"again."
+msgstr ""
+"Une étiquette choisie vient d’être fusionnée ou supprimée : vérifiez les "
+"étiquettes et enregistrez de nouveau."
+
 msgid "You cannot publish this kind of post here."
 msgstr "Vous ne pouvez pas publier ce type de publication ici."
-
-msgid "Explain to the author why the post is refused."
-msgstr "Expliquez à l’auteur pourquoi la publication est refusée."
 
 #, python-format
 msgid "At most %(limit)s posts can be pinned: unpin one first."
 msgstr ""
 "Au plus %(limit)s publications peuvent être épinglées : désépinglez-en une "
 "d’abord."
+
+msgid "Bookmark"
+msgstr "Favori"
 
 msgid "Accepted answer"
 msgstr "Réponse acceptée"
@@ -2170,6 +2211,33 @@ msgstr "Motif du masquage :"
 msgid "This comment is hidden."
 msgstr "Ce commentaire est masqué."
 
+msgid "Reply"
+msgstr "Répondre"
+
+msgid "Your reply"
+msgstr "Votre réponse"
+
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "Report"
+msgstr "Signaler"
+
+msgid "Hide"
+msgstr "Masquer"
+
+msgid "Hide comment"
+msgstr "Masquer le commentaire"
+
+msgid "Show comment again"
+msgstr "Afficher à nouveau le commentaire"
+
+msgid "Publish the comment"
+msgstr "Publier le commentaire"
+
+msgid "Join this community to comment and react."
+msgstr "Rejoignez cette communauté pour commenter et réagir."
+
 msgid "New post"
 msgstr "Nouvelle publication"
 
@@ -2179,8 +2247,14 @@ msgstr "Filtres du fil"
 msgid "Load more"
 msgstr "Charger la suite"
 
-msgid "Edit"
-msgstr "Modifier"
+msgid "Moderation"
+msgstr "Modération"
+
+#, python-format
+msgid "%(counter)s open item"
+msgid_plural "%(counter)s open items"
+msgstr[0] "%(counter)s élément en attente"
+msgstr[1] "%(counter)s éléments en attente"
 
 msgid "Delete the draft"
 msgstr "Supprimer le brouillon"
@@ -2212,9 +2286,6 @@ msgstr "Désépingler"
 
 msgid "Share"
 msgstr "Partager"
-
-msgid "Hide"
-msgstr "Masquer"
 
 msgid "Hide this post?"
 msgstr "Masquer cette publication ?"
@@ -2248,6 +2319,64 @@ msgstr "Retirer la réponse acceptée"
 
 msgid "Nothing to preview yet."
 msgstr "Rien à prévisualiser pour l’instant."
+
+msgid "Reactions to the post"
+msgstr "Réactions à la publication"
+
+msgid "Reactions to the comment"
+msgstr "Réactions au commentaire"
+
+msgid "Note (required to hide: shown to the author as the reason)"
+msgstr "Note (obligatoire pour masquer : présentée à l’auteur comme motif)"
+
+msgid "Confirm hiding"
+msgstr "Confirmer le masquage"
+
+msgid "Thank you, moderators have been informed."
+msgstr "Merci, les modérateurs ont été informés."
+
+msgid "Back to the content"
+msgstr "Retour au contenu"
+
+msgid "Collections"
+msgstr "Collections"
+
+msgid "All bookmarks"
+msgstr "Tous les favoris"
+
+msgid "Not in a collection"
+msgstr "Hors collection"
+
+msgid "New collection"
+msgstr "Nouvelle collection"
+
+msgid "Rename this collection"
+msgstr "Renommer cette collection"
+
+msgid "Rename"
+msgstr "Renommer"
+
+msgid "Delete this collection"
+msgstr "Supprimer cette collection"
+
+msgid "Its bookmarks are kept, outside any collection."
+msgstr "Ses favoris sont conservés, hors de toute collection."
+
+msgid "Collection"
+msgstr "Collection"
+
+msgid "Move"
+msgstr "Déplacer"
+
+msgid "Remove"
+msgstr "Retirer"
+
+msgid "No bookmarks yet"
+msgstr "Aucun favori pour l’instant"
+
+msgid "Use the Bookmark button of a post to find it here later."
+msgstr ""
+"Utilisez le bouton Favori d’une publication pour la retrouver ici plus tard."
 
 msgid "This post is hidden."
 msgstr "Cette publication est masquée."
@@ -2321,6 +2450,85 @@ msgstr "Rejoignez des communautés pour voir ici leurs dernières publications."
 
 msgid "Browse communities"
 msgstr "Parcourir les communautés"
+
+msgid "Moderation queues"
+msgstr "Files de modération"
+
+#, python-format
+msgid "Comment on “%(title)s”"
+msgstr "Commentaire sur « %(title)s »"
+
+#, python-format
+msgid "%(counter)s open report"
+msgid_plural "%(counter)s open reports"
+msgstr[0] "%(counter)s signalement ouvert"
+msgstr[1] "%(counter)s signalements ouverts"
+
+#, python-format
+msgid "%(counter)s handled report"
+msgid_plural "%(counter)s handled reports"
+msgstr[0] "%(counter)s signalement traité"
+msgstr[1] "%(counter)s signalements traités"
+
+#, python-format
+msgid "By %(author)s"
+msgstr "Par %(author)s"
+
+msgid "View the comment"
+msgstr "Voir le commentaire"
+
+msgid "Reasons:"
+msgstr "Motifs :"
+
+#, python-format
+msgid "%(counter)s earlier report not shown"
+msgid_plural "%(counter)s earlier reports not shown"
+msgstr[0] "%(counter)s signalement plus ancien non affiché"
+msgstr[1] "%(counter)s signalements plus anciens non affichés"
+
+msgid "No reports"
+msgstr "Aucun signalement"
+
+msgid "Reports filed by readers of this community will appear here."
+msgstr ""
+"Les signalements déposés par les lecteurs de cette communauté apparaîtront "
+"ici."
+
+#, python-format
+msgid "%(kind)s by %(author)s, submitted on %(date)s"
+msgstr "%(kind)s de %(author)s, en attente depuis le %(date)s"
+
+msgid "Note to the author (required to reject)"
+msgstr "Note à l’auteur (obligatoire pour refuser)"
+
+msgid "No posts awaiting review"
+msgstr "Aucune publication en attente de validation"
+
+msgid "Posts submitted for review in this community will appear here."
+msgstr ""
+"Les publications soumises à validation dans cette communauté apparaîtront "
+"ici."
+
+msgid "Report content"
+msgstr "Signaler un contenu"
+
+#, python-format
+msgid "Comment by %(author)s on “%(title)s”"
+msgstr "Commentaire de %(author)s sur « %(title)s »"
+
+#, python-format
+msgid "Post “%(title)s” by %(author)s"
+msgstr "Publication « %(title)s » de %(author)s"
+
+msgid ""
+"Moderators of the community will review your report. Your name is not shown "
+"to the author."
+msgstr ""
+"Les modérateurs de la communauté examineront votre signalement. Votre nom "
+"n’est pas montré à l’auteur."
+
+msgid "Send the report"
+msgstr "Envoyer le signalement"
 
 #, python-format
 msgid "Revisions of “%(title)s”"
@@ -2450,127 +2658,6 @@ msgstr "La publication a été approuvée et publiée."
 msgid "The post has been sent back to its author."
 msgstr "La publication a été renvoyée à son auteur."
 
-msgid "key"
-msgstr "clé"
-
-msgid "tag"
-msgstr "tag"
-
-msgid "Your comment"
-msgstr "Votre commentaire"
-
-msgid "Markdown is supported. Mention a member with @first.last."
-msgstr "Le Markdown est pris en charge. Mentionnez un membre avec @prenom.nom."
-
-msgid "Reason for hiding"
-msgstr "Motif du masquage"
-
-msgid "Details"
-msgstr "Détails"
-
-msgid "Optional: what should the moderators look at?"
-msgstr "Facultatif : que doivent examiner les modérateurs ?"
-
-msgid "Collection name"
-msgstr "Nom de la collection"
-
-msgid "Bookmark"
-msgstr "Favori"
-
-msgid "Reply"
-msgstr "Répondre"
-
-msgid "Your reply"
-msgstr "Votre réponse"
-
-msgid "Report"
-msgstr "Signaler"
-
-msgid "Hide comment"
-msgstr "Masquer le commentaire"
-
-msgid "Show comment again"
-msgstr "Afficher à nouveau le commentaire"
-
-msgid "Publish the comment"
-msgstr "Publier le commentaire"
-
-msgid "Join this community to comment and react."
-msgstr "Rejoignez cette communauté pour commenter et réagir."
-
-msgid "Reactions to the post"
-msgstr "Réactions à la publication"
-
-msgid "Reactions to the comment"
-msgstr "Réactions au commentaire"
-
-msgid "Thank you, moderators have been informed."
-msgstr "Merci, les modérateurs ont été informés."
-
-msgid "Back to the content"
-msgstr "Retour au contenu"
-
-msgid "Collections"
-msgstr "Collections"
-
-msgid "All bookmarks"
-msgstr "Tous les favoris"
-
-msgid "Not in a collection"
-msgstr "Hors collection"
-
-msgid "New collection"
-msgstr "Nouvelle collection"
-
-msgid "Rename this collection"
-msgstr "Renommer cette collection"
-
-msgid "Rename"
-msgstr "Renommer"
-
-msgid "Delete this collection"
-msgstr "Supprimer cette collection"
-
-msgid "Its bookmarks are kept, outside any collection."
-msgstr "Ses favoris sont conservés, hors de toute collection."
-
-msgid "Collection"
-msgstr "Collection"
-
-msgid "Move"
-msgstr "Déplacer"
-
-msgid "Remove"
-msgstr "Retirer"
-
-msgid "No bookmarks yet"
-msgstr "Aucun favori pour l’instant"
-
-msgid "Use the Bookmark button of a post to find it here later."
-msgstr ""
-"Utilisez le bouton Favori d’une publication pour la retrouver ici plus tard."
-
-msgid "Report content"
-msgstr "Signaler un contenu"
-
-#, python-format
-msgid "Comment by %(author)s on “%(title)s”"
-msgstr "Commentaire de %(author)s sur « %(title)s »"
-
-#, python-format
-msgid "Post “%(title)s” by %(author)s"
-msgstr "Publication « %(title)s » de %(author)s"
-
-msgid ""
-"Moderators of the community will review your report. Your name is not shown "
-"to the author."
-msgstr ""
-"Les modérateurs de la communauté examineront votre signalement. Votre nom "
-"n’est pas montré à l’auteur."
-
-msgid "Send the report"
-msgstr "Envoyer le signalement"
-
 msgid "Your comment has been published."
 msgstr "Votre commentaire a été publié."
 
@@ -2601,82 +2688,6 @@ msgstr "La collection a été supprimée."
 msgid "The bookmark has been moved."
 msgstr "Le favori a été déplacé."
 
-msgid "Resolve and hide"
-msgstr "Traiter et masquer"
-
-msgid "Resolve"
-msgstr "Traiter"
-
-msgid "Dismiss"
-msgstr "Rejeter"
-
-msgid "Moderation"
-msgstr "Modération"
-
-#, python-format
-msgid "%(counter)s open item"
-msgid_plural "%(counter)s open items"
-msgstr[0] "%(counter)s élément en attente"
-msgstr[1] "%(counter)s éléments en attente"
-
-msgid "Moderation queues"
-msgstr "Files de modération"
-
-#, python-format
-msgid "Comment on “%(title)s”"
-msgstr "Commentaire sur « %(title)s »"
-
-#, python-format
-msgid "%(counter)s open report"
-msgid_plural "%(counter)s open reports"
-msgstr[0] "%(counter)s signalement ouvert"
-msgstr[1] "%(counter)s signalements ouverts"
-
-#, python-format
-msgid "%(counter)s handled report"
-msgid_plural "%(counter)s handled reports"
-msgstr[0] "%(counter)s signalement traité"
-msgstr[1] "%(counter)s signalements traités"
-
-#, python-format
-msgid "By %(author)s"
-msgstr "Par %(author)s"
-
-msgid "View the comment"
-msgstr "Voir le commentaire"
-
-msgid "Reasons:"
-msgstr "Motifs :"
-
-msgid "Note (required to hide: shown to the author as the reason)"
-msgstr "Note (obligatoire pour masquer : présentée à l’auteur comme motif)"
-
-msgid "Confirm hiding"
-msgstr "Confirmer le masquage"
-
-msgid "No reports"
-msgstr "Aucun signalement"
-
-msgid "Reports filed by readers of this community will appear here."
-msgstr ""
-"Les signalements déposés par les lecteurs de cette communauté apparaîtront "
-"ici."
-
-#, python-format
-msgid "%(kind)s by %(author)s, submitted on %(date)s"
-msgstr "%(kind)s de %(author)s, soumise le %(date)s"
-
-msgid "Note to the author (required to reject)"
-msgstr "Note à l’auteur (obligatoire pour refuser)"
-
-msgid "No posts awaiting review"
-msgstr "Aucune publication en attente de validation"
-
-msgid "Posts submitted for review in this community will appear here."
-msgstr ""
-"Les publications soumises à validation dans cette communauté apparaîtront "
-"ici."
-
 msgid "Reports"
 msgstr "Signalements"
 
@@ -2692,9 +2703,6 @@ msgstr "Les signalements ont été traités."
 msgid "The reports have been dismissed."
 msgstr "Les signalements ont été rejetés."
 
-msgid "The post has been published."
-msgstr "La publication a été publiée."
-
 msgid "Tag to merge"
 msgstr "Étiquette à fusionner"
 
@@ -2707,6 +2715,12 @@ msgstr "Aucune étiquette nommée « %(name)s »."
 
 msgid "Choose two different tags."
 msgstr "Choisissez deux étiquettes différentes."
+
+msgid "key"
+msgstr "clé"
+
+msgid "tag"
+msgstr "tag"
 
 msgid "Merge two tags"
 msgstr "Fusionner deux étiquettes"

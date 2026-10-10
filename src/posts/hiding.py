@@ -34,8 +34,9 @@ def _community(target):
 def mark_hidden(target, *, actor, reason, automatic=False):
     """Hide ``target`` (a post or comment) and record ``<kind>.hidden`` or ``.auto_hidden``.
 
-    A post remembers its status in ``status_before_hidden`` so ``mark_visible`` restores it.
-    Automatic hiding (report threshold) has no ``hidden_by`` and the reason ``"automatic"``.
+    A post remembers its status in ``status_before_hidden`` so ``mark_visible`` restores it,
+    and loses its pin (a restored post never exceeds the community's pin limit). Automatic
+    hiding (report threshold) has no ``hidden_by`` and the reason ``"automatic"``.
     """
     reason = AUTOMATIC_REASON if automatic else (reason or "").strip()
     if not reason:
@@ -46,7 +47,9 @@ def mark_hidden(target, *, actor, reason, automatic=False):
     fields = ["status", "hidden_at", "hidden_by", "hidden_reason", "updated_at"]
     if isinstance(target, Post):
         target.status_before_hidden = target.status
-        fields.append("status_before_hidden")
+        target.pinned_at = None
+        target.pinned_by = None
+        fields.extend(["status_before_hidden", "pinned_at", "pinned_by"])
     target.status = target.Status.HIDDEN
     target.hidden_at = timezone.now()
     target.hidden_by = None if automatic else actor
