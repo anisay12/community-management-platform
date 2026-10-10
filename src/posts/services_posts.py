@@ -141,7 +141,7 @@ def _hold_tags(tags) -> None:
         return
     # Django has no ``FOR KEY SHARE`` (``select_for_update`` would block the tag's readers).
     table = connection.ops.quote_name(Tag._meta.db_table)  # a model constant, not user input
-    sql = f"SELECT id FROM {table} WHERE id = ANY(%s) ORDER BY id FOR KEY SHARE"  # noqa: S608
+    sql = f"SELECT id FROM {table} WHERE id = ANY(%s) ORDER BY id FOR KEY SHARE"  # noqa: S608  # nosec B608
     with connection.cursor() as cursor:
         cursor.execute(sql, [ids])
         held = {row[0] for row in cursor.fetchall()}
