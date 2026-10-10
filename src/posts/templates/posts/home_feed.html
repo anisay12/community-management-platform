@@ -2,7 +2,8 @@
 {% load i18n %}
 {% block title %}{% translate "Feed" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h2 mb-3">{% translate "Feed" %}</h1>
+  {% translate "Feed" as feed_title %}
+  {% include "components/page_header.html" with title=feed_title eyebrow_icon="newspaper" %}
   {% if page.items %}
     <h2 class="visually-hidden">{% translate "Latest posts of your communities" %}</h2>
     <div id="feed-items">{% include "posts/_feed_page.html" %}</div>

@@ -14,16 +14,22 @@
   </nav>
 {% endblock %}
 {% block content %}
-  <h1 class="h2">{% translate "Share a post" %}</h1>
+  {% translate "Share a post" as share_title %}
   {% if targets %}
-    <p class="text-body-secondary">{% translate "A new discussion pointing to this post is published in the community you choose. Only readers who can see the original can open it." %}</p>
-    <form method="post" class="col-12 col-lg-8" novalidate data-tl-single-submit>{% csrf_token %}
+    {% translate "A new discussion pointing to this post is published in the community you choose. Only readers who can see the original can open it." as share_lead %}
+    {% include "components/page_header.html" with title=share_title lead=share_lead eyebrow_icon="share" %}
+    <section class="tl-section col-12 col-lg-8">
+    <form method="post" class="tl-form" novalidate data-tl-single-submit>{% csrf_token %}
       {% include "components/form_errors.html" %}
       {% for field in form %}{% include "components/form_field.html" %}{% endfor %}
-      <button type="submit" class="btn btn-primary"><i class="bi bi-share me-1" aria-hidden="true"></i>{% translate "Share" %}</button>
-      <a class="btn btn-link" href="{% url 'posts:detail' community.slug post.public_id %}">{% translate "Cancel" %}</a>
+      <div class="tl-form-actions">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-share me-1" aria-hidden="true"></i>{% translate "Share" %}</button>
+        <a class="btn btn-link" href="{% url 'posts:detail' community.slug post.public_id %}">{% translate "Cancel" %}</a>
+      </div>
     </form>
+    </section>
   {% else %}
+    {% include "components/page_header.html" with title=share_title eyebrow_icon="share" %}
     {% translate "You are not a member of another community where you can publish this post." as empty_title %}
     {% include "components/empty_state.html" with icon="share" title=empty_title %}
   {% endif %}

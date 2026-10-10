@@ -2,10 +2,11 @@
   One comment and, for a top-level comment, its replies. Context: comment (from
   ``posts.selectors.comment_thread``, with ``body_visible``), post, reply (bool).
 {% endcomment %}
-<article class="tl-comment mb-3{% if reply %} ms-3 ms-md-5 ps-3 border-start{% endif %}" id="comment-{{ comment.public_id }}">
+<article class="tl-comment mb-3{% if reply %} ms-3 ms-md-5 ps-3 border-start border-2{% endif %}" id="comment-{{ comment.public_id }}">
   {% if comment.body_visible %}
-    <p class="small mb-1">
-      <strong>{{ comment.author_display }}</strong>
+    <p class="tl-meta mb-1">
+      <span class="avatar-initials tl-avatar-sm" aria-hidden="true">{{ comment.author_display|slice:":1"|upper }}</span>
+      <strong class="text-body">{{ comment.author_display }}</strong>
       <span aria-hidden="true">·</span> <time datetime="{{ comment.created_at|date:'c' }}" title="{{ comment.created_at|date:'DATETIME_FORMAT' }}">{% blocktranslate with delay=comment.created_at|timesince %}{{ delay }} ago{% endblocktranslate %}</time>
       {% if comment.pk == post.accepted_answer_id %}<span class="badge text-bg-success ms-1"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% translate "Accepted answer" %}</span>{% endif %}
       {% if comment.is_expert_answer %}<span class="badge text-bg-info ms-1"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>{% translate "Expert answer" %}</span>{% endif %}
