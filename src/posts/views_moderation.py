@@ -26,7 +26,8 @@ from core.errors import DomainError
 from . import policies, selectors_moderation
 from .forms_moderation import ReportDecisionForm
 from .models import Comment, ContentReport, Post
-from .services_moderation import RESOLVE_AND_HIDE, decide_reports, report_target
+from .selectors_moderation import report_target
+from .services_moderation import RESOLVE_AND_HIDE, decide_reports
 from .views_errors import domain_error_response
 
 QUEUE_PAGE_SIZE = 20

@@ -24,6 +24,7 @@ from . import policies, selectors
 from .mentions import handles_of, resolve_mentions
 from .models import Post
 from .rendering import render_body
+from .views_errors import is_htmx
 
 UNANSWERED = "unanswered=1"
 # (label, query string) of the feed filters, in display order.
@@ -49,15 +50,11 @@ FIRST_POST_TEXT = _("Be the first to start a conversation in this community.")
 FILTERED_EMPTY_TEXT = _("Posts matching this filter will appear here.")
 
 
-def _is_htmx(request) -> bool:
-    return bool(request.headers.get("HX-Request"))
-
-
 def _feed_response(request, template, context, page):
     """The full page, or only the next cards and "Load more" link for an HTMX request."""
     selectors.mark_share_access(request.user, [*page.pinned, *page.items])
     context["page"] = page
-    fragment = "posts/_feed_page.html" if _is_htmx(request) else template
+    fragment = "posts/_feed_page.html" if is_htmx(request) else template
     response = render(request, fragment, context)
     # The same URL answers a full page or a fragment: caches must keep them apart.
     patch_vary_headers(response, ["HX-Request"])

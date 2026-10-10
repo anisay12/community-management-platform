@@ -1,20 +1,4 @@
 from django.apps import AppConfig
-from django.urls import NoReverseMatch, reverse
-
-
-def _routable(url_name: str, *args) -> bool:
-    try:
-        reverse(url_name, args=args)
-    except NoReverseMatch:
-        return False
-    return True
-
-
-def feed_tab_visible(user, community) -> bool:
-    """The Feed tab: content readers only, once the feed page exists."""
-    from communities.policies import can_view_content
-
-    return _routable("posts:feed", community.slug) and can_view_content(user, community)
 
 
 class PostsConfig(AppConfig):
@@ -26,6 +10,7 @@ class PostsConfig(AppConfig):
 
         from accounts.privacy import register_anonymizer
         from communities import tabs
+        from communities.policies import can_view_content
         from core import navigation
 
         from .privacy import anonymize_author
@@ -36,7 +21,7 @@ class PostsConfig(AppConfig):
                 label=_("Feed"),
                 url_name="posts:feed",
                 order=5,
-                is_visible=feed_tab_visible,
+                is_visible=can_view_content,
             )
         )
         navigation.register(

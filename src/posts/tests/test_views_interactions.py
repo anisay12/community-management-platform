@@ -216,6 +216,16 @@ def test_empty_comment_is_an_error_toast(member_client, post):
     assert (htmx.status_code, htmx["HX-Redirect"]) == (204, _detail(post))
 
 
+def test_invalid_comment_form_is_an_error_toast(member_client, post):
+    data = {"body": "Hi", "parent": "not-a-uuid"}
+    response = member_client.post(_comment_create(post), data)
+    assert (response.status_code, response["Location"]) == (302, _detail(post))
+    assert "Enter a valid UUID." in member_client.get(_detail(post)).content.decode()
+    htmx = member_client.post(_comment_create(post), data, headers=HTMX)
+    assert (htmx.status_code, htmx["HX-Redirect"]) == (204, _detail(post))
+    assert not Comment.objects.exists()
+
+
 def test_too_long_comment_is_refused(member_client, post):
     response = member_client.post(_comment_create(post), {"body": "x" * 10_001}, follow=True)
     assert "10000" in response.content.decode() or "10,000" in response.content.decode()

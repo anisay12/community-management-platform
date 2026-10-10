@@ -22,6 +22,18 @@ from communities.models import Community
 from .hiding import is_auto_hidden
 from .models import Comment, ContentReport, Post
 
+
+def report_target(content_report):
+    """The post or comment ``content_report`` is about."""
+    return content_report.post if content_report.post_id else content_report.comment
+
+
+def open_reports(target):
+    """The open reports of a post or comment."""
+    field = "comment" if isinstance(target, Comment) else "post"
+    return ContentReport.objects.filter(**{field: target}, status=ContentReport.Status.OPEN)
+
+
 # Reports listed under one target in the queue (the most recent); the count shows them all.
 REPORTS_SHOWN_PER_GROUP = 10
 
@@ -143,14 +155,12 @@ def _count(queryset, expression) -> Coalesce:
 def queue_counts(community) -> tuple[int, int]:
     """``(reported, pending)`` in one query: posts and comments of ``community`` with at least
     one open report, and posts awaiting review."""
-    open_reports = ContentReport.objects.filter(
-        community=community, status=ContentReport.Status.OPEN
-    )
+    reports = ContentReport.objects.filter(community=community, status=ContentReport.Status.OPEN)
     row = (
         Community.objects.filter(pk=community.pk)
         .annotate(
-            reported_posts=_count(open_reports, Count("post", distinct=True)),
-            reported_comments=_count(open_reports, Count("comment", distinct=True)),
+            reported_posts=_count(reports, Count("post", distinct=True)),
+            reported_comments=_count(reports, Count("comment", distinct=True)),
             pending=_count(pending_posts(community), Count("pk")),
         )
         .values("reported_posts", "reported_comments", "pending")

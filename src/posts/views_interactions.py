@@ -27,14 +27,10 @@ from . import policies, selectors
 from . import services_interactions as services
 from .forms_interactions import CollectionForm, CommentForm, HideForm, ReportForm
 from .models import Bookmark, BookmarkCollection, Comment, Post, Reaction
-from .views_errors import domain_error_response
+from .views_errors import domain_error_response, is_htmx
 
 BOOKMARKS_PAGE_SIZE = 20
 NO_COLLECTION = "none"
-
-
-def _is_htmx(request) -> bool:
-    return bool(request.headers.get("HX-Request"))
 
 
 def _detail_url(post) -> str:
@@ -83,7 +79,7 @@ def _target(user, target_type, public_id):
 def _done(request, message, redirect_to):
     """Success of an action whose HTMX answer is a reload: toast, then redirect."""
     messages.success(request, message)
-    if _is_htmx(request):
+    if is_htmx(request):
         response = HttpResponse(status=204)
         response["HX-Redirect"] = redirect_to
         return response
@@ -133,7 +129,7 @@ def comment_create(request, slug, public_id):
     post = selectors.get_visible_post_or_404(request.user, slug, public_id)
     form = CommentForm(request.POST)
     if not form.is_valid():
-        return HttpResponseBadRequest()
+        return _invalid(request, form, _detail_url(post))
     parent = None
     if form.cleaned_data["parent"]:
         # Only a comment of this post that the reader can see (else 404, like any action).
@@ -146,7 +142,7 @@ def comment_create(request, slug, public_id):
         )
     except DomainError as error:
         return domain_error_response(request, error, redirect_to=_detail_url(post))
-    if not _is_htmx(request):
+    if not is_htmx(request):
         messages.success(request, _("Your comment has been published."))
         return redirect(_comment_url(comment))
     published = _("Your comment has been published.")
@@ -170,7 +166,7 @@ def comment_edit(request, public_id):
         services.update_comment(actor=request.user, comment=comment, body=form.cleaned_data["body"])
     except DomainError as error:
         return domain_error_response(request, error, redirect_to=_comment_url(comment))
-    if _is_htmx(request):
+    if is_htmx(request):
         return _announced(
             request, _render_thread_item(request, comment), _("Your comment has been updated.")
         )
@@ -191,7 +187,7 @@ def comment_hide(request, public_id):
         )
     except DomainError as error:
         return domain_error_response(request, error, redirect_to=_comment_url(comment))
-    if _is_htmx(request):
+    if is_htmx(request):
         comment.refresh_from_db()
         return _announced(
             request, _render_thread_item(request, comment), _("The comment is hidden.")
@@ -208,7 +204,7 @@ def comment_unhide(request, public_id):
         services.unhide_comment(actor=request.user, comment=comment)
     except DomainError as error:
         return domain_error_response(request, error, redirect_to=_comment_url(comment))
-    if _is_htmx(request):
+    if is_htmx(request):
         comment.refresh_from_db()
         return _announced(
             request, _render_thread_item(request, comment), _("The comment is visible again.")
@@ -247,7 +243,7 @@ def react(request, target, public_id):
         services.set_reaction(actor=request.user, target=target, kind=kind, present=present)
     except DomainError as error:
         return domain_error_response(request, error, redirect_to=_target_url(target))
-    if not _is_htmx(request):
+    if not is_htmx(request):
         return redirect(_target_url(target))
     if present != (kind in mine):
         current = counts.get(kind) if isinstance(counts.get(kind), int) else 0
@@ -281,7 +277,7 @@ def bookmark_toggle(request, slug, public_id):
         bookmarked = services.set_bookmark(actor=request.user, post=post, present=present)
     except DomainError as error:
         return domain_error_response(request, error, redirect_to=_detail_url(post))
-    if _is_htmx(request):
+    if is_htmx(request):
         return render(
             request, "posts/_bookmark_button.html", {"post": post, "bookmarked": bookmarked}
         )
@@ -434,11 +430,11 @@ def report(request, target, public_id):
             )
         except DomainError as error:
             return domain_error_response(request, error, redirect_to=back_url)
-        if _is_htmx(request):
+        if is_htmx(request):
             return render(request, "posts/_report_done.html", {"back_url": back_url})
         messages.success(request, _("Thank you, moderators have been informed."))
         return redirect(back_url)
-    if request.method == "POST" and _is_htmx(request):
+    if request.method == "POST" and is_htmx(request):
         return _invalid(request, form, request.path)
     context = {
         "form": form,

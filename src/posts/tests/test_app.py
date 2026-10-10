@@ -10,7 +10,6 @@ from communities.models import Community
 from communities.tabs import tabs_for
 from core import navigation
 from core.errors import DomainError
-from posts.apps import _routable
 from posts.models import Comment, Post
 from posts.privacy import anonymize_author
 from posts.views_errors import domain_error_response
@@ -22,18 +21,9 @@ def _labels(user, community):
     return [str(label) for label, _url, _active in tabs_for(user, community, "about")]
 
 
-def test_feed_tab_hidden_while_the_feed_route_is_missing(monkeypatch, make_community, active_user):
-    community = make_community()
-    assert _labels(active_user, community)[0] == "Feed"
-    assert not _routable("posts:missing")
-    monkeypatch.setattr("posts.apps._routable", lambda *args: False)
-    assert "Feed" not in _labels(active_user, community)
-
-
 def test_feed_tab_first_and_for_content_readers_only(
-    settings, make_community, active_user, make_user, add_member
+    make_community, active_user, make_user, add_member
 ):
-    settings.ROOT_URLCONF = "posts.tests.urls_with_feed"
     open_community = make_community()
     assert _labels(active_user, open_community)[0] == "Feed"
     private = make_community("Private", access_mode=Community.AccessMode.REQUEST)

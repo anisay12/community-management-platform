@@ -13,9 +13,9 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from audit.services import record
-from communities.models import Community, CommunityMembership
+from communities.models import Community
 from communities.policies import membership_of
-from communities.roles import ROLE_RANK, CommunityRole, role_at_least
+from communities.roles import CommunityRole, role_at_least
 from core.errors import DomainError
 from notifications.services import notify
 
@@ -35,10 +35,11 @@ from .models import (
 from .privacy import author_display_for
 from .ratelimit import hit
 from .rendering import render_body
+from .selectors import community_moderators
+from .selectors_moderation import open_reports, report_target
 from .tasks import schedule_recount
 
 COLLECTION_NAME_MAX_LENGTH = 80
-MODERATOR_ROLES = [role for role in CommunityRole if ROLE_RANK[role] >= ROLE_RANK["moderator"]]
 
 
 # Errors ----------------------------------------------------------------------------
@@ -139,15 +140,6 @@ def _notify_mentions(actor, comment: Comment, mentioned) -> None:
     users = [user for user in mentioned if user.pk != actor.pk]
     new_users = sync_mentions(comment, users)
     notify("mention", new_users, actor=actor, target=comment, community=comment.post.community)
-
-
-def _moderators(community):
-    return [
-        membership.user
-        for membership in CommunityMembership.objects.filter(
-            community=community, role__in=MODERATOR_ROLES
-        ).select_related("user")
-    ]
 
 
 def _lock(obj):
@@ -429,12 +421,6 @@ def _target_field(target) -> str:
     return "comment" if isinstance(target, Comment) else "post"
 
 
-def _open_reports(target):
-    return ContentReport.objects.filter(
-        **{_target_field(target): target}, status=ContentReport.Status.OPEN
-    )
-
-
 def _after_visibility_change(target) -> None:
     if isinstance(target, Comment):
         schedule_recount(target.post)
@@ -452,7 +438,7 @@ def ensure_can_report(*, actor, target) -> None:
         raise _invalid_state()
     if not policies.can_report(actor, target):
         raise _forbidden()
-    if _open_reports(target).filter(reporter=actor).exists():
+    if open_reports(target).filter(reporter=actor).exists():
         raise _already_reported()
 
 
@@ -491,11 +477,11 @@ def report(*, actor, target, reason, details=""):
             )
     except IntegrityError as error:
         raise _already_reported() from error
-    moderators = _moderators(post.community)
+    moderators = community_moderators(post.community)
     notify("moderation_alert", moderators, actor=actor, target=target, community=post.community)
     # Reports whose reporter account was deleted no longer count.
     reporters = (
-        _open_reports(target).exclude(reporter__isnull=True).values("reporter").distinct().count()
+        open_reports(target).exclude(reporter__isnull=True).values("reporter").distinct().count()
     )
     if reporters >= settings.POSTS_REPORT_AUTOHIDE_THRESHOLD:
         mark_hidden(target, actor=None, reason="", automatic=True)
@@ -509,10 +495,6 @@ def _already_reported():
     return DomainError("already_reported", _("You have already reported this content."))
 
 
-def _report_target(content_report):
-    return content_report.post if content_report.post_id else content_report.comment
-
-
 def _locked_open_report(actor, content_report) -> ContentReport:
     """Lock the reported target, then the report.
 
@@ -520,14 +502,14 @@ def _locked_open_report(actor, content_report) -> ContentReport:
     concurrent decisions serialise and each sees the reports the others closed: dismissing
     the last two open reports at once still restores an automatically hidden target.
     """
-    target = _report_target(
+    target = report_target(
         ContentReport.objects.select_related("post", "comment").get(pk=content_report.pk)
     )
     _lock(target)
     content_report = ContentReport.objects.select_for_update().get(pk=content_report.pk)
     if content_report.status != ContentReport.Status.OPEN:
         raise _invalid_state()
-    target = _report_target(content_report)
+    target = report_target(content_report)
     if not (
         policies.can_view_post(actor, _post_of(target))
         and policies.can_moderate(actor, content_report.community)
@@ -557,7 +539,7 @@ def _close(actor, content_report, status, note: str) -> None:
 def _restore_if_cleared(actor, target) -> None:
     """An automatically hidden target comes back once no open report remains."""
     target.refresh_from_db()
-    if is_auto_hidden(target) and not _open_reports(target).exists():
+    if is_auto_hidden(target) and not open_reports(target).exists():
         mark_visible(target, actor=actor)
         _after_visibility_change(target)
 
@@ -573,14 +555,14 @@ def resolve_report(*, actor, report, note="", hide=False):
     """
     content_report = _locked_open_report(actor, report)
     note = (note or "").strip()
-    target = _report_target(content_report)
+    target = report_target(content_report)
     if hide:
         if is_auto_hidden(target):
             confirm_hidden(target, actor=actor, reason=note)
         elif target.status != target.Status.HIDDEN:
             mark_hidden(target, actor=actor, reason=note)
             _after_visibility_change(target)
-        others = _open_reports(target).exclude(pk=content_report.pk).select_for_update()
+        others = open_reports(target).exclude(pk=content_report.pk).select_for_update()
         for other in [content_report, *others]:
             _close(actor, other, ContentReport.Status.RESOLVED, note)
     else:
@@ -596,6 +578,6 @@ def dismiss_report(*, actor, report, note=""):
     automatically hidden target restores it."""
     content_report = _locked_open_report(actor, report)
     _close(actor, content_report, ContentReport.Status.DISMISSED, (note or "").strip())
-    _restore_if_cleared(actor, _report_target(content_report))
+    _restore_if_cleared(actor, report_target(content_report))
     report.refresh_from_db()
     return report

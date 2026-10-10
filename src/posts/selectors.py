@@ -22,6 +22,17 @@ MODERATOR_ROLES = [
 ]
 
 
+def community_moderators(community) -> list:
+    """Members of ``community`` with the moderator role or above (recipients of review
+    requests and moderation alerts)."""
+    return [
+        membership.user
+        for membership in CommunityMembership.objects.select_related("user").filter(
+            community=community, role__in=MODERATOR_ROLES
+        )
+    ]
+
+
 def _content_community_q(user, prefix: str = "community__") -> Q:
     """``Q`` on posts whose community content ``user`` may read (``can_view_content`` in SQL)."""
     member_ids = CommunityMembership.objects.filter(user=user).values("community_id")

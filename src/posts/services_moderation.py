@@ -9,17 +9,14 @@ from django.db import transaction
 from notifications.services import notify
 
 from . import policies
-from .models import Comment, ContentReport
+from .models import Comment
+from .selectors_moderation import open_reports, report_target
 from .services_interactions import dismiss_report, resolve_report
 
 RESOLVE_AND_HIDE = "resolve_hide"
 RESOLVE = "resolve"
 DISMISS = "dismiss"
 DECISIONS = (RESOLVE_AND_HIDE, RESOLVE, DISMISS)
-
-
-def report_target(content_report):
-    return content_report.post if content_report.post_id else content_report.comment
 
 
 def _can_view(user, target) -> bool:
@@ -63,16 +60,11 @@ def decide_reports(*, actor, report, decision, note="") -> int:
     service = resolve_report if decision == RESOLVE else dismiss_report
     # The first call locks the target: the other open reports are read after it.
     service(actor=actor, report=report, note=note)
-    others = list(_open_reports(target))
+    others = list(open_reports(target))
     for other in others:
         service(actor=actor, report=other, note=note)
     return 1 + len(others)
 
 
-def _open_reports(target):
-    field = "comment" if isinstance(target, Comment) else "post"
-    return ContentReport.objects.filter(**{field: target}, status=ContentReport.Status.OPEN)
-
-
 def _open_count(target) -> int:
-    return _open_reports(target).count()
+    return open_reports(target).count()

@@ -1,9 +1,11 @@
-"""Tag administration (functional administrators; 404 for anyone else): list with usage
-counts and search, and merging two tags after a confirmation page."""
+"""Tag administration (functional administrators; login page for anonymous users, 404 for
+anyone else): list with usage counts and search, and merging two tags after a confirmation
+page."""
 
 from functools import wraps
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.http import Http404
@@ -23,13 +25,16 @@ PAGE_SIZE = 20
 
 
 def tag_admin_required(view):
+    """Anonymous users go to the login page; anyone else who may not merge tags gets 404
+    (the pages are not revealed)."""
+
     @wraps(view)
     def wrapped(request, *args, **kwargs):
         if not can_merge_tags(request.user):
             raise Http404
         return view(request, *args, **kwargs)
 
-    return never_cache(wrapped)
+    return never_cache(login_required(wrapped))
 
 
 def _tag_list_response(request, merge_form, status=200):

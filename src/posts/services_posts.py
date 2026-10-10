@@ -16,9 +16,8 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from audit.services import record
-from communities.models import Community, CommunityMembership
+from communities.models import Community
 from communities.policies import membership_of
-from communities.roles import ROLE_RANK, CommunityRole
 from core.errors import DomainError
 from core.tasks import delay_on_commit
 from notifications.services import notify
@@ -31,15 +30,13 @@ from .mentions import handles_of, resolve_mentions, sync_mentions
 from .models import POST_BODY_MAX_LENGTH, Comment, Post, PostRevision
 from .privacy import author_display_for
 from .rendering import render_body
+from .selectors import community_moderators
 from .tasks import broadcast_post
 
 # Kinds whose published edits keep a revision even when the author edits (Decision 13).
 REVISED_KINDS = (Post.Kind.ARTICLE, Post.Kind.ANNOUNCEMENT)
 # Kinds broadcast in the ``announcement`` category (Decision 16).
 ANNOUNCEMENT_KINDS = (Post.Kind.ARTICLE, Post.Kind.ANNOUNCEMENT)
-MODERATOR_ROLES = [
-    role for role in CommunityRole if ROLE_RANK[role] >= ROLE_RANK[CommunityRole.MODERATOR]
-]
 
 
 # --- errors -----------------------------------------------------------------------------
@@ -188,16 +185,6 @@ def refresh_search_vector(post: Post) -> None:
     refresh_search_vectors(Post.objects.filter(pk=post.pk))
 
 
-def _moderators(community) -> list:
-    """Members with the moderator role or above (recipients of review requests)."""
-    return [
-        membership.user
-        for membership in CommunityMembership.objects.select_related("user").filter(
-            community=community, role__in=MODERATOR_ROLES
-        )
-    ]
-
-
 def _needs_review(actor, community) -> bool:
     return community.require_post_review and not policies.is_content_moderator(actor, community)
 
@@ -271,7 +258,7 @@ def _submit(post: Post, actor) -> None:
         post.save(update_fields=["status", "review_note", "updated_at"])
         notify(
             "review_request",
-            _moderators(post.community),
+            community_moderators(post.community),
             actor=actor,
             target=post,
             community=post.community,

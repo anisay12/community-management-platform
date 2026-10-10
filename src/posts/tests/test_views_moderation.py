@@ -536,6 +536,13 @@ def test_tag_list_search(admin_client):
     assert [tag.name for tag in response.context["page_obj"].object_list] == ["Données"]
 
 
+def test_tag_admin_sends_anonymous_users_to_login(client):
+    for url in (reverse("manage:tag_list"), reverse("manage:tag_merge")):
+        response = client.post(url)
+        assert response.status_code == 302
+        assert response["Location"] == f"{reverse('accounts:login')}?next={url}"
+
+
 @pytest.mark.parametrize("role", [None, Role.AUDITOR, Role.TECHNICAL_ADMIN])
 def test_tag_admin_hidden_from_others(client, make_user, verified_login, role):
     user = make_user("someone@example.com")
