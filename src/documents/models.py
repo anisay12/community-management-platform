@@ -193,6 +193,9 @@ class DocumentVersion(models.Model):
     )
     change_note = models.CharField(_("change note"), max_length=CHANGE_NOTE_MAX_LENGTH, blank=True)
     is_reference = models.BooleanField(_("reference version"), default=False)
+    # Asked at upload: become the reference version once the scan finds the file clean (the
+    # current reference stays in place until then).
+    promote_on_clean = models.BooleanField(_("make reference once clean"), default=False)
     created_at = models.DateTimeField(_("created at"), default=timezone.now)
 
     class Meta:
