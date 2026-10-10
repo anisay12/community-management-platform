@@ -443,7 +443,7 @@ def report(request, target, public_id):
             services.ensure_can_report(actor=request.user, target=target)
         except DomainError as error:
             return domain_error_response(request, error, redirect_to=back_url)
-    form = ReportForm(request.POST or None)
+    form = ReportForm(request.POST if request.method == "POST" else None)
     if request.method == "POST" and form.is_valid():
         try:
             services.report(

@@ -6,9 +6,7 @@ never hidden but can be archived (``resolve_archive``).
 """
 
 from django.db import transaction
-from django.utils import timezone
 
-from audit.services import record
 from documents import policies as document_policies
 from documents.models import Document
 from notifications.services import notify
@@ -98,25 +96,13 @@ def _decide_document_reports(*, actor, report, decision, note) -> int:
 
 
 def _archive_document(*, actor, document) -> None:
-    """Archive ``document`` (audited ``document.archive``); an archived document stays as it
-    is. The caller holds the row lock and has checked ``can_archive_document``.
-
-    TODO(L5 integration): replace with ``documents.services.archive_document``.
-    """
+    """Archive ``document`` through ``documents.services.archive_document``; a document that is
+    already archived stays as it is (resolving its reports is still recorded)."""
     if document.status == Document.Status.ARCHIVED:
         return
-    before = document.status
-    document.status = Document.Status.ARCHIVED
-    document.archived_at = timezone.now()
-    document.archived_by = actor
-    document.save(update_fields=["status", "archived_at", "archived_by", "updated_at"])
-    record(
-        actor=actor,
-        action="document.archive",
-        target=document,
-        changes={"status": {"before": before, "after": document.status}},
-        community=document.community,
-    )
+    from documents.services import archive_document
+
+    archive_document(actor=actor, document=document)
 
 
 def _open_count(target) -> int:
