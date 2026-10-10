@@ -427,3 +427,52 @@ a.tl-chip:hover {
     transition: none;
   }
 }
+
+// Plain text directly inside a flush panel (empty messages) keeps the panel padding.
+.tl-section-flush > p {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  color: var(--tl-color-text-muted);
+}
+
+// Titles of content cards read as headings; the underline comes back on hover and focus.
+.card-title a,
+.tl-list a.fw-semibold {
+  color: var(--tl-color-text);
+  text-decoration: none;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--tl-color-primary);
+    text-decoration: underline;
+  }
+}
+
+// Long readable column for a post or an article.
+.tl-article {
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+// Label / figure rows.
+.tl-kv {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  > li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--tl-color-hairline);
+
+    span {
+      color: var(--tl-color-text-muted);
+    }
+
+    strong {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
