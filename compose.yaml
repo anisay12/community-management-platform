@@ -1,12 +1,11 @@
 name: talan-communities
 
 # Third-party images pinned by digest, via Google's Docker Hub mirror (mirror.gcr.io).
+# Only s3-init builds the application image: when several services build the same tag in
+# parallel, BuildKit fails with "image already exists". The others reuse that local image.
 x-app: &app
-  build:
-    context: .
-    dockerfile: docker/Dockerfile
-    target: runtime
   image: talan-communities:dev
+  pull_policy: never
   env_file: .env
   volumes:
     - ./src:/app/src:ro
