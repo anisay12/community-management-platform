@@ -340,3 +340,6 @@ DOWNLOAD_LOG_RETENTION_DAYS = env.int("DOWNLOAD_LOG_RETENTION_DAYS", default=365
 # of the generic hourly limiter ``posts.ratelimit``.
 DOCUMENT_UPLOAD_RATE_LIMIT = env.int("DOCUMENT_UPLOAD_RATE_LIMIT", default=20)
 POSTS_RATE_LIMITS = {**POSTS_RATE_LIMITS, "document": DOCUMENT_UPLOAD_RATE_LIMIT}
+# Development only: with DEBUG, Django streams document files itself instead of answering
+# X-Accel-Redirect. Set to false to try the Nginx path locally (never used without DEBUG).
+DOCUMENT_DEV_STREAMING = env.bool("DOCUMENT_DEV_STREAMING", default=True)

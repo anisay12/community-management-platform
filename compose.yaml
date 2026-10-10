@@ -106,6 +106,24 @@ services:
     <<: *app
     command: ["celery", "-A", "config", "beat", "-l", "info", "--schedule", "/tmp/celerybeat-schedule"]
 
+  # Optional reverse proxy, to try the production download path (X-Accel-Redirect, ADR-0001):
+  # `docker compose --profile proxy up -d nginx` with DOCUMENT_DEV_STREAMING=false in .env,
+  # then browse http://localhost:8080. Same image as `make image` validates.
+  nginx:
+    image: mirror.gcr.io/library/nginx:1.27-alpine@sha256:65645c7bb6a0661892a8b03b89d0743208a18dd2f3f17a54ef4b76fb8e2f2a10
+    profiles: [proxy]
+    environment:
+      # Must be the scheme and host of the URLs Django signs (S3_ENDPOINT_URL).
+      STORAGE_ORIGIN: ${S3_ENDPOINT_URL}
+      NGINX_ENVSUBST_FILTER: ^STORAGE_
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/templates/default.conf.template:ro
+      - ./src/core/static:/app/staticfiles:ro
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      web: { condition: service_healthy }
+      s3: { condition: service_healthy }
+
 volumes:
   pgdata:
   s3data:

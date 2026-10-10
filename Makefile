@@ -55,7 +55,7 @@ security:
 image:
 	docker build $(DOCKER_BUILD_OPTS) -f docker/Dockerfile --target runtime -t talan-communities:ci .
 	docker run --rm $(TRIVY_RUN_OPTS) -v /var/run/docker.sock:/var/run/docker.sock $(TRIVY_IMAGE) image --exit-code 1 --severity CRITICAL --ignore-unfixed talan-communities:ci
-	docker run --rm --add-host web:127.0.0.1 -v "$(CURDIR)/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro" $(NGINX_IMAGE) nginx -t
+	docker run --rm --add-host web:127.0.0.1 --add-host s3:127.0.0.1 -e STORAGE_ORIGIN=http://s3:8333 -e NGINX_ENVSUBST_FILTER=^STORAGE_ -v "$(CURDIR)/docker/nginx/default.conf:/etc/nginx/templates/default.conf.template:ro" $(NGINX_IMAGE) nginx -t
 
 # Development only: creates a superuser (EMAIL=you@example.com make dev-admin) in the running web container.
 dev-admin:
