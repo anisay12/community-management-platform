@@ -17,11 +17,12 @@ from django.db.models.functions import Lower
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
 from core.errors import DomainError
+from documents.models import Document
 
 from . import policies, selectors
 from . import services_interactions as services
@@ -296,7 +297,7 @@ def bookmarks(request):
     )
     entries = (
         Bookmark.objects.filter(user=user)
-        .select_related("post__community", "collection")
+        .select_related("post__community", "document__community", "collection")
         .order_by("-created_at", "-pk")
     )
     selected = request.GET.get("collection", "")
@@ -310,12 +311,26 @@ def bookmarks(request):
             raise Http404
         entries = entries.filter(collection=current)
     page_obj = Paginator(entries, BOOKMARKS_PAGE_SIZE).get_page(request.GET.get("page"))
-    post_ids = [entry.post_id for entry in page_obj]
+    post_ids = [entry.post_id for entry in page_obj if entry.post_id]
     visible = set(
         Post.objects.visible_to(user).filter(pk__in=post_ids).values_list("pk", flat=True)
     )
+    document_ids = [entry.document_id for entry in page_obj if entry.document_id]
+    visible_documents = (
+        set(
+            Document.objects.visible_to(user)
+            .filter(pk__in=document_ids)
+            .values_list("pk", flat=True)
+        )
+        if document_ids
+        else set()
+    )
     for entry in page_obj:
-        entry.accessible = entry.post_id in visible
+        if entry.document_id:
+            entry.accessible = entry.document_id in visible_documents
+            entry.url = document_url(entry.document) if entry.accessible else ""
+        else:
+            entry.accessible = entry.post_id in visible
     context = {
         "collections": collections,
         "current": current,
@@ -325,6 +340,15 @@ def bookmarks(request):
         "max_name_length": services.COLLECTION_NAME_MAX_LENGTH,
     }
     return render(request, "posts/bookmarks.html", context)
+
+
+def document_url(document) -> str:
+    """The page of a document (``documents:detail``, or its path while not routed: the
+    document pages belong to the ``documents`` app)."""
+    try:
+        return reverse("documents:detail", args=[document.public_id])
+    except NoReverseMatch:
+        return f"/documents/{document.public_id}/"
 
 
 def _bookmarks_url():

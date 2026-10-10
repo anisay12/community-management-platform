@@ -3,7 +3,7 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from .services_moderation import DISMISS, RESOLVE, RESOLVE_AND_HIDE
+from .services_moderation import DISMISS, RESOLVE, RESOLVE_AND_ARCHIVE, RESOLVE_AND_HIDE
 
 NOTE_MAX_LENGTH = 1000
 
@@ -12,6 +12,7 @@ class ReportDecisionForm(forms.Form):
     decision = forms.ChoiceField(
         choices=[
             (RESOLVE_AND_HIDE, _("Resolve and hide")),
+            (RESOLVE_AND_ARCHIVE, _("Resolve and archive the document")),
             (RESOLVE, _("Resolve")),
             (DISMISS, _("Dismiss")),
         ]

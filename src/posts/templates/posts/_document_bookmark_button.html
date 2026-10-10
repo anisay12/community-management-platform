@@ -1,0 +1,16 @@
+{% load i18n %}{% comment %}
+  Bookmark button of a document (L5), also the HTMX response of ``posts:bookmark_document``.
+  Include it on a document page with
+    {% include "posts/_document_bookmark_button.html" with document=document bookmarked=is_bookmarked %}
+  Context: document (documents.Document), bookmarked (bool: the viewer has bookmarked it).
+  Render it when ``documents.policies.can_bookmark_document(user, document)`` or when the
+  document is already bookmarked (the bookmark can always be removed). The form posts the state
+  it asks for (``present``), so a repeated request changes nothing; the button keeps its id
+  across swaps (htmx keeps focus).
+{% endcomment %}
+{% url 'posts:bookmark_document' document.public_id as bookmark_url %}
+<form class="d-inline" method="post" action="{{ bookmark_url }}" hx-post="{{ bookmark_url }}" hx-target="this" hx-swap="outerHTML" hx-sync="this:drop">
+  {% csrf_token %}
+  <input type="hidden" name="present" value="{% if bookmarked %}0{% else %}1{% endif %}">
+  <button type="submit" id="bookmark-document-{{ document.public_id }}" class="btn btn-sm {% if bookmarked %}btn-primary{% else %}btn-outline-secondary{% endif %}" aria-pressed="{% if bookmarked %}true{% else %}false{% endif %}"><i class="bi {% if bookmarked %}bi-bookmark-fill{% else %}bi-bookmark{% endif %} me-1" aria-hidden="true"></i>{% translate "Bookmark" %}</button>
+</form>

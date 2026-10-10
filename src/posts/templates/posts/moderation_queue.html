@@ -22,7 +22,9 @@
             <li class="card tl-card mb-3{% if not group.is_open %} border-0 bg-body-tertiary{% endif %}">
               <div class="card-body">
                 <h3 class="h5 card-title" id="report-group-{{ target.public_id }}">
-                  {% if group.is_post %}
+                  {% if group.is_document %}
+                    <i class="bi bi-file-earmark-text me-1" aria-hidden="true"></i><span class="visually-hidden">{% translate "Document:" %} </span><a href="{{ group.document_url }}">{{ target.title }}</a>
+                  {% elif group.is_post %}
                     <a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a>
                   {% else %}
                     {% blocktranslate with title=post.title %}Comment on “{{ title }}”{% endblocktranslate %}
@@ -34,14 +36,19 @@
                   {% else %}
                     <span class="badge text-bg-secondary">{% blocktranslate count counter=group.report_count %}{{ counter }} handled report{% plural %}{{ counter }} handled reports{% endblocktranslate %}</span>
                   {% endif %}
+                  {% if group.is_document %}
+                    {% if target.status != "active" %}<span class="badge text-bg-secondary">{{ target.get_status_display }}</span>{% endif %}
+                    <span class="text-body-secondary small">{% blocktranslate with author=target.owner_display %}By {{ author }}{% endblocktranslate %}</span>
+                  {% else %}
                   {% if group.auto_hidden %}
                     <span class="badge text-bg-danger">{{ target.hidden_reason|hidden_reason_label }}</span>
                   {% elif target.status == "hidden" %}
                     <span class="badge text-bg-danger">{% translate "Hidden" %}</span>
                   {% endif %}
                   <span class="text-body-secondary small">{% blocktranslate with author=target.author_display %}By {{ author }}{% endblocktranslate %}</span>
+                  {% endif %}
                 </p>
-                {% if not group.is_post %}
+                {% if not group.is_post and not group.is_document %}
                   <blockquote class="border-start ps-3 text-body-secondary">{{ target.body|truncatechars:300 }}</blockquote>
                   <p><a href="{% url 'posts:detail' community.slug post.public_id %}#comment-{{ target.public_id }}">{% translate "View the comment" %}</a></p>
                 {% endif %}
