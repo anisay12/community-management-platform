@@ -201,6 +201,16 @@ Writes need an `active` community: suspended and archived communities answer `re
 
 **Anonymization.** The author name is frozen on each post and comment; anonymizing an account replaces it with "Former employee" (FR « Ancien collaborateur »).
 
+## Documents: upload and antivirus scan
+
+Documents (L5) are files in the private object store (`default_storage`, S3-compatible), never served from a storage URL (ADR-0001). The write side is `documents/services.py` (`create_document`, `add_version`, `update_document`, `set_reference_version`, `archive_document`, `restore_document`, `link_document`, `unlink_document`): keyword-only, actor first, policies re-checked, audited (`document.create`, `document.version_add`, `document.update`, `document.reference_set`, `document.archive`, `document.restore`, `document.link`, `document.unlink`), refusals as `DomainError`.
+
+**Upload flow.** `documents.validation.validate_upload` streams the file once in 64 KiB chunks (size, SHA-256, first bytes) and refuses it when it is empty or larger than `DOCUMENT_MAX_UPLOAD_BYTES` (100 MB), when the extension is not whitelisted (pdf, docx, xlsx, pptx, odt, ods, odp, txt, md, csv, png, jpg, jpeg, gif, webp, zip, ipynb, sql, py, json, yaml, yml; SVG, HTML and executables are refused), or when the type `python-magic` detects on the content does not match the extension (text formats accept any textual type except HTML/XML/SVG). The name is sanitized (base name only, no control or reserved characters, at most 200 characters, extension kept). The file is then streamed to `quarantine/<random hex>` (`documents.storage`; the key never contains the original name) before the database transaction opens; the version is created `pending` and `documents.tasks.scan_document_version` is queued on commit. If the database write fails, the quarantined object is deleted. New documents and new versions count against the hourly `document` rate limit (`DOCUMENT_UPLOAD_RATE_LIMIT`, 20, a bucket of `POSTS_RATE_LIMITS`).
+
+**Scan.** `documents.scanner.scan_stream` speaks clamd's `INSTREAM` protocol over TCP (`CLAMAV_HOST`, `CLAMAV_PORT`, `CLAMAV_TIMEOUT_SECONDS`). Clean: the object moves to `documents/<same hex>`, the version becomes `clean`, and it becomes the reference when it is version 1, when it was uploaded with "make it the reference" (`promote_on_clean`), or when the document has no clean reference; the first clean version of a document notifies the members at levels `all` and `highlights` who can open it (`document_published`, batches of 500, not the uploader). Infected: the object is deleted, `storage_key` emptied, the signature kept in `scan_detail`, audited `document.scan_infected` (no actor), and the uploader and the community moderators are alerted (`document_infected`). ClamAV unreachable or answering `ERROR`: 5 retries with exponential backoff (30 s up to 15 min, jittered), then the version is `error` with the reason in `scan_detail`. Only `clean` versions are ever downloadable. clamd's own `StreamMaxLength` (25 MB by default) must be at least `DOCUMENT_MAX_UPLOAD_BYTES`, otherwise large files end in `error`.
+
+**Lifecycle.** `expire_documents` turns active documents whose `expires_at` passed into `expired` (audited `document.expire`); restoring an archived document gives `active`, or `expired` once its date passed. `purge_download_logs` deletes download logs older than `DOWNLOAD_LOG_RETENTION_DAYS` (365); `verify_download_counters` repairs drifted `download_count` values (see Scheduled jobs).
+
 ## Scheduled jobs
 
 The `beat` service (Celery beat) runs these tasks (time zone `Europe/Paris`):
@@ -211,6 +221,9 @@ The `beat` service (Celery beat) runs these tasks (time zone `Europe/Paris`):
 | 03:30 | `accounts.tasks.purge_expired_exports` | Deletes personal-data exports after their 7-day lifetime |
 | 03:45 | `accounts.tasks.anonymize_expired_accounts` | Anonymizes accounts deactivated for more than `ACCOUNT_ANONYMIZE_AFTER_DAYS` |
 | 04:00 | `posts.tasks.verify_counters` | Recomputes drifted comment and reaction counters of posts and comments |
+| 04:15 | `documents.tasks.expire_documents` | Marks active documents whose `expires_at` has passed as `expired` |
+| 04:30 | `documents.tasks.purge_download_logs` | Deletes document download logs older than `DOWNLOAD_LOG_RETENTION_DAYS` |
+| 04:45 | `documents.tasks.verify_download_counters` | Recomputes drifted `download_count` values of documents |
 
 Data exports and e-mails are sent by the `worker` service. Run exactly one `beat` instance.
 
