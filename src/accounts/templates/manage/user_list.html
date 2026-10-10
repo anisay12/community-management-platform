@@ -2,55 +2,55 @@
 {% load i18n accounts_tags component_tags %}
 {% block title %}{% translate "Users" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h2">{% translate "Users" %}</h1>
+  {% translate "Users" as page_title %}
+  {% translate "Administration" as eyebrow_label %}
+  {% include "components/page_header.html" with title=page_title eyebrow=eyebrow_label eyebrow_icon="shield-lock" %}
   {% include "manage/_tabs.html" with active="list" %}
-  <div class="card mt-3 mb-3">
-    <div class="card-body">
-      <form method="get" action="{% url 'manage:user_list' %}" role="search" class="row g-3 align-items-end">
-        <div class="col-12 col-md">
-          <label class="form-label" for="id_q">{% translate "Search" %}</label>
-          <input class="form-control" type="search" id="id_q" name="q" value="{{ query }}">
-        </div>
-        <div class="col-12 col-md">
-          <label class="form-label" for="id_status">{% translate "Status" %}</label>
-          <select class="form-select" id="id_status" name="status">
-            <option value="">{% translate "All statuses" %}</option>
-            {% for value, label in statuses %}
-              <option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-12 col-md-auto"><button type="submit" class="btn btn-primary">{% translate "Filter" %}</button></div>
-      </form>
+  <form method="get" action="{% url 'manage:user_list' %}" role="search" class="tl-toolbar mt-4">
+    <div class="flex-grow-1">
+      <label class="form-label" for="id_q">{% translate "Search" %}</label>
+      <input class="form-control" type="search" id="id_q" name="q" value="{{ query }}">
     </div>
-  </div>
-  <p>{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} user{% plural %}{{ counter }} users{% endblocktranslate %}</p>
+    <div class="flex-grow-1">
+      <label class="form-label" for="id_status">{% translate "Status" %}</label>
+      <select class="form-select" id="id_status" name="status">
+        <option value="">{% translate "All statuses" %}</option>
+        {% for value, label in statuses %}
+          <option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary">{% translate "Filter" %}</button>
+  </form>
+  <p class="tl-meta">{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} user{% plural %}{{ counter }} users{% endblocktranslate %}</p>
   {% if page_obj.object_list %}
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <caption class="visually-hidden">{% translate "Users" %}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{% translate "Name" %}</th>
-            <th scope="col">{% translate "Email" %}</th>
-            <th scope="col">{% translate "Unit" %}</th>
-            <th scope="col">{% translate "Roles" %}</th>
-            <th scope="col">{% translate "Status" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for account in page_obj %}
+    <section class="tl-section tl-section-flush" aria-label="{{ page_title }}">
+      <div class="table-responsive">
+        <table class="table tl-table table-hover align-middle">
+          <caption class="visually-hidden">{% translate "Users" %}</caption>
+          <thead>
             <tr>
-              <td><a href="{% url 'manage:user_detail' account.public_id %}">{{ account.get_full_name|default:account.email }}</a></td>
-              <td>{{ account.email }}</td>
-              <td>{{ account.employment.unit.name|default:"" }}</td>
-              <td>{% for role in account|role_codes %}{% include "components/role_badge.html" with role=role %} {% endfor %}</td>
-              <td>{% include "manage/_status_badge.html" %}</td>
+              <th scope="col">{% translate "Name" %}</th>
+              <th scope="col">{% translate "Email" %}</th>
+              <th scope="col">{% translate "Unit" %}</th>
+              <th scope="col">{% translate "Roles" %}</th>
+              <th scope="col">{% translate "Status" %}</th>
             </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {% for account in page_obj %}
+              <tr>
+                <td><a href="{% url 'manage:user_detail' account.public_id %}">{{ account.get_full_name|default:account.email }}</a></td>
+                <td>{{ account.email }}</td>
+                <td>{{ account.employment.unit.name|default:"" }}</td>
+                <td>{% for role in account|role_codes %}{% include "components/role_badge.html" with role=role %} {% endfor %}</td>
+                <td>{% include "manage/_status_badge.html" %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
   {% else %}
     {% translate "No user matches these filters." as empty_title %}
     {% include "components/empty_state.html" with icon="people" title=empty_title %}

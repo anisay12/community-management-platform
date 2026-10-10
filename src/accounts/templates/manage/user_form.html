@@ -2,15 +2,15 @@
 {% load i18n %}
 {% block title %}{% translate "Create a user" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h2">{% translate "Create a user" %}</h1>
+  {% translate "Create a user" as page_title %}
+  {% translate "Administration" as eyebrow_label %}
+  {% include "components/page_header.html" with title=page_title eyebrow=eyebrow_label eyebrow_icon="shield-lock" %}
   {% include "manage/_tabs.html" with active="create" %}
-  <div class="card mt-3">
-    <div class="card-body">
-      <form method="post" action="{% url 'manage:user_create' %}" novalidate>
-        {% csrf_token %}
-        {% include "accounts/_form_fields.html" %}
-        <button type="submit" class="btn btn-primary">{% translate "Create and send the activation email" %}</button>
-      </form>
-    </div>
-  </div>
+  <section class="tl-section mt-4" aria-label="{{ page_title }}">
+    <form method="post" action="{% url 'manage:user_create' %}" class="tl-form" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" %}
+      <div class="tl-form-actions"><button type="submit" class="btn btn-primary">{% translate "Create and send the activation email" %}</button></div>
+    </form>
+  </section>
 {% endblock %}

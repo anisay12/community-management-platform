@@ -3,23 +3,25 @@
 {% block title %}{% translate "Deactivate the account" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   {% translate "Deactivate the account" as page_title %}
+  {% translate "Administration" as eyebrow_label %}
   {% manage_breadcrumb account page_title as crumbs %}
   {% include "components/breadcrumb.html" with items=crumbs %}
-  <h1 class="h2">{{ page_title }}</h1>
+  {% include "components/page_header.html" with title=page_title eyebrow=eyebrow_label eyebrow_icon="shield-lock" %}
   {% include "manage/_tabs.html" with active="" %}
-  <div class="card tl-narrow mt-3">
-    <div class="card-body">
-      <p>{% blocktranslate with name=account.get_full_name|default:account.email email=account.email %}You are about to deactivate the account of {{ name }} ({{ email }}).{% endblocktranslate %}</p>
-      <ul>
-        <li>{% translate "All of the person's sessions end immediately and they can no longer sign in." %}</li>
-        <li>{% translate "Deactivation cannot be undone in the application." %}</li>
-        <li>{% translate "The account's personal data will be anonymized after the retention period." %}</li>
-      </ul>
+  <section class="tl-section tl-narrow mt-4" aria-labelledby="deactivate-heading">
+    <div class="tl-section-header"><h2 id="deactivate-heading">{% translate "Confirmation" %}</h2></div>
+    <p>{% blocktranslate with name=account.get_full_name|default:account.email email=account.email %}You are about to deactivate the account of {{ name }} ({{ email }}).{% endblocktranslate %}</p>
+    <ul>
+      <li>{% translate "All of the person's sessions end immediately and they can no longer sign in." %}</li>
+      <li>{% translate "Deactivation cannot be undone in the application." %}</li>
+      <li>{% translate "The account's personal data will be anonymized after the retention period." %}</li>
+    </ul>
+    <div class="tl-form-actions">
       <form method="post" action="{% url 'manage:user_deactivate_confirm' account.public_id %}" class="d-inline">
         {% csrf_token %}
         <button type="submit" class="btn btn-danger">{% translate "Deactivate the account" %}</button>
       </form>
       <a class="btn btn-outline-secondary" href="{% url 'manage:user_detail' account.public_id %}">{% translate "Cancel" %}</a>
     </div>
-  </div>
+  </section>
 {% endblock %}

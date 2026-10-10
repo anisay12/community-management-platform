@@ -257,12 +257,12 @@ def test_audit_pages_use_design_system_patterns(auditor_client, events):
     content = response.content.decode()
     assert '<caption class="visually-hidden">' in content
     assert "table-responsive" in content
-    assert 'class="card' in content
+    assert "tl-toolbar" in content and "tl-section" in content
     detail = auditor_client.get(_detail(events["user"]))
     assert_single_h1(detail)
     html = detail.content.decode()
     assert 'aria-label="Breadcrumb"' in html
-    assert "<dl" in html and 'class="card' in html
+    assert "<dl" in html and "tl-section" in html
 
 
 def test_empty_state_component(auditor_client, events):

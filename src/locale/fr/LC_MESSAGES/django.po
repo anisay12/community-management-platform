@@ -2778,4 +2778,26 @@ msgid "“%(source)s” has been merged into “%(target)s”."
 msgstr "« %(source)s » a été fusionnée dans « %(target)s »."
 
 msgid "Find the communities of Talan and join the ones that matter to you."
-msgstr "Trouvez les communautés de Talan et rejoignez celles qui comptent pour vous."
+msgstr ""
+"Trouvez les communautés de Talan et rejoignez celles qui comptent pour vous."
+
+msgid "Confirmation"
+msgstr "Confirmation"
+
+msgid "Account"
+msgstr "Compte"
+
+msgid "Design system"
+msgstr "Système de design"
+
+msgid "Key figures"
+msgstr "Chiffres clés"
+
+msgid "Pending requests"
+msgstr "Demandes en attente"
+
+msgid "Panels, lists and tables"
+msgstr "Panneaux, listes et tableaux"
+
+msgid "See all"
+msgstr "Tout voir"
