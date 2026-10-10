@@ -2776,3 +2776,24 @@ msgstr "Fusionner"
 #, python-format
 msgid "“%(source)s” has been merged into “%(target)s”."
 msgstr "« %(source)s » a été fusionnée dans « %(target)s »."
+
+msgid "Confirmation"
+msgstr "Confirmation"
+
+msgid "Account"
+msgstr "Compte"
+
+msgid "Design system"
+msgstr "Système de design"
+
+msgid "Key figures"
+msgstr "Chiffres clés"
+
+msgid "Pending requests"
+msgstr "Demandes en attente"
+
+msgid "Panels, lists and tables"
+msgstr "Panneaux, listes et tableaux"
+
+msgid "See all"
+msgstr "Tout voir"

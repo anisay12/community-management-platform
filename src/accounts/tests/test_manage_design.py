@@ -53,7 +53,7 @@ def test_list_has_caption_filters_card_and_badges(admin_client, target):
     html = admin_client.get(reverse("manage:user_list")).content.decode()
     assert '<caption class="visually-hidden">' in html
     assert "table-responsive" in html
-    assert 'class="card' in html
+    assert "tl-toolbar" in html and "tl-section" in html
     assert "badge" in html
 
 
@@ -78,7 +78,7 @@ def test_confirmation_page_is_a_card(admin_client, target):
     html = admin_client.get(
         reverse("manage:user_deactivate_confirm", args=[target.public_id])
     ).content.decode()
-    assert 'class="card' in html
+    assert "tl-section" in html
     assert "btn btn-danger" in html
 
 

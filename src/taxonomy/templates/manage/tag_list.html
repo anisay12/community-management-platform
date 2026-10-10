@@ -2,47 +2,44 @@
 {% load i18n component_tags %}
 {% block title %}{% translate "Tags" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h2">{% translate "Tags" %}</h1>
+  {% translate "Tags" as page_title %}
+  {% translate "Administration" as eyebrow_label %}
+  {% include "components/page_header.html" with title=page_title eyebrow=eyebrow_label eyebrow_icon="tags" %}
   {% include "manage/_tabs.html" with active="tags" %}
   <div class="row g-3 mt-1 mb-3">
     <div class="col-12 col-lg-6">
-      <div class="card h-100">
-        <div class="card-body">
-          <form method="get" action="{% url 'manage:tag_list' %}" role="search" class="row g-2 align-items-end">
-            <div class="col">
-              <label class="form-label" for="id_q">{% translate "Search" %}</label>
-              <input class="form-control" type="search" id="id_q" name="q" value="{{ query }}">
-            </div>
-            <div class="col-auto"><button type="submit" class="btn btn-primary">{% translate "Filter" %}</button></div>
-          </form>
+      <form method="get" action="{% url 'manage:tag_list' %}" role="search" class="tl-toolbar h-100 mb-0">
+        <div class="flex-grow-1">
+          <label class="form-label" for="id_q">{% translate "Search" %}</label>
+          <input class="form-control" type="search" id="id_q" name="q" value="{{ query }}">
         </div>
-      </div>
+        <button type="submit" class="btn btn-primary">{% translate "Filter" %}</button>
+      </form>
     </div>
     <div class="col-12 col-lg-6">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5 card-title">{% translate "Merge two tags" %}</h2>
-          <form method="post" action="{% url 'manage:tag_merge' %}{% if query %}?q={{ query|urlencode }}{% endif %}" class="row g-2 align-items-end" novalidate>
-            {% csrf_token %}
-            {% if merge_form.non_field_errors %}<div class="col-12"><div class="alert alert-danger mb-0" role="alert">{% for error in merge_form.non_field_errors %}{{ error }}{% endfor %}</div></div>{% endif %}
-            {% for field in merge_form.visible_fields %}
-              <div class="col-12 col-md">
-                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                <input class="form-control{% if field.errors %} is-invalid{% endif %}" type="text" id="{{ field.id_for_label }}" name="{{ field.html_name }}" value="{{ field.value|default_if_none:'' }}" maxlength="64" required{% if field.errors %} aria-invalid="true" aria-describedby="{{ field.id_for_label }}-error"{% endif %}>
-                {% if field.errors %}<div class="invalid-feedback" id="{{ field.id_for_label }}-error">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
-              </div>
-            {% endfor %}
-            <div class="col-12 col-md-auto"><button type="submit" class="btn btn-outline-primary">{% translate "Merge…" %}</button></div>
-          </form>
-        </div>
-      </div>
+      <section class="tl-section h-100 mb-0" aria-labelledby="merge-heading">
+        <div class="tl-section-header"><h2 id="merge-heading">{% translate "Merge two tags" %}</h2></div>
+        <form method="post" action="{% url 'manage:tag_merge' %}{% if query %}?q={{ query|urlencode }}{% endif %}" class="row g-2 align-items-end" novalidate>
+          {% csrf_token %}
+          {% if merge_form.non_field_errors %}<div class="col-12"><div class="alert alert-danger mb-0" role="alert">{% for error in merge_form.non_field_errors %}{{ error }}{% endfor %}</div></div>{% endif %}
+          {% for field in merge_form.visible_fields %}
+            <div class="col-12 col-md">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+              <input class="form-control{% if field.errors %} is-invalid{% endif %}" type="text" id="{{ field.id_for_label }}" name="{{ field.html_name }}" value="{{ field.value|default_if_none:'' }}" maxlength="64" required{% if field.errors %} aria-invalid="true" aria-describedby="{{ field.id_for_label }}-error"{% endif %}>
+              {% if field.errors %}<div class="invalid-feedback" id="{{ field.id_for_label }}-error">{% for error in field.errors %}{{ error }}{% endfor %}</div>{% endif %}
+            </div>
+          {% endfor %}
+          <div class="col-12 col-md-auto"><button type="submit" class="btn btn-outline-primary">{% translate "Merge…" %}</button></div>
+        </form>
+      </section>
     </div>
   </div>
-  <p>{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} tag{% plural %}{{ counter }} tags{% endblocktranslate %}</p>
+  <p class="tl-meta">{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} tag{% plural %}{{ counter }} tags{% endblocktranslate %}</p>
   {% if page_obj.object_list %}
     {# No link in the rows: the region itself takes the focus so it scrolls with the keyboard. #}
+    <section class="tl-section tl-section-flush" aria-label="{{ page_title }}">
     <div class="table-responsive" tabindex="0" role="region" aria-label="{% translate 'Tags' %}">
-      <table class="table table-hover align-middle">
+      <table class="table tl-table table-hover align-middle">
         <caption class="visually-hidden">{% translate "Tags" %}</caption>
         <thead>
           <tr>
@@ -64,6 +61,7 @@
         </tbody>
       </table>
     </div>
+    </section>
   {% else %}
     {% translate "No tag found." as empty_title %}
     {% include "components/empty_state.html" with icon="tags" title=empty_title %}
