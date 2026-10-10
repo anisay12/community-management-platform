@@ -15,7 +15,7 @@ RUN --mount=type=secret,id=extra_ca,required=false \
     pip install --disable-pip-version-check uv==0.11.32 \
     && uv sync --frozen --no-dev --no-install-project
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gettext \
+    && apt-get install -y --no-install-recommends gettext libmagic1 \
     && rm -rf /var/lib/apt/lists/*
 COPY manage.py ./
 COPY src ./src
