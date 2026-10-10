@@ -159,11 +159,18 @@ views.py ──► policies.py   (may the user do it?  pure bool predicates, nev
 Each app registers its menu entries in `AppConfig.ready()`:
 
 ```python
-navigation.register(NavItem(
-    key="communities", label=_("Communities"), url_name="communities:catalogue",
-    icon="people", order=20, section=navigation.WORKSPACE,
-    is_visible=authenticated, active_prefixes=("/communities/",),
-))
+navigation.register(
+    NavItem(
+        key="communities",
+        label=_("Communities"),
+        url_name="communities:catalogue",
+        icon="people",
+        order=20,
+        section=navigation.WORKSPACE,
+        is_visible=authenticated,
+        active_prefixes=("/communities/",),
+    )
+)
 ```
 
 Entries are hidden when the URL does not resolve or `is_visible(user)` is false; sections are
