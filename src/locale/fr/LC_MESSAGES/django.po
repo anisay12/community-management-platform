@@ -2776,3 +2776,63 @@ msgstr "Fusionner"
 #, python-format
 msgid "“%(source)s” has been merged into “%(target)s”."
 msgstr "« %(source)s » a été fusionnée dans « %(target)s »."
+
+msgid "At a glance"
+msgstr "En un coup d’œil"
+
+msgid "My bookmarks"
+msgstr "Mes favoris"
+
+msgid "Pending invitations"
+msgstr "Invitations en attente"
+
+msgid "To moderate"
+msgstr "À modérer"
+
+#, python-format
+msgid "%(counter)s post pending review"
+msgid_plural "%(counter)s posts pending review"
+msgstr[0] "%(counter)s publication en attente de validation"
+msgstr[1] "%(counter)s publications en attente de validation"
+
+msgid "Manage users"
+msgstr "Gérer les utilisateurs"
+
+msgid "Users by status"
+msgstr "Utilisateurs par statut"
+
+msgid "Communities by status"
+msgstr "Communautés par statut"
+
+#, python-format
+msgid "%(counter)s pending community creation request"
+msgid_plural "%(counter)s pending community creation requests"
+msgstr[0] "%(counter)s demande de création de communauté en attente"
+msgstr[1] "%(counter)s demandes de création de communauté en attente"
+
+msgid "Audit"
+msgstr "Audit"
+
+msgid "Open the audit log"
+msgstr "Ouvrir le journal d’audit"
+
+#, python-format
+msgid "%(counter)s audit event in the last 7 days"
+msgid_plural "%(counter)s audit events in the last 7 days"
+msgstr[0] "%(counter)s événement d’audit au cours des 7 derniers jours"
+msgstr[1] "%(counter)s événements d’audit au cours des 7 derniers jours"
+
+msgid "Browse the catalogue"
+msgstr "Parcourir le catalogue"
+
+msgid "You have not joined any community yet."
+msgstr "Vous n’avez encore rejoint aucune communauté."
+
+msgid "Latest in my communities"
+msgstr "Dernières nouveautés de mes communautés"
+
+msgid "Open feed"
+msgstr "Ouvrir le fil"
+
+msgid "No posts yet in your communities."
+msgstr "Aucune publication pour l’instant dans vos communautés."

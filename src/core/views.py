@@ -5,9 +5,12 @@ import structlog
 from django.conf import settings
 from django.db import DatabaseError, connection
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 from django_prometheus.exports import ExportToDjangoView
+
+from core.dashboard import dashboard_context
 
 logger = structlog.get_logger(__name__)
 
@@ -58,3 +61,7 @@ def metrics(request: HttpRequest) -> HttpResponse:
     if not token or not hmac.compare_digest(supplied.encode(), f"Bearer {token}".encode()):
         raise Http404
     return ExportToDjangoView(request)
+
+
+def home(request: HttpRequest) -> HttpResponse:
+    return render(request, "core/home.html", dashboard_context(request.user))
