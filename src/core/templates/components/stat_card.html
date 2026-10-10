@@ -1,0 +1,11 @@
+{% comment %}
+  Key figure tile. Arguments: value; label; icon (Bootstrap Icons name); url (optional, makes the
+  whole tile a link); tone (optional: "warning" or "danger").
+{% endcomment %}
+<div class="tl-stat{% if tone %} tl-stat-{{ tone }}{% endif %}">
+  <span class="tl-stat-icon" aria-hidden="true"><i class="bi bi-{{ icon|default:'bar-chart' }}"></i></span>
+  <div>
+    <span class="tl-stat-value">{{ value }}</span>
+    {% if url %}<a class="tl-stat-label stretched-link text-decoration-none" href="{{ url }}">{{ label }}</a>{% else %}<span class="tl-stat-label">{{ label }}</span>{% endif %}
+  </div>
+</div>

@@ -24,6 +24,12 @@ class NavItem:
     is_visible: Callable[[object], bool] = authenticated
     # URL path prefixes marking the item as current; empty means the item's own URL.
     active_prefixes: tuple[str, ...] = ()
+    # Menu group: WORKSPACE (everyone's pages) or ADMINISTRATION (governance pages).
+    section: str = "workspace"
+
+
+WORKSPACE = "workspace"
+ADMINISTRATION = "administration"
 
 
 @dataclass(frozen=True)
@@ -33,6 +39,7 @@ class ResolvedNavItem:
     url: str
     icon: str
     is_current: bool
+    section: str = WORKSPACE
 
 
 _registry: dict[str, NavItem] = {}
@@ -56,9 +63,11 @@ def _match_length(item: NavItem, url: str, path: str) -> int:
 
 
 def items_for(request) -> list[ResolvedNavItem]:
-    """Visible items of the viewer in display order; at most one is current."""
+    """Visible items of the viewer, workspace first, in display order; at most one is current."""
     visible = []
-    for item in sorted(_registry.values(), key=lambda entry: (entry.order, entry.key)):
+    for item in sorted(
+        _registry.values(), key=lambda entry: (entry.section != WORKSPACE, entry.order, entry.key)
+    ):
         if not item.is_visible(request.user):
             continue
         try:
@@ -71,6 +80,6 @@ def items_for(request) -> list[ResolvedNavItem]:
         (item.key for item, _, length in visible if current and length == current), None
     )
     return [
-        ResolvedNavItem(item.key, item.label, url, item.icon, item.key == current_key)
+        ResolvedNavItem(item.key, item.label, url, item.icon, item.key == current_key, item.section)
         for item, url, _ in visible
     ]
