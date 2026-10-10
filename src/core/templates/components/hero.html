@@ -5,7 +5,7 @@
 <section class="tl-hero" aria-labelledby="hero-title">
   <div>
     <h1 class="tl-hero-title" id="hero-title">
-      {% if show_avatar %}<span class="avatar-initials tl-avatar-xl" aria-hidden="true">{{ user|initials }}</span>{% endif %}
+      {% if show_avatar %}{% with src=user|avatar_url %}{% if src %}{% include "components/avatar.html" with src=src size="xl" hidden=True %}{% else %}<span class="avatar-initials tl-avatar-xl" aria-hidden="true">{{ user|initials }}</span>{% endif %}{% endwith %}{% endif %}
       <span>{{ title }}</span>
     </h1>
     {% if subtitle %}<p class="tl-hero-subtitle">{{ subtitle }}</p>{% endif %}

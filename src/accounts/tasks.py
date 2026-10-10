@@ -4,6 +4,7 @@ from smtplib import SMTPException
 import structlog
 from botocore.exceptions import BotoCoreError, ClientError
 from celery import shared_task
+from celery.utils.time import get_exponential_backoff_interval
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
@@ -12,7 +13,13 @@ from django.db.models import Q
 from django.template.loader import render_to_string
 from django.utils import timezone, translation
 
-from .models import DataExport, User
+from audit.services import record
+from core.errors import DomainError
+from documents import scanner
+from documents import storage as file_storage
+
+from . import avatars
+from .models import DataExport, User, UserProfile
 from .privacy import anonymize_user, render_export
 
 logger = structlog.get_logger(__name__)
@@ -148,3 +155,115 @@ def anonymize_expired_accounts() -> int:
             done += 1
     logger.info("accounts_anonymized", count=done, failed=len(accounts) - done)
     return done
+
+
+# --- profile photo: antivirus scan and re-encoding ---------------------------------------
+
+AVATAR_SCAN_MAX_RETRIES = 5
+AVATAR_SCAN_RETRY_BACKOFF_SECONDS = 30
+AVATAR_SCAN_RETRY_BACKOFF_MAX_SECONDS = 900
+
+
+def _locked_pending_profile(profile_pk: int, key: str):
+    """The profile under a row lock while ``key`` is still its pending upload, else ``None``
+    (replaced, removed or already concluded: idempotence)."""
+    return (
+        UserProfile.objects.select_for_update()
+        .filter(
+            pk=profile_pk,
+            avatar_pending_key=key,
+            avatar_scan_status=UserProfile.AvatarScan.PENDING,
+        )
+        .first()
+    )
+
+
+def _avatar_fail(profile_pk: int, key: str, status: str, *, infected_signature: str = "") -> bool:
+    """Conclude a pending upload as ``infected`` or ``error``: the quarantined object is
+    deleted with the verdict; returns whether this run concluded it."""
+    with transaction.atomic():
+        profile = _locked_pending_profile(profile_pk, key)
+        if profile is None:
+            return False
+        profile.avatar_pending_key = ""
+        profile.avatar_scan_status = status
+        profile.save(update_fields=["avatar_pending_key", "avatar_scan_status"])
+        if status == UserProfile.AvatarScan.INFECTED:
+            record(
+                actor=None,
+                action="profile.avatar_infected",
+                target=profile.user,
+                changes={"signature": infected_signature[:200]},
+            )
+        # Inside the transaction: if the delete fails the upload stays pending and the
+        # verdict is retried; an infected object never outlives a committed verdict.
+        file_storage.delete(key)
+    return True
+
+
+def _avatar_conclude_clean(profile_pk: int, key: str) -> None:
+    try:
+        with file_storage.open_stream(key) as stream:
+            content = avatars.reencode(stream)
+    except DomainError as exc:
+        _avatar_fail(profile_pk, key, UserProfile.AvatarScan.ERROR)
+        logger.warning("accounts.avatar.unreadable", profile=profile_pk, code=exc.code)
+        return
+    new_key = avatars.save_clean(content)
+    with transaction.atomic():
+        profile = _locked_pending_profile(profile_pk, key)
+        if profile is None:
+            file_storage.discard(new_key)
+            return
+        previous = profile.avatar.name if profile.avatar else ""
+        profile.avatar.name = new_key
+        profile.avatar_pending_key = ""
+        profile.avatar_scan_status = UserProfile.AvatarScan.NONE
+        profile.save(update_fields=["avatar", "avatar_pending_key", "avatar_scan_status"])
+        transaction.on_commit(lambda: [file_storage.discard(name) for name in (key, previous)])
+    logger.info("accounts.avatar.clean", profile=profile_pk)
+
+
+@shared_task(bind=True, max_retries=AVATAR_SCAN_MAX_RETRIES)
+def scan_avatar(self, profile_pk: int, key: str) -> None:
+    """Scan the quarantined upload ``key`` of one profile, then publish or refuse it.
+
+    - Clean: decoded and re-encoded (``accounts.avatars.reencode``) under a new random key
+      that becomes ``UserProfile.avatar``; the previous photo and the original are deleted.
+      An image that cannot be decoded concludes ``error``.
+    - Infected: the object is deleted, the status becomes ``infected``; audited
+      ``profile.avatar_infected`` (no actor).
+    - ``ScannerUnavailable``: retried with exponential backoff, ``error`` after the last try
+      (same approach as ``documents.tasks.scan_document_version``).
+
+    Does nothing once ``key`` is no longer the profile's pending upload.
+    """
+    if not UserProfile.objects.filter(
+        pk=profile_pk, avatar_pending_key=key, avatar_scan_status=UserProfile.AvatarScan.PENDING
+    ).exists():
+        return
+    try:
+        with file_storage.open_stream(key) as stream:
+            result = scanner.scan_stream(stream)
+    except scanner.ScannerUnavailable as exc:
+        if self.request.retries >= AVATAR_SCAN_MAX_RETRIES:
+            _avatar_fail(profile_pk, key, UserProfile.AvatarScan.ERROR)
+            logger.error("accounts.avatar.scan_failed", profile=profile_pk, detail=str(exc))
+            return
+        countdown = get_exponential_backoff_interval(
+            factor=AVATAR_SCAN_RETRY_BACKOFF_SECONDS,
+            retries=self.request.retries,
+            maximum=AVATAR_SCAN_RETRY_BACKOFF_MAX_SECONDS,
+            full_jitter=True,
+        )
+        raise self.retry(exc=exc, countdown=countdown) from exc
+    except FileNotFoundError:
+        _avatar_fail(profile_pk, key, UserProfile.AvatarScan.ERROR)
+        return
+    if result.clean:
+        _avatar_conclude_clean(profile_pk, key)
+    else:
+        _avatar_fail(
+            profile_pk, key, UserProfile.AvatarScan.INFECTED, infected_signature=result.signature
+        )
+        logger.warning("accounts.avatar.infected", profile=profile_pk)

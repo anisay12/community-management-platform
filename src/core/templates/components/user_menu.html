@@ -1,7 +1,7 @@
 {% load i18n accounts_tags %}
 <div class="dropup tl-user-menu" id="user-menu">
   <button class="btn dropdown-toggle gap-2 w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-    <span class="avatar-initials tl-avatar-md" aria-hidden="true">{{ user|initials }}</span>
+    {% with src=user|avatar_url %}{% if src %}{% include "components/avatar.html" with src=src size="md" hidden=True %}{% else %}<span class="avatar-initials tl-avatar-md" aria-hidden="true">{{ user|initials }}</span>{% endif %}{% endwith %}
     <span class="tl-nav-label text-truncate">{{ user.get_short_name|default:user.get_username }}</span>
   </button>
   <ul class="dropdown-menu">

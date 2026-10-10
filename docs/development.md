@@ -258,6 +258,17 @@ curl -i http://localhost:8080/_protected/anything   # 404: the location is inter
 Static files under Nginx come from `src/core/static` only in this setup; use port 8000 for
 everyday work.
 
+## Avatars
+
+Profile photos are optional (initials otherwise). `POST /me/avatar/` checks the file
+(PNG/JPEG/WebP by content, `AVATAR_MAX_UPLOAD_BYTES`, `AVATAR_MAX_PIXELS`), stores it in
+`quarantine/` and queues `accounts.tasks.scan_avatar`; the pending state is
+`UserProfile.avatar_pending_key` + `avatar_scan_status`. Once ClamAV says clean, the image is
+re-encoded with Pillow (WebP, 512 px max, no metadata) under `avatars/<hex>.webp`. Photos are
+served by `GET /people/<public_id>/avatar/` (profile visibility checked, `X-Accel-Redirect`
+like documents, `Cache-Control: private, max-age=300` with a `?v=` token that changes on each
+upload). With `DEBUG`, `DOCUMENT_DEV_STREAMING` also makes Django stream avatars itself.
+
 ## Scheduled jobs
 
 The `beat` service (Celery beat) runs these tasks (time zone `Europe/Paris`):

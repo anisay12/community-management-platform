@@ -1,8 +1,10 @@
 from django import template
+from django.core.exceptions import ObjectDoesNotExist
 from django.urls import reverse
 from django.utils.translation import gettext
 
 from accounts import policies
+from accounts.avatars import version_token
 from accounts.roles import Role
 
 register = template.Library()
@@ -29,7 +31,7 @@ def role_codes(user) -> list[str]:
 
 @register.filter
 def initials(user) -> str:
-    """Up to two initials for the avatar placeholder (no photo upload before L5)."""
+    """Up to two initials for the avatar placeholder (shown when there is no photo)."""
     words = user.get_full_name().split() or [user.email]
     letters = [words[0][0], words[-1][0]] if len(words) > 1 else [words[0][0]]
     return "".join(letters).upper()
@@ -67,3 +69,17 @@ def manage_breadcrumb(account, current: str = "") -> list[tuple[str, str]]:
     else:
         items.append((name, ""))
     return items
+
+
+@register.filter
+def avatar_url(user) -> str:
+    """URL of ``user``'s clean profile photo (with a cache-busting ``v``), or "" when there is
+    none. Reads ``user.profile``: lists should ``select_related("profile")``."""
+    try:
+        name = user.profile.avatar.name if user.profile.avatar else ""
+    except (ObjectDoesNotExist, AttributeError):
+        return ""
+    if not name:
+        return ""
+    url = reverse("accounts:avatar", args=[user.public_id])
+    return f"{url}?v={version_token(name)}"

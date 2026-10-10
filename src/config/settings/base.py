@@ -343,3 +343,9 @@ POSTS_RATE_LIMITS = {**POSTS_RATE_LIMITS, "document": DOCUMENT_UPLOAD_RATE_LIMIT
 # Development only: with DEBUG, Django streams document files itself instead of answering
 # X-Accel-Redirect. Set to false to try the Nginx path locally (never used without DEBUG).
 DOCUMENT_DEV_STREAMING = env.bool("DOCUMENT_DEV_STREAMING", default=True)
+
+# Profile photos (L5): upload limit, pixel cap against decompression bombs, and the browser
+# cache lifetime of the private avatar URL (``accounts.views_profile.avatar``).
+AVATAR_MAX_UPLOAD_BYTES = env.int("AVATAR_MAX_UPLOAD_BYTES", default=2 * 1024 * 1024)
+AVATAR_MAX_PIXELS = env.int("AVATAR_MAX_PIXELS", default=25_000_000)
+AVATAR_CACHE_SECONDS = 300

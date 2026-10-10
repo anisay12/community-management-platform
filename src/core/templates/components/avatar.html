@@ -1,6 +1,7 @@
 {% comment %}
-  Avatar with initials.
-  Arguments: initials; size (sm|md|lg, default md); hidden (true when the person's name is
-  visible next to it, so the avatar is decorative); label (accessible name when not hidden).
+  Avatar: the person's photo when they have a clean one, their initials otherwise.
+  Arguments: initials; src (optional photo URL, e.g. ``user|avatar_url``); size (sm|md|lg|xl,
+  default md); hidden (true when the person's name is visible next to it, so the avatar is
+  decorative); label (accessible name when not hidden).
 {% endcomment %}
-<span class="tl-avatar tl-avatar-{{ size|default:'md' }}"{% if hidden %} aria-hidden="true"{% elif label %} role="img" aria-label="{{ label }}"{% endif %}>{{ initials }}</span>
+<span class="tl-avatar tl-avatar-{{ size|default:'md' }}{% if src %} overflow-hidden p-0{% endif %}"{% if hidden %} aria-hidden="true"{% elif label %} role="img" aria-label="{{ label }}"{% endif %}>{% if src %}<img src="{{ src }}" alt="" class="w-100 h-100 object-fit-cover" loading="lazy" decoding="async">{% else %}{{ initials }}{% endif %}</span>

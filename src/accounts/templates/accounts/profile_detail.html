@@ -3,7 +3,7 @@
 {% block title %}{{ owner.get_full_name|default:owner.email }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   <header class="tl-section d-flex align-items-center flex-wrap gap-4">
-    {% include "components/avatar.html" with initials=owner|initials size="xl" hidden=True %}
+    {% include "components/avatar.html" with initials=owner|initials src=owner|avatar_url size="xl" hidden=True %}
     <div class="flex-grow-1">
       <h1 class="h2 mb-1">{{ owner.get_full_name|default:owner.email }}</h1>
       {% if profile.job_title %}<p class="text-body-secondary mb-1">{{ profile.job_title }}</p>{% endif %}
