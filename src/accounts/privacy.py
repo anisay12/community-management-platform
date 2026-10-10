@@ -8,6 +8,7 @@ import json
 from collections.abc import Callable
 
 from axes.models import AccessAttempt, AccessFailureLog, AccessLog
+from django.core.files.storage import default_storage
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import transaction
 from django.utils import timezone
@@ -135,12 +136,17 @@ def _clear_profile(user: User) -> None:
     if profile.avatar:
         avatar_name, storage = profile.avatar.name, profile.avatar.storage
         transaction.on_commit(lambda: storage.delete(avatar_name))
+    if profile.avatar_pending_key:  # an upload still in quarantine (its scan task stops)
+        pending_key = profile.avatar_pending_key
+        transaction.on_commit(lambda: default_storage.delete(pending_key))
     defaults = {
         field: UserProfile._meta.get_field(field).get_default()
         for field in (
             "job_title",
             "bio",
             "avatar",
+            "avatar_pending_key",
+            "avatar_scan_status",
             "timezone",
             "language",
             "profile_visibility",

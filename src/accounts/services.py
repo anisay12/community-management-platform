@@ -20,13 +20,15 @@ from audit.services import record
 from core.context import suppress_m2m_audit
 from core.errors import DomainError
 from core.tasks import delay_on_commit
+from documents import storage as file_storage
 from organizations.models import Employment, OrganizationUnit
 
+from . import avatars
 from .models import DataExport, User, UserProfile
 from .policies import hierarchy_allows
 from .roles import Role
 from .selectors import current_data_export
-from .tasks import build_data_export, send_email
+from .tasks import build_data_export, scan_avatar, send_email
 from .tokens import activation_token_generator
 
 
@@ -539,3 +541,62 @@ def request_data_export(*, user) -> DataExport:
     record(actor=user, action="user.data_export_requested", target=user)
     delay_on_commit(build_data_export, export.pk)
     return export
+
+
+# Profile photo -------------------------------------------------------------------
+
+
+def _delete_on_commit(*keys: str) -> None:
+    """Delete the stored objects ``keys`` once the transaction commits (never raises)."""
+    names = [key for key in keys if key]
+    if names:
+        transaction.on_commit(lambda: [file_storage.discard(name) for name in names])
+
+
+def upload_avatar(*, actor, upload) -> UserProfile:
+    """Check ``upload`` and queue it for the virus scan as ``actor``'s new profile photo.
+
+    The current photo (or the initials) stays visible until the scan is clean
+    (``tasks.scan_avatar``). A previous upload still pending is discarded. Raises
+    ``DomainError`` for a refused file. Audited ``profile.avatar_update`` (no file content).
+    """
+    avatars.check_upload(upload)
+    key = file_storage.save_to_quarantine(upload)
+    try:
+        with transaction.atomic():
+            profile = UserProfile.objects.select_for_update().get(user=actor)
+            previous_pending = profile.avatar_pending_key
+            profile.avatar_pending_key = key
+            profile.avatar_scan_status = UserProfile.AvatarScan.PENDING
+            profile.save(update_fields=["avatar_pending_key", "avatar_scan_status"])
+            record(
+                actor=actor,
+                action="profile.avatar_update",
+                target=actor,
+                changes={"status": "pending"},
+            )
+            _delete_on_commit(previous_pending)
+            delay_on_commit(scan_avatar, profile.pk, key)
+    except Exception:
+        file_storage.discard(key)
+        raise
+    return profile
+
+
+@transaction.atomic
+def remove_avatar(*, actor) -> UserProfile:
+    """Remove ``actor``'s profile photo and any upload still pending (files deleted on
+    commit). Audited ``profile.avatar_remove`` when there was something to remove."""
+    profile = UserProfile.objects.select_for_update().get(user=actor)
+    current = profile.avatar.name if profile.avatar else ""
+    pending = profile.avatar_pending_key
+    if not (current or pending or profile.avatar_scan_status):
+        return profile
+    profile.avatar = None
+    profile.avatar_pending_key = ""
+    profile.avatar_scan_status = UserProfile.AvatarScan.NONE
+    profile.save(update_fields=["avatar", "avatar_pending_key", "avatar_scan_status"])
+    if current or pending:
+        record(actor=actor, action="profile.avatar_remove", target=actor, changes={})
+    _delete_on_commit(current, pending)
+    return profile
