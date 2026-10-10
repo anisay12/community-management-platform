@@ -102,7 +102,9 @@ def world(db, make_user, verified_login):
         for i in range(55)
     )
     users["event"] = AuditEvent.objects.order_by("-created_at").first()
+    users["member"] = make_user("jean@example.com", first_name="Jean", last_name="Dupont")
     users.update(_communities(users))
+    users.update(_posts(users))
     return users
 
 
@@ -129,19 +131,125 @@ def _communities(users):
         tagline="Cloud practices",
         access_mode=Community.AccessMode.REQUEST,
     )
+    forum = Community.objects.create(
+        name="Design forum",
+        slug="design-forum",
+        category=category,
+        tagline="Design practices",
+        member_count=1,
+    )
     CommunityMembership.objects.create(
         community=joined, user=users["employee"], role=CommunityMembership.Role.OWNER
     )
-    return {"community": joined, "other_community": other}
+    CommunityMembership.objects.create(community=joined, user=users["member"])
+    CommunityMembership.objects.create(
+        community=forum, user=users["member"], role=CommunityMembership.Role.OWNER
+    )
+    return {"community": joined, "other_community": other, "open_community": forum}
+
+
+def _posts(users):
+    """Posts, comments, reactions, reports, bookmarks and tags (L4), made through the services.
+
+    In the data guild (lead: the employee, member: Jean Dupont): a pinned announcement, a
+    question with an accepted answer and a reply, an edited article (revisions), a reported
+    discussion and a post awaiting review; in the design forum (open, the employee is no
+    member) a discussion by Jean.
+    """
+    from django.utils import timezone
+
+    from posts import services_interactions as interactions
+    from posts import services_posts
+    from posts.models import Post
+    from posts.rendering import render_body
+
+    lead, member = users["employee"], users["member"]
+    community, forum = users["community"], users["open_community"]
+    announcement = services_posts.create_post(
+        actor=lead,
+        community=community,
+        kind=Post.Kind.ANNOUNCEMENT,
+        title="Welcome to the data guild",
+        body="Read the **rules** and introduce yourself, @jean.dupont.",
+        tags=["Data", "Governance"],
+    )
+    services_posts.pin_post(actor=lead, post=announcement)
+    question = services_posts.create_post(
+        actor=member,
+        community=community,
+        kind=Post.Kind.QUESTION,
+        title="How do you version datasets?",
+        body="We keep *copies* of every file. Is there a better way?",
+        tags=["Data"],
+    )
+    answer = interactions.add_comment(actor=lead, post=question, body="We use **DVC**.")
+    interactions.add_comment(
+        actor=member, post=question, body="Thanks, I will try it.", parent=answer
+    )
+    services_posts.accept_answer(actor=member, post=question, comment=answer)
+    interactions.set_reaction(actor=lead, target=question, kind="useful", present=True)
+    interactions.set_reaction(actor=member, target=answer, kind="thanks", present=True)
+    article = services_posts.create_post(
+        actor=lead,
+        community=community,
+        kind=Post.Kind.ARTICLE,
+        title="Data quality checklist",
+        body="1. Validate schemas\n2. Monitor freshness",
+    )
+    services_posts.update_post(
+        actor=lead,
+        post=article,
+        title="Data quality checklist",
+        body="1. Validate schemas\n2. Monitor freshness\n3. Track lineage",
+        tags=["Data"],
+        version=article.version,
+    )
+    discussion = services_posts.create_post(
+        actor=member,
+        community=community,
+        kind=Post.Kind.DISCUSSION,
+        title="Buy my course",
+        body="Cheap data courses.",
+    )
+    interactions.report(actor=lead, target=discussion, reason="spam", details="Advertising.")
+    body = "Draft guidelines for naming tables."
+    Post.objects.create(
+        community=community,
+        author=member,
+        author_display="Jean Dupont",
+        kind=Post.Kind.DISCUSSION,
+        title="Table naming guidelines",
+        body=body,
+        body_html=render_body(body),
+        status=Post.Status.PENDING_REVIEW,
+        last_activity_at=timezone.now(),
+    )
+    collection = interactions.create_collection(actor=lead, name="Reading list")
+    interactions.set_bookmark(actor=lead, post=question, present=True)
+    interactions.set_bookmark(actor=lead, post=article, present=True, collection=collection)
+    shared = services_posts.create_post(
+        actor=member,
+        community=forum,
+        kind=Post.Kind.DISCUSSION,
+        title="Colour contrast tips",
+        body="Aim for a 4.5:1 ratio for body text.",
+    )
+    return {
+        "announcement": announcement,
+        "question": question,
+        "article": article,
+        "discussion": discussion,
+        "forum_post": shared,
+    }
 
 
 @pytest.fixture
 def session_cookies(world, verified_login):
-    """Session cookie per signed-in role (the employee has no MFA requirement)."""
+    """Session cookie per signed-in role (employees have no MFA requirement)."""
     cookies = {}
-    for key in ("employee", "admin", "auditor"):
+    for key in ("employee", "member", "admin", "auditor"):
         client = Client()
-        if key == "employee":
+        if key in ("employee", "member"):
             client.force_login(world[key])
         else:
             verified_login(client, world[key])

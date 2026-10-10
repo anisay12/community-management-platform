@@ -40,7 +40,8 @@
   </div>
   <p>{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} tag{% plural %}{{ counter }} tags{% endblocktranslate %}</p>
   {% if page_obj.object_list %}
-    <div class="table-responsive">
+    {# No link in the rows: the region itself takes the focus so it scrolls with the keyboard. #}
+    <div class="table-responsive" tabindex="0" role="region" aria-label="{% translate 'Tags' %}">
       <table class="table table-hover align-middle">
         <caption class="visually-hidden">{% translate "Tags" %}</caption>
         <thead>

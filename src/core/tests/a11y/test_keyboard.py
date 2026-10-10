@@ -138,3 +138,90 @@ def test_navigation_touch_targets(mobile):
 def test_pagination_touch_targets(world, open_page):
     page = open_page(reverse("audit:event_list"), role="auditor", viewport="mobile")
     _assert_touch_targets(page, "nav[aria-label] .pagination a.page-link")
+
+
+# --- Posts and interactions (L4) -------------------------------------------------------------
+
+
+def _post_url(post):
+    return reverse("posts:detail", args=[post.community.slug, post.public_id])
+
+
+def _focused_id(page):
+    return page.evaluate("document.activeElement.id")
+
+
+def test_confirmation_modal_takes_and_returns_the_focus(world, open_page):
+    page = open_page(_post_url(world["question"]), role="employee")
+    trigger = page.locator("[data-tl-confirm=hide-post-modal]")
+    trigger.focus()
+    page.keyboard.press("Enter")
+    modal = page.locator("#hide-post-modal")
+    expect(modal).to_be_visible()
+    expect(page.locator("#hide-post-modal textarea")).to_be_focused()
+    page.keyboard.press("Escape")
+    expect(modal).to_be_hidden()
+    expect(trigger).to_be_focused()
+
+
+def test_mention_suggestions_with_the_keyboard(world, open_page):
+    page = open_page(reverse("posts:create", args=[world["community"].slug]), role="employee")
+    body = page.locator("textarea[name=body]")
+    body.focus()
+    page.keyboard.type("Hello @jea")
+    option = page.locator("#mention-suggestions [role=option]")
+    expect(option).to_have_count(1)
+    expect(page.locator("#mention-suggestions")).to_be_visible()
+    expect(page.locator("#mention-status")).to_have_text(
+        "1 member suggested: use the arrow keys, then Enter."
+    )
+    expect(body).to_have_attribute("aria-autocomplete", "list")
+    page.keyboard.press("ArrowDown")
+    expect(body).to_have_attribute("aria-activedescendant", option.get_attribute("id"))
+    expect(option).to_have_attribute("aria-selected", "true")
+    page.keyboard.press("Enter")
+    expect(body).to_have_value("Hello @jean.dupont ")
+    expect(body).to_be_focused()
+    expect(page.locator("#mention-suggestions")).to_be_hidden()
+    page.keyboard.type("and @jea")
+    expect(option).to_have_count(1)
+    page.keyboard.press("Escape")
+    expect(page.locator("#mention-suggestions")).to_be_hidden()
+    expect(body).to_have_value("Hello @jean.dupont and @jea")
+
+
+def test_reaction_keeps_the_focus_after_the_swap(world, open_page):
+    page = open_page(_post_url(world["announcement"]), role="member")
+    button_id = f"react-post-{world['announcement'].public_id}-useful"
+    button = page.locator(f"#{button_id}")
+    expect(button).to_have_attribute("aria-pressed", "false")
+    button.focus()
+    page.keyboard.press("Enter")
+    expect(button).to_have_attribute("aria-pressed", "true")
+    expect(button).to_contain_text("1")
+    expect(button).to_be_focused()
+    page.keyboard.press("Space")
+    expect(button).to_have_attribute("aria-pressed", "false")
+    expect(button).to_be_focused()
+
+
+def test_bookmark_keeps_the_focus_after_the_swap(world, open_page):
+    page = open_page(_post_url(world["announcement"]), role="member")
+    button = page.locator(f"#bookmark-{world['announcement'].public_id}")
+    expect(button).to_have_attribute("aria-pressed", "false")
+    button.focus()
+    page.keyboard.press("Enter")
+    expect(button).to_have_attribute("aria-pressed", "true")
+    expect(button).to_be_focused()
+
+
+def test_comment_published_with_htmx_is_announced_by_a_toast(world, open_page):
+    page = open_page(_post_url(world["announcement"]), role="member")
+    page.locator("#comment-body").fill("Hello everyone, glad to be here.")
+    page.get_by_role("button", name="Publish the comment").click()
+    expect(page.locator("p", has_text="Hello everyone, glad to be here.")).to_be_visible()
+    toast = page.locator("#tl-toasts [role=status]", has_text="Your comment has been published.")
+    expect(toast).to_be_visible()
+    expect(page.locator("#tl-toasts")).to_have_attribute("aria-live", "polite")
+    # A fresh, empty form follows the new comment.
+    expect(page.locator("#comment-body")).to_have_value("")

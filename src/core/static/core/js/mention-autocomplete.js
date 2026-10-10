@@ -101,9 +101,10 @@
   };
 
   const init = () => document.querySelectorAll("textarea[data-mention-url]").forEach(setup);
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
+  // This deferred script may run before htmx (loaded at the end of the page): wait for it.
+  if (window.htmx && document.readyState !== "loading") {
     init();
+  } else {
+    window.addEventListener("load", init, { once: true });
   }
 })();
