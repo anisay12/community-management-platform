@@ -1,0 +1,23 @@
+{% load i18n post_tags %}{% comment %}
+  One comment and, for a top-level comment, its replies. Context: comment (from
+  ``posts.selectors.comment_thread``, with ``body_visible``), post, reply (bool).
+{% endcomment %}
+<article class="tl-comment mb-3{% if reply %} ms-3 ms-md-5 ps-3 border-start{% endif %}" id="comment-{{ comment.public_id }}">
+  {% if comment.body_visible %}
+    <p class="small mb-1">
+      <strong>{{ comment.author_display }}</strong>
+      <span aria-hidden="true">·</span> <time datetime="{{ comment.created_at|date:'c' }}" title="{{ comment.created_at|date:'DATETIME_FORMAT' }}">{% blocktranslate with delay=comment.created_at|timesince %}{{ delay }} ago{% endblocktranslate %}</time>
+      {% if comment.pk == post.accepted_answer_id %}<span class="badge text-bg-success ms-1"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% translate "Accepted answer" %}</span>{% endif %}
+      {% if comment.is_expert_answer %}<span class="badge text-bg-info ms-1"><i class="bi bi-patch-check me-1" aria-hidden="true"></i>{% translate "Expert answer" %}</span>{% endif %}
+      {% if comment.status == "hidden" %}<span class="badge text-bg-danger ms-1">{% translate "Hidden" %}</span>{% endif %}
+    </p>
+    {% if comment.status == "hidden" and comment.hidden_reason %}<p class="small text-body-secondary mb-1">{% translate "Reason for hiding:" %} {{ comment.hidden_reason|hidden_reason_label }}</p>{% endif %}
+    <div class="tl-markdown">{{ comment.body_html|safe }}</div>
+    {% include "posts/_comment_actions.html" %}
+  {% else %}
+    <p class="fst-italic text-body-secondary mb-1">{% translate "This comment is hidden." %}</p>
+  {% endif %}
+  {% for child in comment.prefetched_replies %}
+    {% include "posts/_comment.html" with comment=child reply=True %}
+  {% endfor %}
+</article>

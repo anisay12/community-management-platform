@@ -1,15 +1,30 @@
 import importlib
 
 import pytest
+from celery import _state as celery_state
 from django.contrib.auth.models import Group
+from django.db.models import F
 from django.urls import clear_url_caches, reverse
+from django.utils.text import slugify
 from django_otp.oath import totp
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from accounts.models import User
 from accounts.roles import Role
+from communities.models import Community, CommunityCategory, CommunityMembership
 
 PASSWORD = "correct-horse-battery-staple"  # noqa: S105  # test fixture
+
+
+@pytest.fixture(autouse=True)
+def _reset_celery_task_join_flag():
+    """Eager Celery tasks run from several threads at once (concurrency tests) can leave
+    Celery's process-global "join will block" flag set, because ``denied_join_result`` is
+    not thread-safe; later tests calling ``result.get()`` would then fail. Reset it around
+    every test."""
+    celery_state._set_task_join_will_block(False)
+    yield
+    celery_state._set_task_join_will_block(False)
 
 
 @pytest.fixture
@@ -92,3 +107,33 @@ def use_auth_mode(oidc_settings):
     yield _use
     oidc_settings.AUTH_MODE = original_mode
     _reload_urls(oidc_settings)
+
+
+# Communities ----------------------------------------------------------------------
+@pytest.fixture
+def category(db):
+    return CommunityCategory.objects.create(name="Test category", slug="test-category")
+
+
+@pytest.fixture
+def make_community(category):
+    def _make(name="Python guild", **extra):
+        extra.setdefault("tagline", "Everything Python")
+        extra.setdefault("category", category)
+        extra.setdefault("slug", slugify(name))
+        return Community.objects.create(name=name, **extra)
+
+    return _make
+
+
+@pytest.fixture
+def add_member():
+    """Add a membership directly, keeping ``Community.member_count`` in sync."""
+
+    def _add(community, user, role=CommunityMembership.Role.MEMBER):
+        membership = CommunityMembership.objects.create(community=community, user=user, role=role)
+        Community.objects.filter(pk=community.pk).update(member_count=F("member_count") + 1)
+        community.member_count += 1
+        return membership
+
+    return _add

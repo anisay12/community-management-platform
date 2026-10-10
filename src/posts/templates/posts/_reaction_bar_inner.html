@@ -1,0 +1,11 @@
+{% load i18n post_interaction_tags %}{% comment %}
+  Reaction bar of a post or a comment (L4 Task 6), also the HTMX response of ``posts:react``.
+  Context: target (Post or Comment), target_type ("post" or "comment"), mine (kinds of the
+  viewer's reactions), interactive (bool), counts (optional: overrides the stored counters,
+  e.g. the optimistic counts after a change). A read-only bar without any reaction renders
+  nothing (no empty group).
+{% endcomment %}
+{% reaction_buttons counts|default:target.reaction_counts mine as items %}
+{% url 'posts:react' target_type target.public_id as react_url %}
+{% if target_type == "post" %}{% translate "Reactions to the post" as group_label %}{% else %}{% translate "Reactions to the comment" as group_label %}{% endif %}
+{% if interactive or items|has_reactions %}{% with target_id=target.public_id|stringformat:"s" %}{% include "components/reaction_bar.html" with items=items url=react_url interactive=interactive label=group_label id_prefix="react-"|add:target_type|add:"-"|add:target_id %}{% endwith %}{% endif %}

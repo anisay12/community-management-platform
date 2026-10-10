@@ -78,8 +78,11 @@ def catalogue(request):
     )
 
 
-def _community_page(request, slug, tab):
-    """The visible community and the shared header context (404 when invisible)."""
+def community_page(request, slug, tab):
+    """The visible community and the shared header context (404 when invisible).
+
+    Public: the tab views of other apps (``posts.views.feed``) build their page with it.
+    """
     leads = CommunityMembership.objects.filter(role=CommunityRole.OWNER).select_related("user")
     community = get_object_or_404(
         visible_communities(request.user).prefetch_related(
@@ -96,6 +99,7 @@ def _community_page(request, slug, tab):
         "full_metadata": policies.can_view_full_metadata(user, community),
         "show_admin_access": policies.is_functional_admin(user) and not content_visible,
         "tabs": tabs.tabs_for(user, community, tab),
+        "header_links": tabs.header_links(),
     }
     return community, context
 
@@ -103,14 +107,14 @@ def _community_page(request, slug, tab):
 @login_required
 @require_safe
 def detail(request, slug):
-    _, context = _community_page(request, slug, "about")
+    _, context = community_page(request, slug, "about")
     return render(request, "communities/detail.html", context)
 
 
 @login_required
 @require_safe
 def members(request, slug):
-    community, context = _community_page(request, slug, "members")
+    community, context = community_page(request, slug, "members")
     if not context["content_visible"]:
         raise PermissionDenied
     memberships = community.memberships.select_related("user").order_by("joined_at", "pk")
@@ -124,7 +128,7 @@ def members(request, slug):
 @require_http_methods(["GET", "HEAD", "POST"])
 def admin_access(request, slug):
     """ "Access as administrator": a functional admin states a reason to read the content."""
-    community, context = _community_page(request, slug, "about")
+    community, context = community_page(request, slug, "about")
     if not policies.is_functional_admin(request.user):
         raise PermissionDenied
     form = AdminAccessForm(request.POST or None)

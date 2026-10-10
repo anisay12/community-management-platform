@@ -25,3 +25,28 @@ def test_get_or_create_tag_recovers_from_concurrent_slug(monkeypatch):
     tag = services.get_or_create_tag("Race")
     assert tag.name == "Race"
     assert tag.slug.startswith("taken-")
+
+
+@pytest.mark.parametrize(
+    ("name", "key"),
+    [
+        ("Python", "python"),
+        ("Données", "donnees"),
+        ("  Machine   Learning ", "machine learning"),
+        ("ÉLÉGANCE", "elegance"),
+    ],
+)
+def test_normalize_tag_key(name, key):
+    assert services.normalize_tag_key(name) == key
+
+
+def test_get_or_create_tag_ignores_accents():
+    tag = services.get_or_create_tag("Données")
+    assert tag.key == "donnees"
+    assert services.get_or_create_tag("donnees") == tag
+    assert Tag.objects.count() == 1
+
+
+def test_saving_a_tag_sets_its_key():
+    tag = Tag.objects.create(name="Café", slug="cafe")
+    assert tag.key == "cafe"

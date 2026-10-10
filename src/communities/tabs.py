@@ -1,7 +1,9 @@
-"""Registry of the tabs of a community page.
+"""Registries of a community page: its tabs, and the links of its header.
 
 Each package registers its tab when its pages ship (About and Members in L3; Feed, Resources,
-Lessons learned and Events later), so no tab ever leads to an empty placeholder screen.
+Lessons learned and Events later), so no tab ever leads to an empty placeholder screen. Other
+apps add links to the header shown on every tab (``posts``: the moderation queue) by
+registering the template that renders them.
 """
 
 from collections.abc import Callable
@@ -38,6 +40,23 @@ def tabs_for(user, community, current: str) -> list[tuple[object, str, bool]]:
         for tab in sorted(_registry.values(), key=lambda entry: (entry.order, entry.key))
         if tab.is_visible(user, community)
     ]
+
+
+_header_links: list[str] = []
+
+
+def register_header_link(template_name: str) -> None:
+    """Show ``template_name`` among the header links of every community page. It renders with
+    the page context (``community``, ``request``) and renders nothing when the viewer may not
+    use the link."""
+    if template_name in _header_links:
+        raise ValueError(f"Community header link {template_name!r} is already registered.")
+    _header_links.append(template_name)
+
+
+def header_links() -> tuple[str, ...]:
+    """The registered header link templates, in registration order."""
+    return tuple(_header_links)
 
 
 register(Tab(key="about", label=_("About"), url_name="communities:detail", order=10))

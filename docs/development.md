@@ -9,7 +9,9 @@ src/
 ├── core/                # cross-cutting: probes, middleware, request context, error views, i18n, admin site
 ├── accounts/            # users, profiles, roles, authentication (local, TOTP, OIDC), administration, GDPR
 ├── organizations/       # organization units and employments (manager hierarchy)
-├── taxonomy/            # tags (used by profiles)
+├── taxonomy/            # tags (used by profiles, communities and posts)
+├── communities/         # communities, memberships, requests, invitations, tabs
+├── posts/               # posts, comments, reactions, mentions, bookmarks, reports, moderation
 ├── audit/               # append-only audit log and its retention job
 └── locale/fr/           # French catalogue (django.po)
 ```
@@ -162,7 +164,42 @@ The `communities` app (mounted at `/communities/`) holds categories, communities
 
 **Categories.** Functional administrators edit them at `/manage/categories/` (deactivate rather than delete: communities reference them with `PROTECT`). The initial list is seeded by the data migration `communities/migrations/0002_seed_categories.py`. The seed is idempotent (`get_or_create` by slug) and its reverse only deletes seeded categories no community uses. To restore missing seeded categories, run `uv run python manage.py migrate communities 0001` then `uv run python manage.py migrate communities`; edited or deactivated categories that still exist are left as they are. To replace the list on an existing database, add a new data migration rather than editing 0002.
 
-**Tabs.** Community page tabs come from the registry in `communities/tabs.py`; a later package registers its tab when its pages ship.
+**Tabs.** Community page tabs come from the registry in `communities/tabs.py`; a later package registers its tab when its pages ship. The **Feed** tab (`posts:feed`, order 5, so first) is registered by `PostsConfig.ready()` and shown when `can_view_content` holds; the community URL itself stays the About page. Other apps add links to the header of every community page with `tabs.register_header_link(template_name)`: `posts` registers the **Moderation** link (moderators and functional administrators with content access, with the number of open items).
+
+## Posts and interactions
+
+The `posts` app holds posts (`discussion`, `question`, `announcement`, `article`), their revisions, two-level comments, reactions (`useful`, `thanks`, `insightful`), mentions, bookmarks and bookmark collections, and content reports. Writes go through `services_posts.py` (posts), `services_interactions.py` (comments, reactions, bookmarks, reports) and `services_moderation.py`; read decisions come from `posts/policies.py`; feeds and visibility queries from `posts/selectors.py` (`Post.objects.visible_to(user)`). Bodies are Markdown, rendered once at write time (`posts.rendering.render_body`: `core.markdown.render` plus spans on resolved mentions) into `body_html`. Pages: community feed `/communities/<slug>/posts/` (filters by kind and "unanswered questions", cursor pagination, at most 3 pinned posts on the first unfiltered page), personal feed `/feed/` (published posts of the user's communities, by last activity; navigation entry "Feed"), post page, editor with Markdown preview, revisions, bookmarks `/bookmarks/`, report form, moderation queue `/communities/<slug>/moderation/` (tabs "Reports" and "Awaiting review") and tag administration `/manage/tags/` (functional administrators: list and merge).
+
+**Statuses and visibility.** `draft` is seen by its author only; `pending_review` by its author and the community moderators; `hidden` by its author (with the reason) and the moderators; `published` and `archived` by whoever reads the community content (`can_view_content`). Archived posts are read-only, out of the feeds and still open by link. A post the viewer may not see answers 404 (under any community slug); a refused action on a visible post answers 403. "Moderators" means moderator, facilitator or lead of the community, or a functional administrator who reads its content (open community, or a valid "Access as administrator" grant).
+
+**Roles per action** (framing § 4.4, covered at HTTP level by `src/posts/tests/test_acceptance_matrix.py`):
+
+| Action | Who |
+|---|---|
+| Publish a discussion or a question, comment, react, mention | any member of an active community |
+| Publish an article, create a new tag | contributor+ (tags: also functional administrators) |
+| Publish an announcement, pin (at most `POSTS_PIN_LIMIT`) | facilitator, lead, functional administrator with content access (no membership needed) |
+| Accept an answer to a question | the question's author, expert+, moderators |
+| Review, hide/unhide, archive, edit any post, decide reports | moderators |
+| Edit one's own post or comment, delete one's own draft | the author, while the community is active |
+| Bookmark, report | anyone who reads the post (not one's own content for reports) |
+| Merge tags | functional administrators |
+
+Writes need an `active` community: suspended and archived communities answer `read_only`, except moderation (hide, unhide, reports, sending a pending post back to draft), which works whatever the status. Approving a pending post publishes it, so it needs an `active` community: in a suspended or archived community a moderator can send a pending post back but not approve it. No content is deleted from the UI except one's own draft; published content is hidden or archived.
+
+**Review.** When a community sets "posts require review", posts of members below moderator go to `pending_review`; moderators are notified (`review_request`) and approve (published, audited `post.review_approved`) or send the post back as a draft with a mandatory note (`post.review_rejected`). A moderator's edit of someone else's post keeps a revision, is audited `post.edited_by_moderator` and tells the author; articles and announcements also keep a revision when their author edits them once published. A moderator's edit of someone else's comment keeps no revision but is audited `comment.moderator_edited` and tells the author. Edits carry the post `version`: a stale version answers 409 with the submitted text kept.
+
+**Hiding and reports.** Hiding needs a reason and is audited (`post.hidden`, `comment.hidden`, with the reason; `*.unhidden` on restore). Any reader may report a post or a comment once (reasons: inappropriate, confidential, outdated, spam, other); moderators are alerted (`moderation_alert`). At `POSTS_REPORT_AUTOHIDE_THRESHOLD` (3) distinct open reports the target is hidden provisionally (audited `*.auto_hidden`); closing the last open report without hiding (dismissed, or resolved without "hide") restores it, and resolving with "hide" confirms it as hidden by the moderator. Report decisions are audited `report.resolved` / `report.dismissed`.
+
+**Rate limits and settings.** Fixed one-hour windows per user in the Redis cache (`rl:{bucket}:{user}:{hour}`): `POSTS_RATE_LIMITS = {"post": 10, "comment": 60, "reaction": 120}`. Over the limit the page answers 429 with `Retry-After`; if Redis is unavailable the check is skipped and logged (fail open). An action is counted only once its other checks have passed, right before the write, so refused attempts cost nothing. Other settings: `POSTS_PIN_LIMIT` (3), `POSTS_REPORT_AUTOHIDE_THRESHOLD` (3), `POSTS_MAX_BOOKMARK_COLLECTIONS` (50).
+
+**Deferred counters.** `comment_count` and `reaction_counts` are recomputed by `posts.tasks.recount_target`, scheduled after commit with a 3-second countdown and deduplicated through the cache; the nightly `posts.tasks.verify_counters` (see Scheduled jobs) fixes any drift. `last_activity_at` of the post and the community is updated in the business transaction.
+
+**Notifications.** Categories: `community_post` (new published discussion or question), `announcement` (published announcement or article), `reply` (comment on your post, reply to your comment), `mention`, `review_request`, `moderation_alert`, `system` (your post or comment was hidden or edited by a moderator, your post reviewed, or your answer accepted). `community_post` and `announcement` are broadcast by `posts.tasks.broadcast_post` after commit, in batches of 500, according to each membership's notification level: `all` receives both, `highlights` only `announcement`, `none` nothing. Replies and mentions ignore the level. Nobody is told about a post they cannot open.
+
+**Mentions.** The handle is `first.last`: each name lowercased, accents removed, slugified (underscores become hyphens), e.g. `@jean.dupont`. A mention resolves only when exactly one current member with that handle can read the post; otherwise it stays plain text. Resolved mentions are rendered as `<span class="mention">` (no profile link yet); `posts.rendering.render_body` takes the resolved handles, so an unresolved `@first.last` stays plain text. The editor suggests up to 8 members matching what follows `@` (members, and functional administrators writing an announcement).
+
+**Anonymization.** The author name is frozen on each post and comment; anonymizing an account replaces it with "Former employee" (FR « Ancien collaborateur »).
 
 ## Scheduled jobs
 
@@ -173,6 +210,7 @@ The `beat` service (Celery beat) runs these tasks (time zone `Europe/Paris`):
 | 03:15 | `audit.tasks.purge_audit_events` | Deletes audit events older than `AUDIT_RETENTION_DAYS` |
 | 03:30 | `accounts.tasks.purge_expired_exports` | Deletes personal-data exports after their 7-day lifetime |
 | 03:45 | `accounts.tasks.anonymize_expired_accounts` | Anonymizes accounts deactivated for more than `ACCOUNT_ANONYMIZE_AFTER_DAYS` |
+| 04:00 | `posts.tasks.verify_counters` | Recomputes drifted comment and reaction counters of posts and comments |
 
 Data exports and e-mails are sent by the `worker` service. Run exactly one `beat` instance.
 
@@ -218,8 +256,8 @@ Never applied automatically at startup. In development: `docker compose run --rm
 
 `make test-a11y` runs the tests marked `a11y` (`src/core/tests/a11y/`) with Playwright and Chromium against a live server, on the same PostgreSQL database as `make test`. It installs `node_modules/` (`npm ci`) when axe-core is missing. Chromium is installed once with `uv run playwright install --with-deps chromium` (CI does it; set `PLAYWRIGHT_BROWSERS_PATH` to use an existing browser cache, whose build must match the pinned `playwright` version). No network access is needed at test time.
 
-- `test_axe.py` scans login, password reset, 404, home, profile, profile edit, preferences, data export, user list, user detail, audit log, audit event and the style guide, each in light and dark colour scheme at 1280x800 and 390x844, with the axe tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`. Any `serious` or `critical` violation fails the test; `moderate` and `minor` findings are printed (visible with `-s` or in the failure report).
-- `test_keyboard.py` checks, on the mobile viewport, the skip link, the offcanvas menu (open, Escape, focus return), the user menu (Enter, Space, arrow keys), the visible focus indicator on navbar controls and 44x44 px touch targets in the navigation and pagination.
+- `test_axe.py` scans login, password reset, 404, home, profile, profile edit, preferences, data export, user list, user detail, audit log, audit event, the community pages, the style guide and the posts pages (community feed as member and as non-member of an open community, personal feed, post page as member and as moderator, editor, editor with a rendered preview, revisions, bookmarks, report form, both tabs of the moderation queue, tag administration and an open confirmation modal), each in light and dark colour scheme at 1280x800 and 390x844, with the axe tags `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`. Any `serious` or `critical` violation fails the test; `moderate` and `minor` findings are printed (visible with `-s` or in the failure report).
+- `test_keyboard.py` checks, on the mobile viewport, the skip link, the offcanvas menu (open, Escape, focus return), the user menu (Enter, Space, arrow keys), the visible focus indicator on navbar controls and 44x44 px touch targets in the navigation and pagination; for posts, the confirmation modal (focus inside, Escape returns it to its button), the mention suggestions (status line, arrow keys, Enter, Escape), focus kept on the reaction and bookmark buttons across HTMX swaps, and the toast announcing a comment published with HTMX.
 
 Reading a violation: each line gives the rule id, its impact, the CSS selectors of the offending elements (with the measured colours and ratio for `color-contrast`) and the Deque help URL explaining the fix. The test name tells the page, colour scheme and viewport. Fix the template or the tokens (`tokens.scss`, then `make assets`), never disable a rule.
 

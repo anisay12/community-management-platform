@@ -149,3 +149,9 @@ def test_local_mode_needs_no_oidc_settings():
     assert result.returncode == 0, result.stderr
     assert "TalanOIDCBackend" not in result.stdout
     assert "[]" in result.stdout
+
+
+def test_redis_cache_fails_fast():
+    from config.settings import base
+
+    assert base.CACHES["default"]["OPTIONS"] == {"socket_connect_timeout": 1, "socket_timeout": 1}

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "audit",
     "communities",
     "notifications",
+    "posts",
 ]
 
 MIDDLEWARE = [
@@ -95,6 +96,8 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": REDIS_URL,
         "KEY_PREFIX": "tc",
+        # Fail fast when Redis is slow or down, so the rate limiter fails open quickly.
+        "OPTIONS": {"socket_connect_timeout": 1, "socket_timeout": 1},
     }
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
@@ -299,4 +302,15 @@ CELERY_BEAT_SCHEDULE = {
         "task": "accounts.tasks.anonymize_expired_accounts",
         "schedule": crontab(hour=3, minute=45),
     },
+    "posts-verify-counters": {
+        "task": "posts.tasks.verify_counters",
+        "schedule": crontab(hour=4, minute=0),
+    },
 }
+
+# Posts: hourly write limits per user, automatic hiding after N open reports, pinned posts.
+POSTS_RATE_LIMITS = {"post": 10, "comment": 60, "reaction": 120}
+POSTS_REPORT_AUTOHIDE_THRESHOLD = 3
+POSTS_PIN_LIMIT = 3
+# Bookmark collections one user may keep (bounds the bookmarks page).
+POSTS_MAX_BOOKMARK_COLLECTIONS = 50

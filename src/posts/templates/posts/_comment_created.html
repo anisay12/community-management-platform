@@ -1,0 +1,7 @@
+{% comment %}
+  HTMX response to a new top-level comment (L4 Task 6): the comment, then a fresh form; the
+  first comment also removes the "No comments yet." line (out of band).
+  Context: comment, post, first (bool).
+{% endcomment %}{% if first %}<p id="no-comments" hx-swap-oob="delete"></p>{% endif %}
+{% include "posts/_comment.html" with comment=comment reply=False %}
+{% include "posts/_comment_form.html" %}

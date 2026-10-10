@@ -1,6 +1,7 @@
 {% load i18n component_tags %}{% comment %}
   Header of a community page. Context: community (with prefetched ``leads``), tabs,
-  show_admin_access, full_metadata (false: title, category and access mode only).
+  show_admin_access, full_metadata (false: title, category and access mode only),
+  header_links (templates registered by other apps, ``communities.tabs.header_links``).
 {% endcomment %}
 {% translate "Communities" as catalogue_label %}{% url 'communities:catalogue' as catalogue_url %}
 <nav aria-label="{% translate 'Breadcrumb' %}">
@@ -26,6 +27,7 @@
   <div class="d-flex flex-wrap gap-2">
     {% include "communities/_actions.html" %}
     {% include "communities/_manage_link.html" %}
+    {% for template_name in header_links %}{% include template_name %}{% endfor %}
     {% if show_admin_access %}<a class="btn btn-outline-secondary" href="{% url 'communities:admin_access' community.slug %}"><i class="bi bi-shield-lock me-1" aria-hidden="true"></i>{% translate "Access as administrator" %}</a>{% endif %}
   </div>
 </header>

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load i18n %}{% comment %}
+  Share a post into another community. Context: post, community, form (ShareForm), targets.
+{% endcomment %}
+{% block title %}{% translate "Share a post" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block breadcrumb %}
+  <nav aria-label="{% translate 'Breadcrumb' %}">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'communities:catalogue' %}">{% translate "Communities" %}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'posts:feed' community.slug %}">{{ community.name }}</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">{% translate "Share" %}</li>
+    </ol>
+  </nav>
+{% endblock %}
+{% block content %}
+  <h1 class="h2">{% translate "Share a post" %}</h1>
+  {% if targets %}
+    <p class="text-body-secondary">{% translate "A new discussion pointing to this post is published in the community you choose. Only readers who can see the original can open it." %}</p>
+    <form method="post" class="col-12 col-lg-8" novalidate data-tl-single-submit>{% csrf_token %}
+      {% include "components/form_errors.html" %}
+      {% for field in form %}{% include "components/form_field.html" %}{% endfor %}
+      <button type="submit" class="btn btn-primary"><i class="bi bi-share me-1" aria-hidden="true"></i>{% translate "Share" %}</button>
+      <a class="btn btn-link" href="{% url 'posts:detail' community.slug post.public_id %}">{% translate "Cancel" %}</a>
+    </form>
+  {% else %}
+    {% translate "You are not a member of another community where you can publish this post." as empty_title %}
+    {% include "components/empty_state.html" with icon="share" title=empty_title %}
+  {% endif %}
+{% endblock %}

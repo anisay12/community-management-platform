@@ -1,0 +1,4 @@
+{% comment %}
+  Success toast appended to an HTMX partial (out-of-band swap into the toast stack of
+  ``components/messages.html``). Context: toast (the message).
+{% endcomment %}<div hx-swap-oob="beforeend:#tl-toasts">{% include "components/toast.html" with message=toast level="success" %}</div>

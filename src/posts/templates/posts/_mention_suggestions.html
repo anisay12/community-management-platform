@@ -1,0 +1,4 @@
+{% comment %}
+  Options of the mention suggestion list (HTMX response). Context: suggestions, a list of
+  (handle, display name). Names only: never e-mail addresses.
+{% endcomment %}{% for handle, name in suggestions %}<li class="list-group-item list-group-item-action" role="option" id="mention-option-{{ forloop.counter }}" aria-selected="false" data-handle="{{ handle }}">{{ name }} <span class="text-body-secondary">@{{ handle }}</span></li>{% endfor %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}{% comment %}
+  Decision on the open reports of one target, shown again when the moderator's choice was
+  refused for a missing note (the typed note is kept). Context: community, group, note, error,
+  back_url.
+{% endcomment %}
+{% block title %}{% translate "Moderation" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% with post=group.post target=group.target %}
+    <h1 class="h3">{% translate "Moderation" %}</h1>
+    <h2 class="h5" id="report-group-{{ target.public_id }}">
+      {% if group.is_post %}<a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a>{% else %}{% blocktranslate with title=post.title %}Comment on “{{ title }}”{% endblocktranslate %}{% endif %}
+    </h2>
+    {% if not group.is_post %}<blockquote class="border-start ps-3 text-body-secondary">{{ target.body|truncatechars:300 }}</blockquote>{% endif %}
+    <p class="mb-3"><span class="text-body-secondary">{% translate "Reasons:" %}</span> {{ group.reasons|join:", " }}</p>
+    {% include "posts/_report_decision_form.html" %}
+    <p class="mt-3"><a href="{{ back_url }}">{% translate "Cancel" %}</a></p>
+  {% endwith %}
+{% endblock %}

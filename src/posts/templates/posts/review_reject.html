@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}{% comment %}
+  Rejection of a pending post with its mandatory note: the no-JavaScript fallback of the
+  modal, and the form shown again when the note is missing (post page or moderation queue).
+  Context: post, community, form (ReviewRejectForm), from_queue (bool), back_url.
+{% endcomment %}
+{% block title %}{% translate "Send the post back" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h3">{% translate "Send the post back" %}</h1>
+  <p>{% translate "The post returns to its author as a draft, with your note." %}</p>
+  <p>{% translate "Post:" %} <a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a></p>
+  <form method="post" action="{% url 'posts:review_decide' community.slug post.public_id %}" class="col-12 col-lg-8" novalidate>{% csrf_token %}
+    <input type="hidden" name="decision" value="reject">
+    <input type="hidden" name="confirmed" value="1">
+    {% if from_queue %}<input type="hidden" name="from" value="queue">{% endif %}
+    {% if form.is_bound %}{% include "components/form_errors.html" %}{% endif %}
+    {% for field in form %}{% include "components/form_field.html" %}{% endfor %}
+    <button type="submit" class="btn btn-danger">{% translate "Send back" %}</button>
+    <a class="btn btn-link" href="{{ back_url }}">{% translate "Cancel" %}</a>
+  </form>
+{% endblock %}

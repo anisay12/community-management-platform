@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load i18n component_tags post_tags %}
+{% block title %}{% translate "Moderation" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  {% include "communities/_header.html" %}
+  <h2 class="h4 mt-3">{% translate "Moderation" %}</h2>
+  <nav aria-label="{% translate 'Moderation queues' %}">
+    <ul class="nav nav-pills mb-3">
+      {% for label, url, active, count in queue_tabs %}
+        <li class="nav-item">
+          <a class="nav-link{% if active %} active{% endif %}" href="{{ url }}"{% if active %} aria-current="page"{% endif %}>{{ label }} <span class="badge {% if active %}text-bg-light{% else %}text-bg-secondary{% endif %}" aria-hidden="true">{{ count }}</span><span class="visually-hidden"> ({% blocktranslate count counter=count %}{{ counter }} open item{% plural %}{{ counter }} open items{% endblocktranslate %})</span></a>
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% querystring_without_page as querystring %}
+  {% if tab == "reports" %}
+    {% if page_obj.object_list %}
+      <ul class="list-unstyled">
+        {% for group in page_obj.object_list %}
+          {% with post=group.post target=group.target %}
+            <li class="card mb-3{% if not group.is_open %} border-0 bg-body-tertiary{% endif %}">
+              <div class="card-body">
+                <h3 class="h5 card-title" id="report-group-{{ target.public_id }}">
+                  {% if group.is_post %}
+                    <a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a>
+                  {% else %}
+                    {% blocktranslate with title=post.title %}Comment on “{{ title }}”{% endblocktranslate %}
+                  {% endif %}
+                </h3>
+                <p class="mb-2">
+                  {% if group.is_open %}
+                    <span class="badge text-bg-warning">{% blocktranslate count counter=group.report_count %}{{ counter }} open report{% plural %}{{ counter }} open reports{% endblocktranslate %}</span>
+                  {% else %}
+                    <span class="badge text-bg-secondary">{% blocktranslate count counter=group.report_count %}{{ counter }} handled report{% plural %}{{ counter }} handled reports{% endblocktranslate %}</span>
+                  {% endif %}
+                  {% if group.auto_hidden %}
+                    <span class="badge text-bg-danger">{{ target.hidden_reason|hidden_reason_label }}</span>
+                  {% elif target.status == "hidden" %}
+                    <span class="badge text-bg-danger">{% translate "Hidden" %}</span>
+                  {% endif %}
+                  <span class="text-body-secondary small">{% blocktranslate with author=target.author_display %}By {{ author }}{% endblocktranslate %}</span>
+                </p>
+                {% if not group.is_post %}
+                  <blockquote class="border-start ps-3 text-body-secondary">{{ target.body|truncatechars:300 }}</blockquote>
+                  <p><a href="{% url 'posts:detail' community.slug post.public_id %}#comment-{{ target.public_id }}">{% translate "View the comment" %}</a></p>
+                {% endif %}
+                <p class="mb-1"><span class="text-body-secondary">{% translate "Reasons:" %}</span> {{ group.reasons|join:", " }}</p>
+                <ul class="small mb-2">
+                  {% for report in group.reports %}
+                    <li>
+                      {{ report.get_reason_display }} — {{ report.created_at|date:"SHORT_DATETIME_FORMAT" }}{% if report.details %}: {{ report.details }}{% endif %}
+                      {% if not group.is_open %}<span class="badge text-bg-light border">{{ report.get_status_display }}</span>{% if report.resolution_note %} {{ report.resolution_note }}{% endif %}{% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+                {% if group.hidden_count %}<p class="small text-body-secondary">{% blocktranslate count counter=group.hidden_count %}{{ counter }} earlier report not shown{% plural %}{{ counter }} earlier reports not shown{% endblocktranslate %}</p>{% endif %}
+                {% if group.is_open %}{% include "posts/_report_decision_form.html" %}{% endif %}
+              </div>
+            </li>
+          {% endwith %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      {% translate "No reports" as empty_title %}{% translate "Reports filed by readers of this community will appear here." as empty_text %}
+      {% include "components/empty_state.html" with icon="flag" title=empty_title text=empty_text %}
+    {% endif %}
+  {% else %}
+    {% if page_obj.object_list %}
+      <ul class="list-unstyled">
+        {% for post in page_obj.object_list %}
+          <li class="card mb-3">
+            <div class="card-body">
+              <h3 class="h5 card-title" id="pending-{{ post.public_id }}"><a href="{% url 'posts:detail' community.slug post.public_id %}">{{ post.title }}</a></h3>
+              <p class="mb-2 text-body-secondary small">
+                {% blocktranslate with kind=post.get_kind_display author=post.author_display date=post.created_at|date:"SHORT_DATETIME_FORMAT" %}{{ kind }} by {{ author }}, submitted on {{ date }}{% endblocktranslate %}
+              </p>
+              <p>{{ post.body|truncatechars:300 }}</p>
+              <form method="post" action="{% url 'posts:review_decide' community.slug post.public_id %}" class="row g-2 align-items-end">
+                {% csrf_token %}
+                <input type="hidden" name="from" value="queue">
+                <input type="hidden" name="confirmed" value="1">
+                <div class="col-12 col-md">
+                  <label class="form-label" for="review-note-{{ post.public_id }}">{% translate "Note to the author (required to reject)" %}</label>
+                  <input class="form-control" type="text" id="review-note-{{ post.public_id }}" name="note" maxlength="1000">
+                </div>
+                <div class="col-12 col-md-auto d-flex flex-wrap gap-2">
+                  {% if community.status == "active" %}<button type="submit" name="decision" value="approve" aria-describedby="pending-{{ post.public_id }}" class="btn btn-success">{% translate "Approve" %}</button>{% endif %}
+                  <button type="submit" name="decision" value="reject" aria-describedby="pending-{{ post.public_id }}" class="btn btn-outline-danger">{% translate "Reject" %}</button>
+                </div>
+              </form>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      {% translate "No posts awaiting review" as empty_title %}{% translate "Posts submitted for review in this community will appear here." as empty_text %}
+      {% include "components/empty_state.html" with icon="hourglass" title=empty_title text=empty_text %}
+    {% endif %}
+  {% endif %}
+  {% include "components/pagination.html" with page_obj=page_obj querystring=querystring %}
+{% endblock %}

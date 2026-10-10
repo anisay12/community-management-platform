@@ -1,0 +1,7 @@
+{% load i18n %}{% comment %}
+  HTMX response to a report (L4 Task 6). Context: back_url.
+{% endcomment %}
+<div class="alert alert-success" role="status">
+  <p class="mb-2">{% translate "Thank you, moderators have been informed." %}</p>
+  <a class="btn btn-outline-primary btn-sm" href="{{ back_url }}">{% translate "Back to the content" %}</a>
+</div>

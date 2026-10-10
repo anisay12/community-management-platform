@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}{% translate "Feed" %} - {% translate "Communities" %}{% endblock %}
+{% block content %}
+  <h1 class="h2 mb-3">{% translate "Feed" %}</h1>
+  {% if page.items %}
+    <h2 class="visually-hidden">{% translate "Latest posts of your communities" %}</h2>
+    <div id="feed-items">{% include "posts/_feed_page.html" %}</div>
+  {% else %}
+    {% translate "Your feed is empty" as empty_title %}
+    {% translate "Join communities to see their latest posts here." as empty_text %}
+    {% translate "Browse communities" as empty_action %}
+    {% url "communities:catalogue" as catalogue_url %}
+    {% include "components/empty_state.html" with icon="newspaper" title=empty_title text=empty_text action_url=catalogue_url action_label=empty_action %}
+  {% endif %}
+{% endblock %}

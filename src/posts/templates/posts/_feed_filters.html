@@ -1,0 +1,10 @@
+{% load i18n %}{% comment %}
+  Filters of the community feed. Context: filters (list of (label, query string, is_current)).
+{% endcomment %}
+<nav aria-label="{% translate 'Feed filters' %}" class="mb-3">
+  <ul class="nav nav-pills flex-wrap gap-1">
+    {% for label, query, current in filters %}
+      <li class="nav-item"><a class="nav-link{% if current %} active{% endif %}" href="{% if query %}?{{ query }}{% else %}{{ request.path }}{% endif %}"{% if current %} aria-current="page"{% endif %}>{{ label }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>

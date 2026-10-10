@@ -324,3 +324,12 @@ def test_styleguide_renders_every_component_in_debug(client, settings):
         "tl-error-summary",
     ):
         assert marker in html, marker
+
+
+def test_form_field_keeps_the_descriptions_set_on_the_widget():
+    """A widget may already point at an element of the page (e.g. a character counter)."""
+    form = SampleForm()
+    form.fields["name"].widget.attrs["aria-describedby"] = "name-counter"
+    html = render_to_string("components/form_field.html", {"field": form["name"]})
+    described = re.search(r'aria-describedby="([^"]+)"', html).group(1).split()
+    assert described == ["name-counter", "id_name_helptext"]

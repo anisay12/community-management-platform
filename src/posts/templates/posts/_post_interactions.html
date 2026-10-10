@@ -1,0 +1,9 @@
+{% load i18n post_interaction_tags %}{% comment %}
+  Reactions, bookmark and report of a post (L4 Task 6). Context: post.
+{% endcomment %}
+{% post_interactions post as ix %}
+<div class="d-flex flex-wrap align-items-center gap-2 mt-3 tl-post-interactions">
+  {% include "posts/_reaction_bar_inner.html" with target=post target_type="post" mine=ix.post_reactions interactive=ix.can_react_post counts=None %}
+  {% if ix.can_bookmark or ix.bookmarked %}{% include "posts/_bookmark_button.html" with bookmarked=ix.bookmarked %}{% endif %}
+  {% if ix.can_report_post %}<a class="btn btn-sm btn-link text-body-secondary" href="{% url 'posts:report' 'post' post.public_id %}"><i class="bi bi-flag me-1" aria-hidden="true"></i>{% translate "Report" %}</a>{% endif %}
+</div>
