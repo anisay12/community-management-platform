@@ -264,7 +264,11 @@ def open_page(browser, live_server, session_cookies):
     contexts = []
 
     def _open(path, role=None, scheme="light", viewport="desktop"):
-        context = browser.new_context(viewport=VIEWPORTS[viewport], color_scheme=scheme)
+        # Reduced motion turns off Bootstrap's fade transitions, so axe never
+        # measures contrast on a toast that is still fading in.
+        context = browser.new_context(
+            viewport=VIEWPORTS[viewport], color_scheme=scheme, reduced_motion="reduce"
+        )
         contexts.append(context)
         if role:
             context.add_cookies(
