@@ -22,13 +22,16 @@ from communities.models import Community
 from communities.policies import is_functional_admin
 from communities.views import community_page
 from core.errors import DomainError
+from documents import policies as document_policies
+from documents.models import Document
 
 from . import policies, selectors_moderation
 from .forms_moderation import ReportDecisionForm
 from .models import Comment, ContentReport, Post
 from .selectors_moderation import report_target
-from .services_moderation import RESOLVE_AND_HIDE, decide_reports
+from .services_moderation import RESOLVE_AND_ARCHIVE, RESOLVE_AND_HIDE, decide_reports
 from .views_errors import domain_error_response
+from .views_interactions import document_url
 
 QUEUE_PAGE_SIZE = 20
 REPORTS, REVIEW = "reports", "review"
@@ -57,8 +60,8 @@ def moderation_queue(request, slug):
         page_obj = Paginator(
             selectors_moderation.report_groups(community), QUEUE_PAGE_SIZE
         ).get_page(request.GET.get("page"))
-        page_obj.object_list = selectors_moderation.load_report_groups(
-            community, page_obj.object_list
+        page_obj.object_list = _with_document_actions(
+            user, selectors_moderation.load_report_groups(community, page_obj.object_list)
         )
     else:
         page_obj = Paginator(
@@ -81,21 +84,45 @@ def moderation_queue(request, slug):
     return render(request, "posts/moderation_queue.html", context)
 
 
+def _with_document_actions(user, groups):
+    """Set the link and the archive permission of the document groups."""
+    for group in groups:
+        if group.is_document:
+            document = group.target
+            group.document_url = document_url(document)
+            group.can_archive = (
+                document.status != Document.Status.ARCHIVED
+                and document_policies.can_archive_document(user, document)
+            )
+    return groups
+
+
+def _ensure_can_decide(user, report) -> None:
+    """404 when the reported content is hidden from ``user``, 403 when they may not moderate."""
+    target = report_target(report)
+    if isinstance(target, Document):
+        if not document_policies.can_view_document(user, target):
+            raise Http404
+        if not document_policies.is_document_moderator(user, report.community):
+            raise PermissionDenied
+        return
+    post = target.post if isinstance(target, Comment) else target
+    if not policies.can_view_post(user, post):
+        raise Http404
+    if not policies.can_moderate(user, report.community):
+        raise PermissionDenied
+
+
 @login_required
 @require_POST
 def report_decide(request, public_id):
     report = get_object_or_404(
         ContentReport.objects.select_related(
-            "community", "post__community", "comment__post__community"
+            "community", "post__community", "comment__post__community", "document__community"
         ),
         public_id=public_id,
     )
-    target = report_target(report)
-    post = target.post if isinstance(target, Comment) else target
-    if not policies.can_view_post(request.user, post):
-        raise Http404
-    if not policies.can_moderate(request.user, report.community):
-        raise PermissionDenied
+    _ensure_can_decide(request.user, report)
     form = ReportDecisionForm(request.POST)
     if not form.is_valid():
         return HttpResponseBadRequest()
@@ -111,6 +138,8 @@ def report_decide(request, public_id):
         return domain_error_response(request, error, redirect_to=redirect_to)
     if decision == RESOLVE_AND_HIDE:
         messages.success(request, _("The content has been hidden and the reports resolved."))
+    elif decision == RESOLVE_AND_ARCHIVE:
+        messages.success(request, _("The document has been archived and the reports resolved."))
     elif decision == "resolve":
         messages.success(request, _("The reports have been resolved."))
     else:
@@ -125,12 +154,15 @@ def _report_decision_page(request, report, note, error):
         {
             "post_id": target.pk if isinstance(target, Post) else None,
             "comment_id": target.pk if isinstance(target, Comment) else None,
+            "document_id": target.pk if isinstance(target, Document) else None,
             "is_open": True,
             "report_count": 0,
             "latest": None,
         }
     ]
-    group = selectors_moderation.load_report_groups(report.community, rows)[0]
+    group = _with_document_actions(
+        request.user, selectors_moderation.load_report_groups(report.community, rows)
+    )[0]
     context = {
         "community": report.community,
         "group": group,

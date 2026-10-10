@@ -372,7 +372,7 @@ class BookmarkCollection(TimestampedModel):
 
 
 class Bookmark(models.Model):
-    """A saved item. L4 bookmarks posts only; L5 and L6 add their target and widen the CHECK."""
+    """A saved item: a post (L4) or a document (L5). L6 adds its target and widens the CHECK."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -388,6 +388,14 @@ class Bookmark(models.Model):
         related_name="bookmarks",
         verbose_name=_("post"),
     )
+    document = models.ForeignKey(
+        "documents.Document",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="bookmarks",
+        verbose_name=_("document"),
+    )
     collection = models.ForeignKey(
         BookmarkCollection,
         null=True,
@@ -402,18 +410,25 @@ class Bookmark(models.Model):
         ordering = ["-created_at"]
         constraints = [
             models.CheckConstraint(
-                condition=_exactly_one("post"), name="bookmark_exactly_one_target"
+                condition=_exactly_one("post", "document"), name="bookmark_exactly_one_target"
             ),
             models.UniqueConstraint(
                 fields=["user", "post"],
                 condition=models.Q(post__isnull=False),
                 name="bookmark_unique_post",
             ),
+            models.UniqueConstraint(
+                fields=["user", "document"],
+                condition=models.Q(document__isnull=False),
+                name="bookmark_unique_document",
+            ),
         ]
         verbose_name = _("bookmark")
         verbose_name_plural = _("bookmarks")
 
     def __str__(self) -> str:
+        if self.document_id:
+            return f"{self.user_id} -> document {self.document_id}"
         return f"{self.user_id} -> {self.post_id}"
 
 
@@ -455,6 +470,14 @@ class ContentReport(TimestampedModel):
         related_name="reports",
         verbose_name=_("comment"),
     )
+    document = models.ForeignKey(
+        "documents.Document",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="reports",
+        verbose_name=_("document"),
+    )
     community = models.ForeignKey(
         "communities.Community",
         on_delete=models.PROTECT,
@@ -481,7 +504,8 @@ class ContentReport(TimestampedModel):
         ordering = ["-created_at"]
         constraints = [
             models.CheckConstraint(
-                condition=_exactly_one("post", "comment"), name="report_exactly_one_target"
+                condition=_exactly_one("post", "comment", "document"),
+                name="report_exactly_one_target",
             ),
             models.UniqueConstraint(
                 fields=["reporter", "post"],
@@ -492,6 +516,11 @@ class ContentReport(TimestampedModel):
                 fields=["reporter", "comment"],
                 condition=models.Q(status="open", comment__isnull=False),
                 name="one_open_report_per_target_comment",
+            ),
+            models.UniqueConstraint(
+                fields=["reporter", "document"],
+                condition=models.Q(status="open", document__isnull=False),
+                name="one_open_report_per_target_document",
             ),
         ]
         indexes = [

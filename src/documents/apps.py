@@ -14,3 +14,9 @@ class DocumentsConfig(AppConfig):
 
     def _register_privacy(self):
         """GDPR export and erasure hooks for documents and download logs."""
+        from accounts.privacy import register_anonymizer, register_exporter
+
+        from .privacy import anonymize_documents, export_documents
+
+        register_exporter("documents", export_documents)
+        register_anonymizer(anonymize_documents)

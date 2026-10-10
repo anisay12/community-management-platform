@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load i18n %}{% comment %}
+  Report page of a document (L5). Context: document, community, form, back_url, breadcrumb.
+{% endcomment %}
+{% block title %}{% translate "Report content" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
+{% block breadcrumb %}{% include "components/breadcrumb.html" with items=breadcrumb %}{% endblock %}
+{% block content %}
+  {% translate "Report content" as report_title %}
+  {% include "components/page_header.html" with title=report_title eyebrow_icon="flag" %}
+  <p class="tl-meta">{% blocktranslate with title=document.title owner=document.owner_display trimmed %}Document “{{ title }}” by {{ owner }}{% endblocktranslate %}</p>
+  <p>{% translate "Moderators of the community will review your report. Your name is not shown to the author." %}</p>
+  <p class="form-text">{% translate "Choose “Outdated information” if the document needs a review: its managers will see it in their content to review." %}</p>
+  {% include "posts/_document_report_form.html" %}
+{% endblock %}

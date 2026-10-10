@@ -1,0 +1,7 @@
+{% load i18n %}{% comment %}
+  "Report" action of a document page (L5), like the one of a post: a link to the report form
+  (``posts:report_document``). Include it with
+    {% include "posts/_document_report_link.html" with document=document %}
+  only when ``documents.policies.can_report_document(user, document)`` is true.
+{% endcomment %}
+<a class="btn btn-sm btn-link text-body-secondary" href="{% url 'posts:report_document' document.public_id %}"><i class="bi bi-flag me-1" aria-hidden="true"></i>{% translate "Report" %}</a>
