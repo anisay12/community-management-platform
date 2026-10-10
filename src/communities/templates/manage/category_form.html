@@ -2,16 +2,17 @@
 {% load i18n %}
 {% block title %}{% if category %}{% translate "Edit the category" %}{% else %}{% translate "New category" %}{% endif %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <h1 class="h2">{% if category %}{% blocktranslate with name=category.name %}Edit the category “{{ name }}”{% endblocktranslate %}{% else %}{% translate "New category" %}{% endif %}</h1>
+  {% if category %}{% blocktranslate with name=category.name asvar page_title %}Edit the category “{{ name }}”{% endblocktranslate %}{% else %}{% translate "New category" as page_title %}{% endif %}
+  {% include "components/page_header.html" with title=page_title %}
   {% include "manage/_tabs.html" with active="categories" %}
-  <div class="card mt-3">
-    <div class="card-body">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% include "accounts/_form_fields.html" %}
+  <section class="tl-section mt-3">
+    <form method="post" class="tl-form" novalidate>
+      {% csrf_token %}
+      {% include "accounts/_form_fields.html" %}
+      <div class="tl-form-actions">
         <button type="submit" class="btn btn-primary">{% translate "Save" %}</button>
         <a class="btn btn-link" href="{% url 'manage:category_list' %}">{% translate "Cancel" %}</a>
-      </form>
-    </div>
-  </div>
+      </div>
+    </form>
+  </section>
 {% endblock %}

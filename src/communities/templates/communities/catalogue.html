@@ -2,30 +2,19 @@
 {% load i18n %}
 {% block title %}{% translate "Communities catalogue" %} - {% translate "Communities" %}{% endblock %}
 {% block content %}
-  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h1 class="h2 mb-0">{% translate "Communities catalogue" %}</h1>
-    <div class="d-flex flex-wrap gap-2">
-      <a class="btn btn-outline-secondary" href="{% url 'communities:my_invitations' %}">{% translate "My invitations" %}</a>
-      {% if can_create_community %}
-        <a class="btn btn-primary" href="{% url 'communities:create' %}">{% translate "Create a community" %}</a>
-      {% else %}
-        <a class="btn btn-primary" href="{% url 'communities:creation_request' %}">{% translate "Request a community" %}</a>
-      {% endif %}
-    </div>
-  </div>
-  <div class="card mb-3">
-    <div class="card-body">
-      <form method="get" action="{% url 'communities:catalogue' %}" role="search" class="row g-3 align-items-end">
-        {% for field in form %}
-          <div class="col-12 col-md-6 col-lg-{% if field.name == 'mine' %}2{% else %}3{% endif %}">{% include "components/form_field.html" with field=field %}</div>
-        {% endfor %}
-        <div class="col-12 mb-3"><button type="submit" class="btn btn-primary">{% translate "Filter" %}</button></div>
-      </form>
-    </div>
-  </div>
-  <p>{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} community{% plural %}{{ counter }} communities{% endblocktranslate %}</p>
+  {% translate "Communities catalogue" as page_title %}
+  {% translate "Communities" as page_eyebrow %}
+  {% translate "Find the communities of Talan and join the ones that matter to you." as page_lead %}
+  {% include "components/page_header.html" with title=page_title eyebrow=page_eyebrow eyebrow_icon="people" lead=page_lead actions_template="communities/_catalogue_actions.html" %}
+  <form method="get" action="{% url 'communities:catalogue' %}" role="search" class="tl-toolbar">
+    {% for field in form %}
+      <div class="flex-grow-1">{% include "components/form_field.html" with field=field %}</div>
+    {% endfor %}
+    <div class="mb-3"><button type="submit" class="btn btn-primary">{% translate "Filter" %}</button></div>
+  </form>
+  <p class="tl-meta">{% blocktranslate count counter=page_obj.paginator.count %}{{ counter }} community{% plural %}{{ counter }} communities{% endblocktranslate %}</p>
   {% if page_obj.object_list %}
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-3">
+    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3 mb-4 tl-stagger">
       {% for community in page_obj %}
         <div class="col">
           {% url 'communities:detail' community.slug as community_url %}

@@ -1,0 +1,6 @@
+{% load i18n %}<a class="btn btn-outline-secondary" href="{% url 'communities:my_invitations' %}">{% translate "My invitations" %}</a>
+{% if can_create_community %}
+  <a class="btn btn-primary" href="{% url 'communities:create' %}">{% translate "Create a community" %}</a>
+{% else %}
+  <a class="btn btn-primary" href="{% url 'communities:creation_request' %}">{% translate "Request a community" %}</a>
+{% endif %}

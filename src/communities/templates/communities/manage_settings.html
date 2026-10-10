@@ -3,19 +3,21 @@
 {% block title %}{% translate "Settings" %} - {{ community.name }} - {% translate "Communities" %}{% endblock %}
 {% block content %}
   {% include "communities/_manage_tabs.html" %}
-  <h2 class="h4 mt-3">{% translate "Settings" %}</h2>
   {% include "components/form_errors.html" with form=form %}
-  <form method="post" class="col-12 col-lg-8" novalidate>
-    {% csrf_token %}
-    <fieldset{% if read_only %} disabled{% endif %}>
-      <legend class="visually-hidden">{% translate "Community settings" %}</legend>
-      {% for field in form %}{% include "components/form_field.html" with field=field %}{% endfor %}
-      {% if not read_only %}<button type="submit" class="btn btn-primary">{% translate "Save" %}</button>{% endif %}
-    </fieldset>
-  </form>
+  <section class="tl-section" aria-labelledby="settings-heading">
+    <div class="tl-section-header"><h2 id="settings-heading">{% translate "Settings" %}</h2></div>
+    <form method="post" class="tl-form" novalidate>
+      {% csrf_token %}
+      <fieldset{% if read_only %} disabled{% endif %}>
+        <legend class="visually-hidden">{% translate "Community settings" %}</legend>
+        {% for field in form %}{% include "components/form_field.html" with field=field %}{% endfor %}
+        {% if not read_only %}<div class="tl-form-actions"><button type="submit" class="btn btn-primary">{% translate "Save" %}</button></div>{% endif %}
+      </fieldset>
+    </form>
+  </section>
   {% if status_actions %}
-    <section class="mt-5 col-12 col-lg-8" aria-labelledby="status-heading">
-      <h2 class="h4" id="status-heading">{% translate "Status" %}</h2>
+    <section class="tl-section" aria-labelledby="status-heading">
+      <div class="tl-section-header"><h2 id="status-heading">{% translate "Status" %}</h2></div>
       <p>{% blocktranslate with status=community.get_status_display %}Current status: {{ status }}.{% endblocktranslate %}</p>
       <div class="d-flex flex-wrap gap-2">
         {% for item in status_actions %}
