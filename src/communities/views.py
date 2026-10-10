@@ -99,6 +99,7 @@ def community_page(request, slug, tab):
         "full_metadata": policies.can_view_full_metadata(user, community),
         "show_admin_access": policies.is_functional_admin(user) and not content_visible,
         "tabs": tabs.tabs_for(user, community, tab),
+        "header_links": tabs.header_links(),
     }
     return community, context
 

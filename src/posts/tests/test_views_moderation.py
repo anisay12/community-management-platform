@@ -491,19 +491,22 @@ def test_review_tab_is_paginated(client, community, moderator, author, make_post
 # --- Moderation link -----------------------------------------------------------------------
 
 
-def test_moderation_link_on_feed_for_moderators_only(
-    client, community, moderator, author, reporters, make_post, make_report
+@pytest.mark.parametrize("tab", ["posts:feed", "communities:detail", "communities:members"])
+def test_moderation_link_in_the_header_of_every_tab_for_moderators_only(
+    client, community, moderator, author, reporters, make_post, make_report, tab
 ):
     post = make_post(community, author)
     make_report(post, reporters[0])
     make_post(community, author, status=S.PENDING_REVIEW)
-    feed = reverse("posts:feed", args=[community.slug])
+    url = reverse(tab, args=[community.slug])
     client.force_login(moderator)
-    html = client.get(feed).content.decode()
-    assert _queue(community) in html
-    assert "2 open items" in html
+    html = client.get(url).content.decode()
+    start = html.index("tl-community-header")
+    header = html[start : html.index("</header>", start)]
+    assert _queue(community) in header
+    assert "2 open items" in header
     client.force_login(reporters[0])
-    assert _queue(community) not in client.get(feed).content.decode()
+    assert _queue(community) not in client.get(url).content.decode()
 
 
 # --- Tag administration --------------------------------------------------------------------

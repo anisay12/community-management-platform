@@ -44,4 +44,5 @@ class PostsConfig(AppConfig):
                 active_prefixes=("/bookmarks/",),
             )
         )
+        tabs.register_header_link("posts/_moderation_link.html")
         register_anonymizer(anonymize_author)
