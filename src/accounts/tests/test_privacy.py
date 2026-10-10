@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone, translation
 from django_otp.plugins.otp_static.models import StaticDevice
 from django_otp.plugins.otp_totp.models import TOTPDevice
+from kombu.exceptions import OperationalError
 
 from accounts import privacy, services, tasks
 from accounts.models import DataExport, ExternalIdentity, User, UserSession
@@ -81,6 +82,20 @@ def _content(export) -> dict:
 
 
 # Export ---------------------------------------------------------------------------
+
+
+def test_broker_outage_after_requests_is_only_logged(
+    owner, monkeypatch, django_capture_on_commit_callbacks
+):
+    def down(*args, **kwargs):
+        raise OperationalError("broker down")
+
+    monkeypatch.setattr("accounts.services.build_data_export.delay", down)
+    monkeypatch.setattr("accounts.services.send_email.delay", down)
+    with django_capture_on_commit_callbacks(execute=True):
+        export = services.request_data_export(user=owner)
+        services.send_activation_email(owner)
+    assert DataExport.objects.filter(pk=export.pk).exists()
 
 
 def test_request_data_export_builds_a_ready_json_file(owner, django_capture_on_commit_callbacks):

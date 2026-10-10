@@ -20,6 +20,7 @@ from communities.models import Community, CommunityMembership
 from communities.policies import membership_of
 from communities.roles import ROLE_RANK, CommunityRole
 from core.errors import DomainError
+from core.tasks import delay_on_commit
 from notifications.services import notify
 from taxonomy.models import Tag
 from taxonomy.services import get_or_create_tag, normalize_tag_key
@@ -257,8 +258,7 @@ def _go_live(post: Post) -> None:
     )
     Community.objects.filter(pk=post.community_id).update(last_activity_at=now)
     category = "announcement" if post.kind in ANNOUNCEMENT_KINDS else "community_post"
-    post_id = post.pk
-    transaction.on_commit(lambda: broadcast_post.delay(post_id, category))
+    delay_on_commit(broadcast_post, post.pk, category)
     sync_mentions(post, mentioned)
     _notify_readers("mention", post, mentioned, actor=post.author)
 

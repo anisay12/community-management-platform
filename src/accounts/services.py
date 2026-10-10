@@ -19,6 +19,7 @@ from django.utils.translation import gettext as _
 from audit.services import record
 from core.context import suppress_m2m_audit
 from core.errors import DomainError
+from core.tasks import delay_on_commit
 from organizations.models import Employment, OrganizationUnit
 
 from .models import DataExport, User, UserProfile
@@ -51,7 +52,7 @@ def enqueue_email(*, user, subject_template: str, body_template: str, context: d
         "context": {"first_name": user.first_name, **context},
         "language": language,
     }
-    transaction.on_commit(lambda: send_email.delay(**kwargs))
+    delay_on_commit(send_email, **kwargs)
 
 
 def send_activation_email(user, *, request=None) -> None:
@@ -536,5 +537,5 @@ def request_data_export(*, user) -> DataExport:
         return current
     export = DataExport.objects.create(user=user)
     record(actor=user, action="user.data_export_requested", target=user)
-    transaction.on_commit(lambda: build_data_export.delay(export.pk))
+    delay_on_commit(build_data_export, export.pk)
     return export

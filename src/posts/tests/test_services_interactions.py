@@ -10,7 +10,15 @@ from communities.models import Community, CommunityMembership
 from core.errors import DomainError
 from notifications.models import Notification
 from posts import services_interactions as services
-from posts.models import COMMENT_BODY_MAX_LENGTH, Bookmark, BookmarkCollection, Comment, Mention, Post, Reaction
+from posts.models import (
+    COMMENT_BODY_MAX_LENGTH,
+    Bookmark,
+    BookmarkCollection,
+    Comment,
+    Mention,
+    Post,
+    Reaction,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -411,9 +419,7 @@ def test_add_comment_locks_the_post_and_reads_its_status_again(post, reader, mak
     assert _for_update_tables(context)[0] == "posts_post"
 
 
-def test_set_reaction_locks_the_post_and_reads_the_target_again(
-    post, reader, author, make_comment
-):
+def test_set_reaction_locks_the_post_and_reads_the_target_again(post, reader, author, make_comment):
     comment = make_comment(post, author)
     Comment.objects.filter(pk=comment.pk).update(status=Comment.Status.HIDDEN)
     react = {"actor": reader, "kind": "useful", "present": True}

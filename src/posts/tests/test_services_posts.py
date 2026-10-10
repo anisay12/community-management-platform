@@ -4,6 +4,7 @@ import pytest
 from django.contrib.postgres.search import SearchQuery
 from django.core.cache import cache
 from django.utils import timezone
+from kombu.exceptions import OperationalError
 
 from audit.models import AuditEvent
 from communities.models import Community, CommunityMembership
@@ -220,6 +221,20 @@ def test_refused_posts_do_not_count_towards_the_rate_limit(member, community, se
     assert refused == "tag_creation_forbidden"
     services.create_post(title="Counted", **kwargs)
     assert _code(services.create_post, title="Again", **kwargs) == "rate_limited"
+
+
+def test_broker_outage_after_publication_is_only_logged(
+    member, community, monkeypatch, django_capture_on_commit_callbacks
+):
+    def down(*args):
+        raise OperationalError("broker down")
+
+    monkeypatch.setattr("posts.tasks.broadcast_post.delay", down)
+    with django_capture_on_commit_callbacks(execute=True):
+        post = services.create_post(
+            actor=member, community=community, kind=Post.Kind.DISCUSSION, title="T", body="B"
+        )
+    assert Post.objects.get(pk=post.pk).status == Post.Status.PUBLISHED
 
 
 def test_mentions_are_stored_and_notified_on_publish(

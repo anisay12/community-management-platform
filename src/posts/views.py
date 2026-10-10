@@ -21,8 +21,8 @@ from communities.policies import is_functional_admin
 from communities.views import community_page
 
 from . import policies, selectors
-from .models import Post
 from .mentions import handles_of, resolve_mentions
+from .models import Post
 from .rendering import render_body
 
 UNANSWERED = "unanswered=1"
