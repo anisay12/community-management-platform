@@ -8,9 +8,10 @@
     <li class="breadcrumb-item active" aria-current="page">{% translate "Manage" %}</li>
   </ol>
 </nav>
-<h1 class="h2">{% blocktranslate with name=community.name %}Manage {{ name }}{% endblocktranslate %}</h1>
+{% blocktranslate with name=community.name asvar manage_title %}Manage {{ name }}{% endblocktranslate %}
+{% include "components/page_header.html" with title=manage_title %}
 {% if community.status != "active" %}
-  <div class="alert alert-warning" role="status">
+  <div class="alert alert-warning mb-3" role="status">
     {% if read_only %}{% blocktranslate with status=community.get_status_display %}This community is {{ status }}: it is read-only.{% endblocktranslate %}{% else %}{% blocktranslate with status=community.get_status_display %}This community is {{ status }}. As a functional administrator you can still change it.{% endblocktranslate %}{% endif %}
   </div>
 {% endif %}
