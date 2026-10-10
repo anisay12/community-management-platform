@@ -1,9 +1,10 @@
 {% load i18n post_interaction_tags %}{% comment %}
-  Actions on one comment (L4 Task 6): reactions, reply, edit, report, hide or unhide.
+  Actions on one comment (L4 Task 6): reactions, reply, edit, accept as the answer (a plain
+  form: the page reloads with the answer highlighted), report, hide or unhide.
   Context: comment, post. The HTMX forms replace the top-level comment (with its replies).
 {% endcomment %}
 {% post_interactions post as ix %}
-{% comment_interactions ix comment as cx %}
+{% comment_interactions ix comment post as cx %}
 <div class="d-flex flex-wrap align-items-start gap-2 small tl-comment-actions">
   {% include "posts/_reaction_bar_inner.html" with target=comment target_type="comment" mine=cx.reactions interactive=cx.can_react counts=None %}
   {% if cx.can_reply %}
@@ -28,6 +29,13 @@
         <button type="submit" class="btn btn-primary btn-sm mt-2">{% translate "Save" %}</button>
       </form>
     </details>
+  {% endif %}
+  {% if cx.can_accept %}
+    <form method="post" action="{% url 'posts:accept_answer' post.community.slug post.public_id %}" data-tl-single-submit>
+      {% csrf_token %}
+      <input type="hidden" name="comment" value="{{ comment.public_id }}">
+      <button type="submit" class="btn btn-sm btn-outline-success"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% translate "Accept this answer" %}<span class="visually-hidden"> ({{ comment.author_display }})</span></button>
+    </form>
   {% endif %}
   {% if cx.can_report %}<a class="btn btn-sm btn-link text-body-secondary" href="{% url 'posts:report' 'comment' comment.public_id %}">{% translate "Report" %}</a>{% endif %}
   {% if cx.can_hide %}

@@ -1,6 +1,9 @@
 // "@first.last" suggestions for a textarea carrying data-mention-url and aria-controls (the
-// id of a role="listbox" list). While the word before the caret starts with "@", the list is
-// filled through htmx with the community members matching it. Keyboard: ArrowDown/ArrowUp
+// id of a role="listbox" list). The textarea keeps its textbox role (a textarea cannot be a
+// combobox, so no aria-expanded): aria-autocomplete="list" and aria-activedescendant tell
+// assistive technologies about the list, and a polite status announces how many members
+// match. While the word before the caret starts with "@", the list is filled through htmx
+// with the community members matching it. Keyboard: ArrowDown/ArrowUp
 // move through the options (aria-activedescendant), Enter or Tab insert the handle, Escape
 // closes the list. Without JavaScript, members are mentioned by typing the handle in full.
 (() => {
@@ -17,7 +20,6 @@
       list.hidden = true;
       list.innerHTML = "";
       active = -1;
-      textarea.setAttribute("aria-expanded", "false");
       textarea.removeAttribute("aria-activedescendant");
     };
     const highlight = (index) => {
@@ -45,7 +47,12 @@
     };
 
     textarea.setAttribute("aria-autocomplete", "list");
-    textarea.setAttribute("aria-expanded", "false");
+    const status = document.getElementById(list.dataset.statusId || "");
+    const announce = (count) => {
+      if (!status) return;
+      const template = count === 1 ? status.dataset.one : status.dataset.many;
+      status.textContent = count ? (template || "").replace("__count__", count) : "";
+    };
 
     textarea.addEventListener("input", () => {
       window.clearTimeout(timer);
@@ -57,9 +64,9 @@
       timer = window.setTimeout(() => {
         const url = `${textarea.dataset.mentionUrl}?q=${encodeURIComponent(token)}`;
         htmx.ajax("GET", url, { target: list, swap: "innerHTML" }).then(() => {
-          const found = options().length > 0;
-          list.hidden = !found;
-          textarea.setAttribute("aria-expanded", found ? "true" : "false");
+          const count = options().length;
+          list.hidden = count === 0;
+          announce(count);
           active = -1;
         });
       }, 200);

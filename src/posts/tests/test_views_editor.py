@@ -2,6 +2,7 @@
 (publish, delete draft, review, pin, hide, archive, accepted answer, share)."""
 
 import re
+import uuid
 
 import pytest
 from django.contrib.auth.models import Group
@@ -96,6 +97,10 @@ def test_create_page_lists_only_allowed_kinds(client, community, author):
     assert 'value="discussion"' in html and 'value="question"' in html
     assert 'value="announcement"' not in html and 'value="article"' not in html
     assert 'name="version"' not in html
+    # The character counter describes the body; the mention list is no combobox popup.
+    body = re.search(r"<textarea[^>]*>", html).group(0)
+    assert "post-body-counter" in re.search(r'aria-describedby="([^"]+)"', body).group(1)
+    assert "aria-expanded" not in body
 
 
 def test_create_page_offers_every_kind_to_animator(client, community, animator):
@@ -615,12 +620,16 @@ def test_review_unknown_decision_is_400(client, community, author, moderator, ma
     assert client.post(_action("review_decide", post), {"decision": "x"}).status_code == 400
 
 
+def _accept_button(comment):
+    return f'name="comment" value="{comment.public_id}"'
+
+
 def test_accept_and_clear_answer(client, community, author, member_of, make_post, make_comment):
     post = make_post(community, author, kind=K.QUESTION)
     answer = make_comment(post, member_of("helper@example.com"), body="Try this")
     client.force_login(author)
     html = client.get(_detail(post)).content.decode()
-    assert _action("accept_answer", post) in html and str(answer.public_id) in html
+    assert _action("accept_answer", post) in html and _accept_button(answer) in html
     response = client.post(_action("accept_answer", post), {"comment": str(answer.public_id)})
     assert response.status_code == 302
     post.refresh_from_db()
@@ -628,6 +637,35 @@ def test_accept_and_clear_answer(client, community, author, member_of, make_post
     client.post(_action("accept_answer", post), {"clear": "1"})
     post.refresh_from_db()
     assert post.accepted_answer is None
+
+
+def test_accept_button_on_each_eligible_comment(
+    client, community, author, member_of, make_post, make_comment
+):
+    """One "Accept this answer" button per visible top-level comment, except the accepted
+    one; none on replies, none for a reader who may not decide."""
+    post = make_post(community, author, kind=K.QUESTION)
+    helper = member_of("helper@example.com")
+    first = make_comment(post, helper, body="First idea")
+    second = make_comment(post, helper, body="Second idea")
+    reply = make_comment(post, author, parent=first, body="Thanks")
+    hidden = make_comment(post, helper, status=Comment.Status.HIDDEN, hidden_reason="Spam")
+    Post.objects.filter(pk=post.pk).update(accepted_answer=second)
+    client.force_login(author)
+    html = client.get(_detail(post)).content.decode()
+    assert _accept_button(first) in html
+    for comment in (second, reply, hidden):
+        assert _accept_button(comment) not in html
+    assert html.count("Accept this answer") == 1
+    assert "Clear the accepted answer" in html
+    ids = re.findall(r'\sid="([^"]+)"', html)
+    assert len(ids) == len(set(ids)), "the highlighted accepted answer duplicates ids"
+    client.force_login(helper)
+    assert "Accept this answer" not in client.get(_detail(post)).content.decode()
+    discussion = make_post(community, author)
+    make_comment(discussion, helper)
+    client.force_login(author)
+    assert "Accept this answer" not in client.get(_detail(discussion)).content.decode()
 
 
 def test_accept_answer_by_reader_is_403_and_unknown_comment_404(
@@ -638,6 +676,9 @@ def test_accept_answer_by_reader_is_403_and_unknown_comment_404(
     client.force_login(member_of("reader@example.com"))
     url = _action("accept_answer", post)
     assert client.post(url, {"comment": str(answer.public_id)}).status_code == 403
+    # Rights first: a reader learns nothing about which comments exist.
+    assert client.post(url, {"comment": str(uuid.uuid4())}).status_code == 403
+    assert client.post(url, {"comment": "not-a-uuid"}).status_code == 403
     client.force_login(author)
     other = make_comment(make_post(community, author, kind=K.QUESTION), author)
     assert client.post(url, {"comment": str(other.public_id)}).status_code == 404

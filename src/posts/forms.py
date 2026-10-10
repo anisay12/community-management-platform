@@ -54,7 +54,11 @@ class PostForm(forms.Form):
                 (value, label) for value, label in Post.Kind.choices if value in (kinds or ())
             ]
         self.fields["body"].widget.attrs.update(
-            {"maxlength": POST_BODY_MAX_LENGTH, "data-tl-counter": "post-body-counter"}
+            {
+                "maxlength": POST_BODY_MAX_LENGTH,
+                "data-tl-counter": "post-body-counter",
+                "aria-describedby": "post-body-counter",
+            }
         )
         self.fields["tags"].widget.attrs.update({"list": "tag-suggestions", "autocomplete": "off"})
         if can_create_tags:

@@ -1,6 +1,7 @@
 // Post editor and post actions (progressive enhancement: every feature works without it).
 // - [data-tl-confirm="<modal id>"] on a submit button opens that confirmation modal instead
-//   of submitting (without JavaScript the server answers a confirmation page).
+//   of submitting (without JavaScript the server answers a confirmation page); closing the
+//   modal returns the focus to that button.
 // - [data-tl-counter="<id>"] on a textarea shows "n / max characters" in that element.
 // - form[data-tl-single-submit] disables its submit buttons after the first submission.
 (() => {
@@ -13,7 +14,14 @@
     const modal = document.getElementById(trigger.dataset.tlConfirm);
     if (!modal) return;
     event.preventDefault();
+    modal.tlTrigger = trigger;
     bootstrap.Modal.getOrCreateInstance(modal).show(trigger);
+  });
+
+  document.addEventListener("hidden.bs.modal", (event) => {
+    const trigger = event.target.tlTrigger;
+    event.target.tlTrigger = null;
+    if (trigger && trigger.isConnected) trigger.focus();
   });
 
   document.addEventListener("shown.bs.modal", (event) => {

@@ -91,6 +91,33 @@ def test_join_open_community(employee_client, make_community, employee):
     assert _messages(response)
 
 
+@pytest.mark.parametrize(
+    ("next_url", "expected"),
+    [
+        ("/communities/open/posts/123/", "/communities/open/posts/123/"),
+        ("https://evil.example.com/", None),
+        ("//evil.example.com/", None),
+        ("javascript:alert(1)", None),
+        ("", None),
+    ],
+)
+def test_join_returns_to_a_safe_next_url(
+    employee_client, make_community, employee, next_url, expected
+):
+    """The join prompt of a post returns to the post; anything but an internal URL is
+    ignored (no open redirect)."""
+    make_community("Open", access_mode=OPEN)
+    response = employee_client.post(_url("join", "open"), {"next": next_url})
+    assert response.status_code == 302
+    assert response.url == (expected or _url("detail", "open"))
+
+
+def test_refused_join_also_returns_to_next(employee_client, make_community):
+    make_community("Listed", access_mode=INVITE, listed=True)
+    response = employee_client.post(_url("join", "listed"), {"next": "/somewhere/"})
+    assert response.url == "/somewhere/"
+
+
 def test_join_invite_only_shows_error(employee_client, make_community, employee):
     make_community("Listed", access_mode=INVITE, listed=True)
     response = employee_client.post(_url("join", "listed"))

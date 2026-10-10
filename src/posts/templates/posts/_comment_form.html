@@ -21,6 +21,7 @@
     {% if ix.can_join %}
       <form method="post" action="{% url 'communities:join' post.community.slug %}">
         {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'posts:detail' post.community.slug post.public_id %}">
         <button type="submit" class="btn btn-primary btn-sm">{% if ix.asks_to_join %}{% translate "Request to join" %}{% else %}{% translate "Join" %}{% endif %}</button>
       </form>
     {% endif %}

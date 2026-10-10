@@ -1,7 +1,8 @@
 {% comment %}
   Toast stack for django.contrib.messages. Renders components/toast.html for each message.
+  HTMX partials may append a toast to it out of band (``#tl-toasts``).
 {% endcomment %}
-<div class="toast-container position-fixed bottom-0 end-0 p-3" aria-live="polite">
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="tl-toasts" aria-live="polite">
   {% for message in messages %}
     {% include "components/toast.html" with message=message level=message.level_tag %}
   {% endfor %}

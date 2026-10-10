@@ -447,7 +447,11 @@ def archive(request, slug, public_id):
 @login_required
 @require_POST
 def accept_answer(request, slug, public_id):
+    """Accept the comment ``comment`` (public id) as the answer, or clear it (``clear=1``).
+    Rights come first: a reader who may not decide learns nothing about the comments."""
     post = _post(request, slug, public_id)
+    if not policies.may_decide_answers(request.user, post):
+        raise PermissionDenied
     if request.POST.get("clear") == "1":
         return _act(
             request,

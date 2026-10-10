@@ -52,7 +52,7 @@
     {% for comment in comments %}
       {% if comment != accepted_answer %}{% include "posts/_comment.html" with comment=comment reply=False %}{% endif %}
     {% empty %}
-      <p class="text-body-secondary">{% translate "No comments yet." %}</p>
+      <p class="text-body-secondary" id="no-comments">{% translate "No comments yet." %}</p>
     {% endfor %}
     {% include "posts/_comment_form.html" %}
   </section>

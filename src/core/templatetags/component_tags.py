@@ -37,13 +37,14 @@ def _widget_class(widget) -> str:
 def field_widget(field):
     """Render the widget of a bound field with Bootstrap classes and ARIA wiring.
 
-    ``aria-describedby`` lists the help text id and one distinct id per error
-    (``<auto_id>_helptext``, ``<auto_id>_error_1``, ...), matching ``form_field.html``.
+    ``aria-describedby`` lists the ids already set on the widget (e.g. a character counter),
+    the help text id and one distinct id per error (``<auto_id>_helptext``,
+    ``<auto_id>_error_1``, ...), matching ``form_field.html``.
     """
     attrs = dict(field.field.widget.attrs)
     css = attrs.get("class", "")
     attrs["class"] = f"{css} {_widget_class(field.field.widget)}".strip()
-    described = []
+    described = attrs.get("aria-describedby", "").split()
     if field.help_text:
         described.append(f"{field.auto_id}_helptext")
     errors = field.errors

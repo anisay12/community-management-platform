@@ -10,7 +10,7 @@ from communities.models import Community
 from communities.policies import prime_membership_cache
 
 from .. import policies
-from ..models import Comment, Post
+from ..models import Post
 
 register = template.Library()
 
@@ -37,7 +37,7 @@ def creatable_kinds(user, community) -> list[str]:
 
 
 @register.simple_tag
-def post_actions(user, post, comments=(), moderator=None) -> dict:
+def post_actions(user, post, moderator=None) -> dict:
     """The actions offered to ``user`` on ``post``. ``moderator`` passes an already computed
     ``policies.is_content_moderator`` (the detail view has it); policies that only a
     moderator or the author can satisfy are not evaluated for anyone else."""
@@ -61,14 +61,8 @@ def post_actions(user, post, comments=(), moderator=None) -> dict:
         "unhide": moderator and status == S.HIDDEN,
         "archive": moderator and status == S.PUBLISHED,
         "share": status == S.PUBLISHED and bool(share_targets(user, post)),
-        "accept": accept,
-        "answer_candidates": [
-            comment
-            for comment in comments or ()
-            if comment.parent_id is None and comment.status == Comment.Status.VISIBLE
-        ]
-        if accept
-        else [],
+        # Accepting is a button on each eligible comment (``_comment_actions.html``).
+        "clear_answer": accept and post.accepted_answer_id is not None,
     }
 
 

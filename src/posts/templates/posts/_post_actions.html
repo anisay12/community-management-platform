@@ -1,8 +1,8 @@
 {% load i18n static post_actions %}{% comment %}
-  Editor and moderation actions of a post (owned by L4 Task 5). Context: post, comments
-  (optional, for the accepted answer choice), request. Each button is only rendered when the
+  Editor and moderation actions of a post (owned by L4 Task 5). Context: post, request
+  (accepting an answer is a button on each comment, see ``_comment_actions.html``). Each button is only rendered when the
   policies allow it; the services check again. Destructive actions confirm in a modal.
-{% endcomment %}{% post_actions request.user post comments is_moderator as actions %}
+{% endcomment %}{% post_actions request.user post is_moderator as actions %}
 {% if actions.edit %}
   <a class="btn btn-outline-secondary btn-sm" href="{% url 'posts:edit' post.community.slug post.public_id %}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>{% translate "Edit" %}</a>
 {% endif %}
@@ -63,22 +63,10 @@
   {% translate "Archive this post?" as modal_title %}{% translate "It stays readable by link but leaves the feeds and can no longer change." as modal_text %}{% translate "Archive" as modal_confirm %}
   {% include "posts/_confirm_modal.html" with id="archive-post-modal" title=modal_title text=modal_text action_url=archive_url confirm_label=modal_confirm %}
 {% endif %}
-{% if actions.accept %}
-  {% url 'posts:accept_answer' post.community.slug post.public_id as accept_url %}
-  {% if actions.answer_candidates %}
-    <form method="post" action="{{ accept_url }}" class="d-flex flex-wrap align-items-center gap-2" data-tl-single-submit>{% csrf_token %}
-      <label class="form-label small mb-0" for="accept-answer-comment">{% translate "Accepted answer" %}</label>
-      <select class="form-select form-select-sm w-auto" id="accept-answer-comment" name="comment">
-        {% for comment in actions.answer_candidates %}<option value="{{ comment.public_id }}"{% if comment.pk == post.accepted_answer_id %} selected{% endif %}>{{ comment.author_display }}: {{ comment.body|truncatechars:60 }}</option>{% endfor %}
-      </select>
-      <button type="submit" class="btn btn-outline-success btn-sm"><i class="bi bi-check-circle me-1" aria-hidden="true"></i>{% translate "Accept this answer" %}</button>
-    </form>
-  {% endif %}
-  {% if post.accepted_answer_id %}
-    <form method="post" action="{{ accept_url }}" data-tl-single-submit>{% csrf_token %}
-      <input type="hidden" name="clear" value="1">
-      <button type="submit" class="btn btn-outline-secondary btn-sm">{% translate "Clear the accepted answer" %}</button>
-    </form>
-  {% endif %}
+{% if actions.clear_answer %}
+  <form method="post" action="{% url 'posts:accept_answer' post.community.slug post.public_id %}" data-tl-single-submit>{% csrf_token %}
+    <input type="hidden" name="clear" value="1">
+    <button type="submit" class="btn btn-outline-secondary btn-sm">{% translate "Clear the accepted answer" %}</button>
+  </form>
 {% endif %}
 <script src="{% static 'posts/js/post-editor.js' %}" defer></script>

@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-10 02:39+0200\n"
+"POT-Creation-Date: 2026-10-10 02:51+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -2220,6 +2220,9 @@ msgstr "Votre réponse"
 msgid "Edit"
 msgstr "Modifier"
 
+msgid "Accept this answer"
+msgstr "Accepter cette réponse"
+
 msgid "Report"
 msgstr "Signaler"
 
@@ -2310,9 +2313,6 @@ msgid ""
 msgstr ""
 "Elle reste lisible par lien mais quitte les fils d’actualité et ne peut plus "
 "être modifiée."
-
-msgid "Accept this answer"
-msgstr "Accepter cette réponse"
 
 msgid "Clear the accepted answer"
 msgstr "Retirer la réponse acceptée"
@@ -2423,6 +2423,12 @@ msgstr "%(max)s caractères au maximum."
 
 msgid "Members to mention"
 msgstr "Membres à mentionner"
+
+msgid "1 member suggested: use the arrow keys, then Enter."
+msgstr "1 membre suggéré : utilisez les flèches, puis Entrée."
+
+msgid "__count__ members suggested: use the arrow keys, then Enter."
+msgstr "__count__ membres suggérés : utilisez les flèches, puis Entrée."
 
 msgid "Preview"
 msgstr "Aperçu"

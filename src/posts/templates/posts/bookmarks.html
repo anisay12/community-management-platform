@@ -62,11 +62,11 @@
                           {% for collection in collections %}<option value="{{ collection.public_id }}"{% if collection.pk == entry.collection_id %} selected{% endif %}>{{ collection.name }}</option>{% endfor %}
                         </select>
                       </div>
-                      <button type="submit" class="btn btn-sm btn-outline-secondary">{% translate "Move" %}</button>
+                      <button type="submit" class="btn btn-sm btn-outline-secondary">{% translate "Move" %}<span class="visually-hidden">: {% if entry.accessible %}{{ entry.post.title }}{% else %}{% translate "Content not accessible" %}{% endif %}</span></button>
                     </form>
                   {% endif %}
                   <form method="post" action="{% url 'posts:bookmark_remove' entry.post.public_id %}">{% csrf_token %}
-                    <button type="submit" class="btn btn-sm btn-outline-danger">{% translate "Remove" %}</button>
+                    <button type="submit" class="btn btn-sm btn-outline-danger">{% translate "Remove" %}<span class="visually-hidden">: {% if entry.accessible %}{{ entry.post.title }}{% else %}{% translate "Content not accessible" %}{% endif %}</span></button>
                   </form>
                 </div>
               </div>

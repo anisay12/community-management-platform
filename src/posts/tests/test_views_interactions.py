@@ -3,6 +3,7 @@
 Every action answers a partial to an HTMX request and redirects a plain request (PRG).
 """
 
+import re
 from unittest import mock
 
 import pytest
@@ -11,6 +12,7 @@ from django.urls import reverse
 
 from communities.models import Community
 from communities.roles import CommunityRole
+from core.errors import DomainError
 from core.tests.helpers import assert_single_h1
 from posts import services_interactions as services
 from posts.models import Bookmark, BookmarkCollection, Comment, ContentReport, Post, Reaction
@@ -109,6 +111,67 @@ def test_comment_create_htmx_returns_the_comment_and_a_fresh_form(member_client,
     assert "<strong>post</strong>" in html
     assert 'id="comment-form"' in html
     assert "<html" not in html
+
+
+def test_first_htmx_comment_removes_the_empty_state(member_client, post, author, make_comment):
+    assert "No comments yet." in member_client.get(_detail(post)).content.decode()
+    html = member_client.post(_comment_create(post), {"body": "First"}, headers=HTMX)
+    assert 'id="no-comments" hx-swap-oob="delete"' in html.content.decode()
+    html = member_client.post(_comment_create(post), {"body": "Second"}, headers=HTMX)
+    assert "no-comments" not in html.content.decode()  # nothing left to remove
+
+
+@pytest.mark.parametrize("parent", [False, True])
+def test_htmx_comment_success_is_announced_in_a_toast(
+    member_client, post, author, make_comment, parent
+):
+    """The swapped content replaces the focused form: a toast (polite live region) says what
+    happened."""
+    data = {"body": "Hello"}
+    if parent:
+        data["parent"] = str(make_comment(post, author).public_id)
+    html = member_client.post(_comment_create(post), data, headers=HTMX).content.decode()
+    assert 'hx-swap-oob="beforeend:#tl-toasts"' in html
+    assert "Your comment has been published." in html
+    assert 'id="tl-toasts"' in member_client.get(_detail(post)).content.decode()
+
+
+def test_htmx_comment_edit_hide_unhide_are_announced(client, post, member, moderator,
+                                                     make_comment):  # fmt: skip
+    comment = make_comment(post, member)
+    client.force_login(member)
+    html = client.post(
+        reverse("posts:comment_edit", args=[comment.public_id]), {"body": "Edited"}, headers=HTMX
+    ).content.decode()
+    assert "Your comment has been updated." in html and "#tl-toasts" in html
+    client.force_login(moderator)
+    html = client.post(
+        reverse("posts:comment_hide", args=[comment.public_id]), {"reason": "Spam"}, headers=HTMX
+    ).content.decode()
+    assert "The comment is hidden." in html and "#tl-toasts" in html
+    html = client.post(
+        reverse("posts:comment_unhide", args=[comment.public_id]), headers=HTMX
+    ).content.decode()
+    assert "The comment is visible again." in html and "#tl-toasts" in html
+
+
+def test_reply_to_a_comment_the_reader_cannot_see_is_404(member_client, post, author, make_comment):
+    hidden = make_comment(post, author, status=Comment.Status.HIDDEN, hidden_reason="Spam")
+    response = member_client.post(
+        _comment_create(post), {"body": "Hi", "parent": str(hidden.public_id)}
+    )
+    assert response.status_code == 404
+    assert Comment.objects.count() == 1
+
+
+def test_no_reply_button_under_a_hidden_top_level_comment(
+    member_client, post, author, make_comment
+):
+    top = make_comment(post, author, status=Comment.Status.HIDDEN, hidden_reason="Spam")
+    reply = make_comment(post, author, parent=top, body="Still visible")
+    html = member_client.get(_detail(post)).content.decode()
+    assert "Still visible" in html
+    assert f'name="parent" value="{reply.public_id}"' not in html
 
 
 def test_reply_htmx_returns_the_whole_top_level_comment(member_client, post, author, make_comment):
@@ -226,6 +289,12 @@ def test_non_member_of_open_community_sees_join_prompt(
     html = client.get(_detail(post)).content.decode()
     assert "Join this community to comment and react." in html
     assert reverse("communities:join", args=[post.community.slug]) in html
+    join_form = re.search(
+        rf'<form[^>]*action="{reverse("communities:join", args=[post.community.slug])}".*?</form>',
+        html,
+        re.S,
+    ).group(0)
+    assert f'name="next" value="{_detail(post)}"' in join_form  # back to the post after joining
     assert f'action="{_comment_create(post)}"' not in html
     assert 'name="kind"' not in html  # reactions shown read-only
     assert "Reactions to the post" not in html  # and no empty group without any reaction
@@ -567,12 +636,51 @@ def test_move_to_another_user_collection_is_404(member_client, member, author, p
     assert member_client.post(move, {"collection": str(theirs.public_id)}).status_code == 404
 
 
+@pytest.mark.parametrize(
+    ("name", "args", "data"),
+    [
+        ("bookmark_remove", "post", {}),
+        ("collection_move", "post", {"collection": ""}),
+        ("collection_delete", "collection", {}),
+    ],
+)
+def test_bookmark_actions_refused_by_the_service_show_an_error(
+    member_client, member, post, name, args, data
+):
+    collection = services.create_collection(actor=member, name="Later")
+    services.set_bookmark(actor=member, post=post, present=True)
+    public_id = post.public_id if args == "post" else collection.public_id
+    refusal = DomainError("forbidden", "Not allowed here.")
+    with (
+        mock.patch.object(services, "set_bookmark", side_effect=refusal),
+        mock.patch.object(services, "move_bookmark", side_effect=refusal),
+        mock.patch.object(services, "delete_collection", side_effect=refusal),
+    ):
+        response = member_client.post(reverse(f"posts:{name}", args=[public_id]), data)
+    assert response.status_code == 302 and response["Location"] == reverse("posts:bookmarks")
+    assert "Not allowed here." in _messages(response)
+
+
+def test_bookmark_buttons_name_their_post(member_client, member, post):
+    services.set_bookmark(actor=member, post=post, present=True)
+    html = member_client.get(reverse("posts:bookmarks")).content.decode()
+    assert f'<span class="visually-hidden">: {post.title}</span>' in html
+
+
 def test_bookmarks_navigation_entry(member_client):
     html = member_client.get(reverse("posts:bookmarks")).content.decode()
     assert f'href="{reverse("posts:bookmarks")}"' in html
 
 
 # --- Reports --------------------------------------------------------------------------------
+
+
+def test_report_form_of_own_content_is_refused(client, author, post):
+    """The form is not offered when the report would be refused (own content)."""
+    client.force_login(author)
+    response = client.get(_report("post", post))
+    assert response.status_code == 302 and response["Location"] == _detail(post)
+    assert "You cannot do this on your own content." in _messages(response)
 
 
 def test_report_form_page(member_client, post):

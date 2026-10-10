@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
@@ -30,14 +31,26 @@ def _back(community):
     return redirect("communities:detail", slug=community.slug)
 
 
+def _back_to_next(request, community):
+    """Redirect to the ``next`` field when it is a safe URL of this site (e.g. the post whose
+    join prompt was used), else to the community."""
+    next_url = request.POST.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return redirect(next_url)
+    return _back(community)
+
+
 @login_required
 @require_POST
 def join(request, slug):
+    """Join (or ask to join) the community; back to ``next`` when it is a safe local URL."""
     community = _visible(request, slug)
     form = JoinRequestForm(request.POST)
     if not form.is_valid():
         messages.error(request, _("Your message is too long (500 characters at most)."))
-        return _back(community)
+        return _back_to_next(request, community)
     try:
         result = services.join(
             actor=request.user, community=community, message=form.cleaned_data["message"]
@@ -49,7 +62,7 @@ def join(request, slug):
             messages.success(request, _("Your request to join has been sent."))
         else:
             messages.success(request, _("Welcome! You are now a member."))
-    return _back(community)
+    return _back_to_next(request, community)
 
 
 @login_required

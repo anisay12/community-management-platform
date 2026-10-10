@@ -403,6 +403,22 @@ def _after_visibility_change(target) -> None:
         schedule_recount(target.post)
 
 
+def ensure_can_report(*, actor, target) -> None:
+    """Raise the refusal ``report`` would answer whatever the form says (``forbidden``,
+    ``own_content``, ``invalid_state``, ``already_reported``): the report form is only offered
+    when none applies."""
+    if not _can_view_target(actor, target):
+        raise _forbidden()
+    if _is_author(actor, target):
+        raise _own_content()
+    if not _is_open(target):
+        raise _invalid_state()
+    if not policies.can_report(actor, target):
+        raise _forbidden()
+    if _open_reports(target).filter(reporter=actor).exists():
+        raise _already_reported()
+
+
 @transaction.atomic
 def report(*, actor, target, reason, details=""):
     """Report a post or comment the actor can read; the ``POSTS_REPORT_AUTOHIDE_THRESHOLD``-th
@@ -426,12 +442,7 @@ def report(*, actor, target, reason, details=""):
         )
     # The row lock serialises concurrent reports, so the threshold is crossed exactly once.
     target = _lock(target)
-    if not _is_open(target):
-        raise _invalid_state()
-    if not policies.can_report(actor, target):
-        raise _forbidden()
-    if _open_reports(target).filter(reporter=actor).exists():
-        raise _already_reported()
+    ensure_can_report(actor=actor, target=target)
     try:
         with transaction.atomic():
             content_report = ContentReport.objects.create(

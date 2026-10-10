@@ -16,6 +16,7 @@ from django.db.models import Count
 from django.db.models.functions import Lower
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
@@ -89,6 +90,16 @@ def _done(request, message, redirect_to):
     return redirect(redirect_to)
 
 
+def _announced(request, response, message):
+    """Add ``message`` as a success toast to an HTMX partial (out-of-band, into the toast
+    stack, a polite live region): the swap replaces the control that had the focus, so
+    assistive technologies are told what happened."""
+    response.content += render_to_string(
+        "posts/_htmx_toast.html", {"toast": message}, request=request
+    ).encode()
+    return response
+
+
 def _invalid(request, form, redirect_to):
     """A form the browser should have refused (length attributes bypassed): error toast."""
     first = next(iter(form.errors.values()))[0]
@@ -125,11 +136,10 @@ def comment_create(request, slug, public_id):
         return HttpResponseBadRequest()
     parent = None
     if form.cleaned_data["parent"]:
-        parent = get_object_or_404(
-            Comment.objects.select_related("parent"),
-            post=post,
-            public_id=form.cleaned_data["parent"],
-        )
+        # Only a comment of this post that the reader can see (else 404, like any action).
+        parent = _visible_comment(request.user, form.cleaned_data["parent"])
+        if parent.post_id != post.pk:
+            raise Http404
     try:
         comment = services.add_comment(
             actor=request.user, post=post, body=form.cleaned_data["body"], parent=parent
@@ -139,11 +149,14 @@ def comment_create(request, slug, public_id):
     if not _is_htmx(request):
         messages.success(request, _("Your comment has been published."))
         return redirect(_comment_url(comment))
+    published = _("Your comment has been published.")
     if comment.parent_id:
-        return _render_thread_item(request, comment)
+        return _announced(request, _render_thread_item(request, comment), published)
     comment.prefetched_replies = []
     comment.body_visible = True
-    return render(request, "posts/_comment_created.html", {"comment": comment, "post": post})
+    first = not Comment.objects.filter(post=post, parent=None).exclude(pk=comment.pk).exists()
+    context = {"comment": comment, "post": post, "first": first}
+    return _announced(request, render(request, "posts/_comment_created.html", context), published)
 
 
 @login_required
@@ -158,7 +171,9 @@ def comment_edit(request, public_id):
     except DomainError as error:
         return domain_error_response(request, error, redirect_to=_comment_url(comment))
     if _is_htmx(request):
-        return _render_thread_item(request, comment)
+        return _announced(
+            request, _render_thread_item(request, comment), _("Your comment has been updated.")
+        )
     messages.success(request, _("Your comment has been updated."))
     return redirect(_comment_url(comment))
 
@@ -178,7 +193,9 @@ def comment_hide(request, public_id):
         return domain_error_response(request, error, redirect_to=_comment_url(comment))
     if _is_htmx(request):
         comment.refresh_from_db()
-        return _render_thread_item(request, comment)
+        return _announced(
+            request, _render_thread_item(request, comment), _("The comment is hidden.")
+        )
     messages.success(request, _("The comment is hidden."))
     return redirect(_comment_url(comment))
 
@@ -193,7 +210,9 @@ def comment_unhide(request, public_id):
         return domain_error_response(request, error, redirect_to=_comment_url(comment))
     if _is_htmx(request):
         comment.refresh_from_db()
-        return _render_thread_item(request, comment)
+        return _announced(
+            request, _render_thread_item(request, comment), _("The comment is visible again.")
+        )
     messages.success(request, _("The comment is visible again."))
     return redirect(_comment_url(comment))
 
@@ -326,7 +345,11 @@ def bookmark_remove(request, public_id):
     entry = get_object_or_404(
         Bookmark.objects.select_related("post"), user=request.user, post__public_id=public_id
     )
-    services.set_bookmark(actor=request.user, post=entry.post, present=False)  # needs no access
+    try:
+        # Removing needs no read access (a former member cleans up).
+        services.set_bookmark(actor=request.user, post=entry.post, present=False)
+    except DomainError as error:
+        return domain_error_response(request, error, redirect_to=_bookmarks_url())
     return _done(request, _("Bookmark removed."), _bookmarks_url())
 
 
@@ -363,7 +386,10 @@ def collection_rename(request, public_id):
 @require_POST
 def collection_delete(request, public_id):
     collection = _own_collection(request.user, public_id)
-    services.delete_collection(actor=request.user, collection=collection)
+    try:
+        services.delete_collection(actor=request.user, collection=collection)
+    except DomainError as error:
+        return domain_error_response(request, error, redirect_to=_bookmarks_url())
     return _done(request, _("The collection has been deleted."), _bookmarks_url())
 
 
@@ -374,7 +400,10 @@ def collection_move(request, public_id):
     entry = get_object_or_404(Bookmark, user=request.user, post__public_id=public_id)
     wanted = request.POST.get("collection", "")
     collection = _own_collection(request.user, _parse_uuid(wanted)) if wanted else None
-    services.move_bookmark(actor=request.user, bookmark=entry, collection=collection)
+    try:
+        services.move_bookmark(actor=request.user, bookmark=entry, collection=collection)
+    except DomainError as error:
+        return domain_error_response(request, error, redirect_to=_bookmarks_url())
     return _done(request, _("The bookmark has been moved."), _bookmarks_url())
 
 
@@ -388,6 +417,12 @@ def report(request, target, public_id):
     target = _target(request.user, target_type, public_id)
     post = target.post if isinstance(target, Comment) else target
     back_url = _target_url(target)
+    if request.method != "POST":
+        # Offer the form only when the report would be accepted (not own content, not twice).
+        try:
+            services.ensure_can_report(actor=request.user, target=target)
+        except DomainError as error:
+            return domain_error_response(request, error, redirect_to=back_url)
     form = ReportForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         try:

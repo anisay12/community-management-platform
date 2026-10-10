@@ -40,7 +40,8 @@
         {% include "components/form_field.html" %}
         {% if field.name == "body" %}
           <p class="form-text mt-n2" id="post-body-counter" data-tl-counter-template="{% translate '__count__ / __max__ characters' %}">{% blocktranslate with max=body_max_length %}At most {{ max }} characters.{% endblocktranslate %}</p>
-          <ul id="mention-suggestions" class="list-group tl-mention-suggestions mb-3" role="listbox" aria-label="{% translate 'Members to mention' %}" hidden></ul>
+          <ul id="mention-suggestions" class="list-group tl-mention-suggestions mb-3" role="listbox" aria-label="{% translate 'Members to mention' %}" data-status-id="mention-status" hidden></ul>
+          <p id="mention-status" class="visually-hidden" role="status" data-one="{% translate '1 member suggested: use the arrow keys, then Enter.' %}" data-many="{% translate '__count__ members suggested: use the arrow keys, then Enter.' %}"></p>
         {% endif %}
       {% endfor %}
       {% for field in form.hidden_fields %}{{ field }}{% endfor %}

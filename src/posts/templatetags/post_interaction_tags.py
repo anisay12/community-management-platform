@@ -33,6 +33,7 @@ class InteractionState:
     can_report_post: bool = False
     can_report_comments: bool = False  # a reader of a published post
     can_bookmark: bool = False
+    can_accept_answer: bool = False  # a question whose answer the viewer may choose
     bookmarked: bool = False
     join_prompt: bool = False  # a reader who must join to take part
     can_join: bool = False
@@ -61,6 +62,7 @@ def interaction_state(user, post, *, moderator=None) -> InteractionState:
         state.can_report_post = policies.can_report(user, post)
         state.can_report_comments = post.status == Post.Status.PUBLISHED
         state.can_bookmark = policies.can_bookmark(user, post)
+        state.can_accept_answer = policies.can_accept_answer(user, post)
         state.bookmarked = Bookmark.objects.filter(user=user, post=post).exists()
         live = community.status == Community.Status.ACTIVE
         state.join_prompt = not state.is_member and live and post.status == Post.Status.PUBLISHED
@@ -90,24 +92,32 @@ class CommentState:
     can_report: bool
     can_hide: bool
     can_unhide: bool
+    can_accept: bool  # "Accept this answer"
     reactions: set
     top_public_id: object  # the top-level comment, re-rendered by the HTMX actions
 
 
 @register.simple_tag
-def comment_interactions(state: InteractionState, comment) -> CommentState:
+def comment_interactions(state: InteractionState, comment, post) -> CommentState:
     """Per-comment rights derived from the post's ``state`` (mirrors ``posts.policies``)."""
     visible = comment.status == Comment.Status.VISIBLE
     own = comment.author_id is not None and comment.author_id == state.user_pk
     # ``parent`` is cached by the thread's prefetch (and by the views re-rendering a comment).
     top = comment.parent if comment.parent_id else comment
     return CommentState(
-        can_reply=visible and state.can_participate,
+        # A reply under a hidden thread would be refused (``add_comment`` checks the top).
+        can_reply=visible and top.status == Comment.Status.VISIBLE and state.can_participate,
         can_edit=visible and own and state.can_participate,
         can_react=visible and not own and state.can_participate,
         can_report=visible and not own and state.can_report_comments,
         can_hide=visible and state.is_moderator,
         can_unhide=not visible and state.is_moderator,
+        can_accept=(
+            visible
+            and state.can_accept_answer
+            and comment.parent_id is None
+            and comment.pk != post.accepted_answer_id
+        ),
         reactions=state.comment_reactions.get(comment.pk, set()),
         top_public_id=top.public_id,
     )
