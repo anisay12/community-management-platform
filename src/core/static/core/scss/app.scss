@@ -28,6 +28,7 @@ $input-btn-focus-color-opacity: 1;
 $input-btn-focus-color: map.get($tl-light, "color-focus");
 $btn-focus-width: 3px;
 $min-contrast-ratio: 4.5;
+$code-color: #a8236a; // 5.9:1 on the page background (Bootstrap pink is 4.1)
 
 $primary-text-emphasis-dark: map.get($tl-dark, "color-primary");
 $body-bg-dark: map.get($tl-dark, "color-bg");
@@ -43,3 +44,4 @@ $bootstrap-icons-font-dir: "fonts";
 @import "bootstrap/scss/bootstrap";
 @import "bootstrap-icons/font/bootstrap-icons";
 @import "base";
+@import "layout";

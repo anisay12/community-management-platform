@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-10 02:51+0200\n"
+"POT-Creation-Date: 2026-10-10 11:56+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -1626,6 +1626,12 @@ msgstr "Navigation principale"
 msgid "Menu"
 msgstr "Menu"
 
+msgid "Collapse the menu"
+msgstr "Replier le menu"
+
+msgid "My workspace"
+msgstr "Mon espace de travail"
+
 msgid "Pagination"
 msgstr "Pagination"
 
@@ -1670,21 +1676,17 @@ msgid "Sign out"
 msgstr "Se déconnecter"
 
 #, python-format
-msgid "Hello, %(name)s."
-msgstr "Bonjour, %(name)s."
-
-msgid "No communities yet"
-msgstr "Aucune communauté pour le moment"
+msgid "Hello %(name)s"
+msgstr "Bonjour %(name)s"
 
 msgid ""
-"Communities will appear here as soon as they exist. In the meantime, "
-"complete your profile so colleagues can find you."
+"Find your communities, share what you know and follow your colleagues' posts."
 msgstr ""
-"Les communautés apparaîtront ici dès qu’elles existeront. En attendant, "
-"complétez votre profil pour que vos collègues puissent vous trouver."
+"Retrouvez vos communautés, partagez vos connaissances et suivez les "
+"publications de vos collègues."
 
-msgid "Go to my profile"
-msgstr "Aller à mon profil"
+msgid "Where to start"
+msgstr "Par où commencer"
 
 msgid "Welcome to the Talan communities platform."
 msgstr "Bienvenue sur la plateforme des communautés Talan."
@@ -1735,6 +1737,9 @@ msgstr "Une erreur s’est produite."
 
 msgid "Your changes were saved."
 msgstr "Vos modifications ont été enregistrées."
+
+msgid "No communities yet"
+msgstr "Aucune communauté pour le moment"
 
 msgid "Create the first one to get started."
 msgstr "Créez la première pour commencer."

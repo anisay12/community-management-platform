@@ -1,0 +1,455 @@
+// Application shell: vertical side menu, content column, split-screen authentication pages,
+// welcome banner and the card look (white cards with soft shadows on a light grey page).
+
+$tl-lg: 992px;
+
+body.tl-body {
+  background: var(--tl-color-bg);
+}
+
+// Cards, list groups and tables read as raised white panels.
+.card,
+.list-group,
+.tl-panel {
+  --bs-card-bg: var(--tl-color-surface);
+  --bs-card-border-color: var(--tl-color-hairline);
+  --bs-card-border-radius: var(--tl-radius-lg);
+  --bs-card-inner-border-radius: calc(var(--tl-radius-lg) - 1px);
+  --bs-list-group-bg: var(--tl-color-surface);
+  --bs-list-group-border-color: var(--tl-color-hairline);
+  --bs-list-group-border-radius: var(--tl-radius-lg);
+  box-shadow: var(--tl-shadow-sm);
+}
+
+.tl-panel {
+  background: var(--tl-color-surface);
+  border: 1px solid var(--tl-color-hairline);
+  border-radius: var(--tl-radius-lg);
+  padding: 1.5rem;
+}
+
+.card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+// Cards that are links (stretched-link) lift on hover.
+.card:has(.stretched-link):hover {
+  transform: translateY(-2px);
+  box-shadow: var(--tl-shadow-md);
+}
+
+.btn {
+  --bs-btn-border-radius: var(--tl-radius);
+  font-weight: 500;
+}
+
+// ---- Shell -------------------------------------------------------------------------------
+
+.tl-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+
+  @media (min-width: $tl-lg) {
+    flex-direction: row;
+  }
+}
+
+.tl-shell-content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tl-main {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 2rem;
+  animation: tl-fade-in 0.25s ease-out;
+
+  @media (min-width: $tl-lg) {
+    padding: 2rem 2.5rem 3rem;
+  }
+}
+
+.tl-footer {
+  padding: 1rem 1.5rem;
+  color: var(--tl-color-text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+@keyframes tl-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.tl-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: var(--tl-touch-target);
+  color: var(--tl-color-primary);
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+// ---- Side menu ---------------------------------------------------------------------------
+
+.tl-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background: var(--tl-color-surface);
+  border-bottom: 1px solid var(--tl-color-hairline);
+}
+
+.tl-sidebar {
+  --bs-offcanvas-bg: var(--tl-color-surface);
+  --bs-offcanvas-width: min(var(--tl-sidebar-width), 85vw);
+}
+
+.tl-sidebar-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  height: 100%;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+@media (min-width: $tl-lg) {
+  .tl-shell-nav {
+    position: sticky;
+    top: 0;
+    flex: none;
+    width: var(--tl-sidebar-width);
+    height: 100vh;
+    transition: width 0.25s ease;
+  }
+
+  .tl-nav-root {
+    height: 100%;
+  }
+
+  .tl-sidebar {
+    height: 100%;
+    background: var(--tl-color-surface);
+    border-right: 1px solid var(--tl-color-hairline);
+  }
+
+  .tl-sidebar-body {
+    padding: 1.5rem 1rem;
+  }
+}
+
+.tl-sidebar-brand {
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tl-sidebar-collapse {
+  color: var(--tl-color-text-muted);
+  font-size: 1.125rem;
+
+  &:hover {
+    color: var(--tl-color-primary);
+    background: var(--tl-color-nav-active);
+  }
+}
+
+.tl-nav-section {
+  margin: 0.75rem 0.75rem 0.5rem;
+  color: var(--tl-color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tl-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  .nav-link {
+    display: flex;
+    gap: 0.875rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--tl-radius);
+    color: var(--tl-color-text);
+    font-weight: 500;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    .bi {
+      flex: none;
+      width: 1.25rem;
+      font-size: 1.125rem;
+      text-align: center;
+    }
+
+    &:hover {
+      background: var(--tl-color-nav-active);
+      color: var(--tl-color-primary);
+    }
+
+    &.active {
+      position: relative;
+      background: var(--tl-color-nav-active);
+      color: var(--tl-color-primary);
+      font-weight: 600;
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.5rem;
+        bottom: 0.5rem;
+        width: 3px;
+        border-radius: 3px;
+        background: var(--tl-color-accent);
+      }
+    }
+  }
+}
+
+.tl-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid var(--tl-color-hairline);
+}
+
+.tl-user-menu > .btn {
+  justify-content: flex-start;
+  padding: 0.5rem;
+  border: 0;
+  color: var(--tl-color-text);
+  font-weight: 600;
+  text-align: left;
+
+  &:hover,
+  &.show {
+    background: var(--tl-color-nav-active);
+  }
+
+  &::after {
+    margin-left: auto;
+  }
+}
+
+.tl-user-menu .dropdown-menu {
+  --bs-dropdown-border-radius: var(--tl-radius);
+  width: 100%;
+  box-shadow: var(--tl-shadow-md);
+}
+
+// Collapsed side menu (lg and up): icons only, labels kept for assistive technologies.
+@media (min-width: $tl-lg) {
+  .tl-sidebar-collapsed {
+    .tl-shell-nav {
+      width: var(--tl-sidebar-collapsed-width);
+    }
+
+    .tl-nav-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
+    .tl-nav-label-block,
+    .tl-nav-section {
+      display: none;
+    }
+
+    .tl-sidebar-brand {
+      flex-direction: column;
+    }
+
+    .tl-nav .nav-link,
+    .tl-user-menu > .btn {
+      justify-content: center;
+      padding-inline: 0;
+
+      &::after {
+        display: none;
+      }
+    }
+
+    .tl-user-menu .dropdown-menu {
+      width: 14rem;
+    }
+  }
+}
+
+// ---- Welcome banner ----------------------------------------------------------------------
+
+.tl-hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 13rem;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  overflow: hidden;
+  border-radius: var(--tl-radius-lg);
+  // Artwork on the left fading into the navy band: the text always sits on dark navy.
+  background:
+    linear-gradient(to top, rgb(13 26 61 / 85%) 0%, rgb(13 26 61 / 15%) 75%),
+    linear-gradient(100deg, transparent 40%, #1c2860 68%),
+    url("../brand/waves.svg") left top / 70% auto no-repeat,
+    #1c2860;
+  box-shadow: var(--tl-shadow-md);
+  color: #ffffff;
+
+  @media (min-width: $tl-lg) {
+    min-height: 15rem;
+    padding: 2.5rem 3rem;
+  }
+}
+
+.tl-hero-title {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(1.75rem, 3vw + 0.5rem, 2.5rem);
+  font-weight: 600;
+  text-shadow: 0 2px 8px rgb(0 0 0 / 35%);
+}
+
+.tl-hero .tl-avatar-xl {
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 3px solid #ffffff;
+  background: #253371;
+  color: #ffffff;
+  font-size: 1.5rem;
+  text-shadow: none;
+}
+
+.tl-hero-subtitle {
+  margin: 0.5rem 0 0;
+  color: #e6e9f2;
+  text-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}
+
+// ---- Authentication split screen -------------------------------------------------------
+
+.tl-auth {
+  display: flex;
+  min-height: 100vh;
+}
+
+.tl-auth-art {
+  display: none;
+  flex: 0 0 38%;
+  background: url("../brand/waves.svg") center / cover no-repeat, #0d1a3d;
+
+  @media (min-width: $tl-lg) {
+    display: block;
+  }
+}
+
+.tl-auth-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  padding: 1rem 1.5rem;
+}
+
+.tl-auth-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tl-auth-main {
+  width: 100%;
+  max-width: 30rem;
+  margin: auto;
+  padding: 2.5rem 0;
+  animation: tl-fade-in 0.3s ease-out;
+
+  h1 {
+    margin-bottom: 2rem !important;
+    font-size: clamp(2rem, 2.5vw + 1rem, 2.75rem);
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: -0.02em;
+  }
+
+  .btn-primary[type="submit"],
+  .tl-auth-cta {
+    width: 100%;
+    justify-content: center;
+    padding-block: 0.75rem;
+  }
+
+  .form-control {
+    padding: 0.75rem 1rem;
+    border-color: var(--tl-color-border);
+    background: var(--tl-color-surface);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-main,
+  .tl-auth-main {
+    animation: none;
+  }
+
+  .card,
+  .tl-shell-nav,
+  .tl-nav .nav-link {
+    transition: none;
+  }
+
+  .card:has(.stretched-link):hover {
+    transform: none;
+  }
+}
+
+.tl-tile-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--tl-radius);
+  background: var(--tl-color-nav-active);
+  color: var(--tl-color-primary);
+  font-size: 1.25rem;
+}
+
+// Borderless buttons of the side menu: Bootstrap's .btn:focus-visible would remove the outline.
+.tl-user-menu > .btn:focus-visible,
+.tl-sidebar-collapse:focus-visible {
+  outline: var(--tl-focus-ring-width) solid var(--tl-color-focus);
+  outline-offset: 2px;
+}

@@ -1,10 +1,10 @@
 {% load i18n accounts_tags %}
-<div class="dropdown" id="user-menu">
-  <button class="btn btn-outline-secondary dropdown-toggle gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-    <span class="avatar-initials" aria-hidden="true">{{ user|initials }}</span>
-    <span>{{ user.get_short_name|default:user.get_username }}</span>
+<div class="dropup tl-user-menu" id="user-menu">
+  <button class="btn dropdown-toggle gap-2 w-100" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <span class="avatar-initials tl-avatar-md" aria-hidden="true">{{ user|initials }}</span>
+    <span class="tl-nav-label text-truncate">{{ user.get_short_name|default:user.get_username }}</span>
   </button>
-  <ul class="dropdown-menu dropdown-menu-lg-end">
+  <ul class="dropdown-menu">
     <li><a class="dropdown-item" href="{% url 'accounts:profile_me' %}">{% translate "My profile" %}</a></li>
     <li><a class="dropdown-item" href="{% url 'accounts:preferences' %}">{% translate "Preferences" %}</a></li>
     <li><a class="dropdown-item" href="{% url 'accounts:data_export' %}">{% translate "My data" %}</a></li>

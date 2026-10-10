@@ -159,8 +159,9 @@ def test_home_anonymous_and_authenticated(client, make_user):
     client.force_login(make_user("hank@example.com"))
     signed_in = client.get(reverse("home"))
     _assert_design_system_page(signed_in)
-    assert "tl-empty-state" in signed_in.content.decode()
-    assert reverse("accounts:profile_me") in signed_in.content.decode()
+    html = signed_in.content.decode()
+    assert "tl-hero" in html
+    assert reverse("accounts:profile_me") in html
 
 
 def test_404_anonymous_offers_sign_in_and_has_no_navigation(client):
