@@ -759,6 +759,21 @@ def test_mention_suggestions_for_non_member_is_403(client, community, make_user)
     assert client.get(url, {"q": "a"}).status_code == 403
 
 
+def test_mention_suggestions_for_functional_admin_writing_an_announcement(
+    client, community, member_of, make_user, verified_login
+):
+    """The functional administrator publishes announcements without being a member (framing
+    § 4.4): the editor's suggestions work for them too, and still list members only."""
+    member_of("jean@example.com", first_name="Jean", last_name="Dupont")
+    admin = make_user("admin@example.com", first_name="Jean", last_name="Admin")
+    admin.groups.add(Group.objects.get(name=Role.FUNCTIONAL_ADMIN))
+    verified_login(client, admin)
+    url = reverse("posts:mention_suggestions", args=[community.slug])
+    html = client.get(url, {"q": "jean"}).content.decode()
+    assert "@jean.dupont" in html
+    assert "jean.admin" not in html
+
+
 # --- Edge cases ---------------------------------------------------------------------------------
 
 

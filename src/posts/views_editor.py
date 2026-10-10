@@ -131,17 +131,20 @@ def _join_prompt(request, community):
 def create(request, slug):
     community = _readable_community(request, slug)
     user = request.user
-    if membership_of(user, community) is None:
+    kinds = creatable_kinds(user, community)
+    # A functional administrator is no member but may publish announcements (framing § 4.4).
+    if not kinds and membership_of(user, community) is None:
         return _join_prompt(request, community)
     if community.is_read_only:
         messages.error(request, _("This community is suspended or archived: it cannot be changed."))
         return redirect(_feed_url(community))
-    kinds = creatable_kinds(user, community)
     can_create_tags = policies.can_create_tag(user, community)
     if request.method != "POST":
         initial_kind = request.GET.get("kind")
+        if initial_kind not in kinds:
+            initial_kind = Post.Kind.DISCUSSION if Post.Kind.DISCUSSION in kinds else kinds[0]
         form = PostForm(
-            initial={"kind": initial_kind if initial_kind in kinds else Post.Kind.DISCUSSION},
+            initial={"kind": initial_kind},
             kinds=kinds,
             can_create_tags=can_create_tags,
         )
@@ -263,9 +266,12 @@ def preview(request, slug):
 @login_required
 @require_safe
 def mention_suggestions(request, slug):
-    """Up to ``MENTION_SUGGESTIONS`` members whose handle starts with ``q`` (members only)."""
+    """Up to ``MENTION_SUGGESTIONS`` members whose handle starts with ``q``, for members and
+    for whoever may publish in the community (a functional administrator's announcement)."""
     community = _readable_community(request, slug)
-    if membership_of(request.user, community) is None:
+    if membership_of(request.user, community) is None and not creatable_kinds(
+        request.user, community
+    ):
         raise PermissionDenied
     query = request.GET.get("q", "").strip().lstrip("@").lower()
     suggestions = []

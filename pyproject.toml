@@ -57,11 +57,10 @@ select = ["E", "F", "W", "I", "B", "UP", "DJ", "S", "SIM", "RUF"]
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 pythonpath = ["src"]
-addopts = "--strict-markers -ra -m \"not a11y and not after_integration\""
+addopts = "--strict-markers -ra -m \"not a11y\""
 markers = [
     "integration: requires an external service (S3-compatible storage)",
     "a11y: browser accessibility and keyboard checks (Playwright + axe-core), run by `make test-a11y`",
-    "after_integration: needs code of a parallel task; run by the orchestrator after the merge",
 ]
 
 [tool.coverage.run]
