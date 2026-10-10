@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-10 12:35+0200\n"
+"POT-Creation-Date: 2026-10-10 16:39+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -31,6 +31,19 @@ msgstr "Un utilisateur avec cette adresse e-mail existe déjà."
 
 msgid "Users"
 msgstr "Utilisateurs"
+
+msgid "This image cannot be read. Use a PNG, JPEG or WebP photo."
+msgstr "Cette image est illisible. Utilisez une photo PNG, JPEG ou WebP."
+
+msgid "This image has too many pixels. Use a smaller photo."
+msgstr "Cette image comporte trop de pixels. Utilisez une photo plus petite."
+
+#, python-format
+msgid "The photo must not exceed %(size)s MB."
+msgstr "La photo ne doit pas dépasser %(size)s Mo."
+
+msgid "Only PNG, JPEG and WebP photos are accepted."
+msgstr "Seules les photos PNG, JPEG et WebP sont acceptées."
 
 msgid "Email"
 msgstr "E-mail"
@@ -124,6 +137,15 @@ msgstr "Fuseau horaire"
 msgid "“Automatic” follows your browser settings."
 msgstr "« Automatique » suit les réglages de votre navigateur."
 
+msgid "New photo"
+msgstr "Nouvelle photo"
+
+msgid ""
+"PNG, JPEG or WebP, 2 MB at most. Optional: your initials are shown otherwise."
+msgstr ""
+"PNG, JPEG ou WebP, 2 Mo au maximum. Facultatif : vos initiales sont "
+"affichées sinon."
+
 msgid "Pending"
 msgstr "En attente"
 
@@ -202,8 +224,26 @@ msgstr "intitulé de poste"
 msgid "bio"
 msgstr "biographie"
 
+msgid "None"
+msgstr "Aucune"
+
+msgid "Being checked"
+msgstr "En cours de vérification"
+
+msgid "Refused by the virus scan"
+msgstr "Refusée par l’analyse antivirus"
+
+msgid "Check failed"
+msgstr "Échec de la vérification"
+
 msgid "avatar"
 msgstr "avatar"
+
+msgid "pending avatar key"
+msgstr "clé de la photo en attente"
+
+msgid "avatar scan status"
+msgstr "statut de l’analyse de la photo"
 
 msgid "time zone"
 msgstr "fuseau horaire"
@@ -578,6 +618,32 @@ msgstr "Dernière activité"
 msgid "About"
 msgstr "À propos"
 
+msgid "Photo"
+msgstr "Photo"
+
+msgid ""
+"Your new photo is being checked by the antivirus. Reload the page in a "
+"moment."
+msgstr ""
+"Votre nouvelle photo est en cours de vérification par l’antivirus. Rechargez "
+"la page dans un instant."
+
+msgid "Your last photo was refused by the virus scan and deleted."
+msgstr ""
+"Votre dernière photo a été refusée par l’analyse antivirus et supprimée."
+
+msgid ""
+"Your last photo could not be checked or read. Try again or use another photo."
+msgstr ""
+"Votre dernière photo n’a pas pu être vérifiée ou lue. Réessayez ou utilisez "
+"une autre photo."
+
+msgid "Upload photo"
+msgstr "Téléverser une photo"
+
+msgid "Remove my photo"
+msgstr "Supprimer ma photo"
+
 msgid "Cancel"
 msgstr "Annuler"
 
@@ -825,6 +891,18 @@ msgstr ""
 
 msgid "Your profile has been updated."
 msgstr "Votre profil a été mis à jour."
+
+msgid "Choose a photo to upload."
+msgstr "Choisissez une photo à téléverser."
+
+msgid ""
+"Your photo is being checked by the antivirus. It will appear in a moment."
+msgstr ""
+"Votre photo est en cours de vérification par l’antivirus. Elle apparaîtra "
+"dans un instant."
+
+msgid "Your photo has been removed."
+msgstr "Votre photo a été supprimée."
 
 msgid "Your preferences have been saved."
 msgstr "Vos préférences ont été enregistrées."
@@ -1140,9 +1218,6 @@ msgstr "Toute l'activité"
 
 msgid "Highlights"
 msgstr "Temps forts"
-
-msgid "None"
-msgstr "Aucune"
 
 msgid "role"
 msgstr "rôle"
@@ -1618,6 +1693,12 @@ msgstr "L'invitation a été révoquée."
 msgid "Home"
 msgstr "Accueil"
 
+msgid ""
+"This form is already being processed. Wait a moment, then check the result."
+msgstr ""
+"Ce formulaire est déjà en cours de traitement. Patientez un instant, puis "
+"vérifiez le résultat."
+
 msgid "Skip to main content"
 msgstr "Aller au contenu principal"
 
@@ -1725,6 +1806,21 @@ msgid_plural "%(counter)s open reports"
 msgstr[0] "%(counter)s signalement ouvert"
 msgstr[1] "%(counter)s signalements ouverts"
 
+msgid "Documents to review"
+msgstr "Documents à revoir"
+
+msgid "Reported as outdated"
+msgstr "Signalé comme obsolète"
+
+msgid "Review date passed"
+msgstr "Date de revue dépassée"
+
+msgid "Latest scan errors"
+msgstr "Dernières erreurs d’analyse"
+
+msgid "No scan error."
+msgstr "Aucune erreur d’analyse."
+
 msgid "Manage users"
 msgstr "Gérer les utilisateurs"
 
@@ -1766,6 +1862,12 @@ msgstr "Ouvrir le fil"
 
 msgid "No posts yet in your communities."
 msgstr "Aucune publication pour l’instant dans vos communautés."
+
+msgid "Recent resources in my communities"
+msgstr "Ressources récentes de mes communautés"
+
+msgid "No documents yet in your communities."
+msgstr "Aucun document pour l’instant dans vos communautés."
 
 msgid "Where to start"
 msgstr "Par où commencer"
@@ -1922,6 +2024,510 @@ msgstr "Composants"
 msgid "Current page"
 msgstr "Page courante"
 
+msgid "Resources"
+msgstr "Ressources"
+
+msgid "You cannot download this document."
+msgstr "Vous ne pouvez pas télécharger ce document."
+
+#, python-format
+msgid "Accepted formats: %(formats)s. At most %(size)s."
+msgstr "Formats acceptés : %(formats)s. %(size)s au maximum."
+
+msgid "Title"
+msgstr "Titre"
+
+msgid "Plain text: what the document contains and who it is for."
+msgstr "Texte brut : ce que contient le document et à qui il s’adresse."
+
+msgid "Type"
+msgstr "Type"
+
+msgid "Separate tags with commas."
+msgstr "Séparez les étiquettes par des virgules."
+
+msgid "Who can read it"
+msgstr "Qui peut le lire"
+
+msgid "Minimum role to read"
+msgstr "Rôle minimum pour lire"
+
+msgid ""
+"Only used when the document is restricted to members with a minimum role."
+msgstr ""
+"Utilisé uniquement lorsque le document est réservé aux membres ayant un rôle "
+"minimum."
+
+msgid "Minimum role to download"
+msgstr "Rôle minimum pour télécharger"
+
+msgid "Readers below this role see the document but cannot download it."
+msgstr ""
+"Les lecteurs en dessous de ce rôle voient le document mais ne peuvent pas le "
+"télécharger."
+
+msgid "Expiry date"
+msgstr "Date d’expiration"
+
+msgid "Optional. The document is no longer offered to readers after this day."
+msgstr ""
+"Facultatif. Le document n’est plus proposé aux lecteurs après cette date."
+
+msgid "Review date"
+msgstr "Date de revue"
+
+msgid ""
+"Optional. From this day, the document appears in the documents to review."
+msgstr ""
+"Facultatif. À partir de cette date, le document apparaît dans les documents "
+"à revoir."
+
+msgid "Separate tags with commas. Pick an existing tag or type a new one."
+msgstr ""
+"Séparez les étiquettes par des virgules. Choisissez une étiquette existante "
+"ou saisissez-en une nouvelle."
+
+msgid "Separate tags with commas. Only existing tags can be used."
+msgstr ""
+"Séparez les étiquettes par des virgules. Seules les étiquettes existantes "
+"peuvent être utilisées."
+
+msgid "File"
+msgstr "Fichier"
+
+msgid "Version label"
+msgstr "Libellé de version"
+
+msgid "Optional, for example 2.0 or 2026-Q3. The version number by default."
+msgstr ""
+"Facultatif, par exemple 2.0 ou 2026-T3. Le numéro de version par défaut."
+
+msgid "Make it the reference version once scanned"
+msgstr "En faire la version de référence une fois analysée"
+
+msgid "What changed"
+msgstr "Modifications apportées"
+
+msgid "Scan in progress or failed"
+msgstr "Analyse en cours ou en échec"
+
+msgid "All"
+msgstr "Tout"
+
+msgid "Search in titles"
+msgstr "Rechercher dans les titres"
+
+msgid "All types"
+msgstr "Tous les types"
+
+msgid "Tag"
+msgstr "Étiquette"
+
+msgid "Most recent"
+msgstr "Plus récents"
+
+msgid "Most downloaded"
+msgstr "Plus téléchargés"
+
+msgid "All tags"
+msgstr "Toutes les étiquettes"
+
+msgid "Post"
+msgstr "Publication"
+
+msgid "Guide"
+msgstr "Guide"
+
+msgid "Template"
+msgstr "Modèle"
+
+msgid "Presentation"
+msgstr "Présentation"
+
+msgid "Code sample"
+msgstr "Exemple de code"
+
+msgid "Other"
+msgstr "Autre"
+
+msgid "Everyone who can read the community"
+msgstr "Toute personne pouvant lire la communauté"
+
+msgid "Members with a minimum role"
+msgstr "Membres ayant un rôle minimum"
+
+msgid "title"
+msgstr "titre"
+
+msgid "type"
+msgstr "type"
+
+msgid "owner"
+msgstr "propriétaire"
+
+msgid "owner name"
+msgstr "nom du propriétaire"
+
+msgid "visibility"
+msgstr "visibilité"
+
+msgid "minimum role to read"
+msgstr "rôle minimum pour lire"
+
+msgid "minimum role to download"
+msgstr "rôle minimum pour télécharger"
+
+msgid "review due at"
+msgstr "revue prévue le"
+
+msgid "reference version"
+msgstr "version de référence"
+
+msgid "download count"
+msgstr "nombre de téléchargements"
+
+msgid "archived by"
+msgstr "archivé par"
+
+msgid "document"
+msgstr "document"
+
+msgid "documents"
+msgstr "documents"
+
+msgid "Scan in progress"
+msgstr "Analyse en cours"
+
+msgid "Clean"
+msgstr "Sain"
+
+msgid "Infected"
+msgstr "Infecté"
+
+msgid "Scan failed"
+msgstr "Échec de l’analyse"
+
+msgid "number"
+msgstr "numéro"
+
+msgid "version"
+msgstr "version"
+
+msgid "storage key"
+msgstr "clé de stockage"
+
+msgid "file name"
+msgstr "nom du fichier"
+
+msgid "content type"
+msgstr "type de contenu"
+
+msgid "size"
+msgstr "taille"
+
+msgid "SHA-256"
+msgstr "SHA-256"
+
+msgid "scan status"
+msgstr "statut de l’analyse"
+
+msgid "scanned at"
+msgstr "analysé le"
+
+msgid "scan detail"
+msgstr "détail de l’analyse"
+
+msgid "uploaded by"
+msgstr "téléversé par"
+
+msgid "change note"
+msgstr "note de modification"
+
+msgid "make reference once clean"
+msgstr "définir comme référence une fois sain"
+
+msgid "document version"
+msgstr "version de document"
+
+msgid "document versions"
+msgstr "versions de document"
+
+msgid "post"
+msgstr "publication"
+
+msgid "document link"
+msgstr "lien de document"
+
+msgid "document links"
+msgstr "liens de document"
+
+msgid "preview"
+msgstr "aperçu"
+
+msgid "download"
+msgstr "téléchargement"
+
+msgid "downloads"
+msgstr "téléchargements"
+
+#, python-format
+msgid "The value of “%(field)s” is not valid."
+msgstr "La valeur de « %(field)s » n’est pas valide."
+
+msgid "Give the document a title."
+msgstr "Donnez un titre au document."
+
+msgid "The title is too long."
+msgstr "Le titre est trop long."
+
+#, python-format
+msgid "The description is too long (at most %(limit)s characters)."
+msgstr "La description est trop longue (au plus %(limit)s caractères)."
+
+msgid "The expiry date must be in the future."
+msgstr "La date d’expiration doit être dans le futur."
+
+#, python-format
+msgid "The change note is too long (at most %(limit)s characters)."
+msgstr ""
+"La note de modification est trop longue (au plus %(limit)s caractères)."
+
+msgid "The version label is too long."
+msgstr "Le libellé de version est trop long."
+
+#, python-format
+msgid "Another version of this document is already labelled “%(label)s”."
+msgstr "Une autre version de ce document porte déjà le libellé « %(label)s »."
+
+msgid "The file could not be stored right now. Please try again later."
+msgstr ""
+"Le fichier n’a pas pu être enregistré pour le moment. Veuillez réessayer "
+"plus tard."
+
+msgid "A document can only be linked to content of its community."
+msgstr "Un document ne peut être lié qu’à un contenu de sa communauté."
+
+#, python-format
+msgid ""
+"“%(title)s” will no longer be offered to readers. You can restore it later."
+msgstr ""
+"« %(title)s » ne sera plus proposé aux lecteurs. Vous pourrez le restaurer "
+"plus tard."
+
+msgid "Restricted"
+msgstr "Restreint"
+
+msgid "Archive the document"
+msgstr "Archiver le document"
+
+msgid "Archive"
+msgstr "Archiver"
+
+msgid "Upload a document"
+msgstr "Téléverser un document"
+
+msgid "Filter the documents"
+msgstr "Filtrer les documents"
+
+msgid "Apply"
+msgstr "Appliquer"
+
+msgid "Reset"
+msgstr "Réinitialiser"
+
+#, python-format
+msgid "%(counter)s document"
+msgid_plural "%(counter)s documents"
+msgstr[0] "%(counter)s document"
+msgstr[1] "%(counter)s documents"
+
+#, python-format
+msgid "Version %(label)s"
+msgstr "Version %(label)s"
+
+#, python-format
+msgid "%(counter)s download"
+msgid_plural "%(counter)s downloads"
+msgstr[0] "%(counter)s téléchargement"
+msgstr[1] "%(counter)s téléchargements"
+
+msgid "No document matches these filters"
+msgstr "Aucun document ne correspond à ces filtres"
+
+msgid "Change or reset the filters to see more documents."
+msgstr "Modifiez ou réinitialisez les filtres pour voir plus de documents."
+
+msgid "No documents yet"
+msgstr "Aucun document pour l’instant"
+
+msgid "Share a guide, a template or a presentation with the community."
+msgstr "Partagez un guide, un modèle ou une présentation avec la communauté."
+
+msgid "Documents shared by the community's contributors will appear here."
+msgstr ""
+"Les documents partagés par les contributeurs de la communauté apparaîtront "
+"ici."
+
+msgid "Updated"
+msgstr "Mis à jour le"
+
+msgid "This document is archived: readers no longer see it."
+msgstr "Ce document est archivé : les lecteurs ne le voient plus."
+
+msgid "This document has expired: readers no longer see it."
+msgstr "Ce document a expiré : les lecteurs ne le voient plus."
+
+#, python-format
+msgid "Members with the role %(role)s or above"
+msgstr "Membres ayant le rôle %(role)s ou supérieur"
+
+msgid "Who can download it"
+msgstr "Qui peut le télécharger"
+
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "Upload a new version"
+msgstr "Téléverser une nouvelle version"
+
+msgid "Restore"
+msgstr "Restaurer"
+
+msgid "Reference version"
+msgstr "Version de référence"
+
+msgid "Version"
+msgstr "Version"
+
+msgid "File name"
+msgstr "Nom du fichier"
+
+msgid "Size"
+msgstr "Taille"
+
+msgid "Content type"
+msgstr "Type de contenu"
+
+msgid "Uploaded"
+msgstr "Téléversé le"
+
+msgid "Scan status"
+msgstr "Statut de l’analyse"
+
+msgid "Download"
+msgstr "Télécharger"
+
+msgid "Preview"
+msgstr "Aperçu"
+
+msgid "(opens in a new tab)"
+msgstr "(s’ouvre dans un nouvel onglet)"
+
+msgid "The file can be downloaded once the antivirus scan is clean."
+msgstr ""
+"Le fichier pourra être téléchargé une fois l’analyse antivirus réussie."
+
+msgid ""
+"Your role in the community does not allow you to download this document."
+msgstr ""
+"Votre rôle dans la communauté ne vous permet pas de télécharger ce document."
+
+msgid "This file cannot be downloaded: upload a new version."
+msgstr ""
+"Ce fichier ne peut pas être téléchargé : téléversez une nouvelle version."
+
+msgid "Versions"
+msgstr "Versions"
+
+#, python-format
+msgid "version %(label)s"
+msgstr "version %(label)s"
+
+msgid "Make reference"
+msgstr "Définir comme référence"
+
+msgid "Linked posts"
+msgstr "Publications liées"
+
+msgid "Remove the link"
+msgstr "Supprimer le lien"
+
+msgid "This document is not linked to any post yet."
+msgstr "Ce document n’est encore lié à aucune publication."
+
+msgid "Link to a post of this community"
+msgstr "Lier à une publication de cette communauté"
+
+msgid "Link"
+msgstr "Lier"
+
+msgid "Edit document"
+msgstr "Modifier le document"
+
+msgid "Upload"
+msgstr "Téléverser"
+
+msgid "New version"
+msgstr "Nouvelle version"
+
+#, python-format
+msgid "The file is too large (at most %(limit)s MB)."
+msgstr "Le fichier est trop volumineux (au plus %(limit)s Mo)."
+
+#, python-format
+msgid "This type of file is not accepted. Accepted extensions: %(extensions)s."
+msgstr ""
+"Ce type de fichier n’est pas accepté. Extensions acceptées : %(extensions)s."
+
+msgid "The file is empty."
+msgstr "Le fichier est vide."
+
+#, python-format
+msgid "The content of the file does not match its extension “.%(extension)s”."
+msgstr ""
+"Le contenu du fichier ne correspond pas à son extension « .%(extension)s »."
+
+msgid ""
+"The document has been uploaded. The file is being scanned for viruses: it "
+"becomes available to readers once the scan is clean."
+msgstr ""
+"Le document a été téléversé. Le fichier est en cours d’analyse antivirus : "
+"il sera disponible pour les lecteurs une fois l’analyse réussie."
+
+msgid "The document has been updated."
+msgstr "Le document a été modifié."
+
+msgid ""
+"The new version has been uploaded. The file is being scanned for viruses "
+"before it can be downloaded."
+msgstr ""
+"La nouvelle version a été téléversée. Le fichier est en cours d’analyse "
+"antivirus avant de pouvoir être téléchargé."
+
+#, python-format
+msgid "Version %(label)s is now the reference version."
+msgstr "La version %(label)s est désormais la version de référence."
+
+msgid "The document has been archived."
+msgstr "Le document a été archivé."
+
+msgid "The document has been restored."
+msgstr "Le document a été restauré."
+
+msgid "Choose a post of this community."
+msgstr "Choisissez une publication de cette communauté."
+
+msgid "The document has been linked to the post."
+msgstr "Le document a été lié à la publication."
+
+msgid "The link has been removed."
+msgstr "Le lien a été supprimé."
+
+msgid "This version cannot be downloaded until its virus scan has succeeded."
+msgstr ""
+"Cette version ne peut pas être téléchargée tant que son analyse antivirus "
+"n’a pas réussi."
+
 msgid "recipient"
 msgstr "destinataire"
 
@@ -1967,9 +2573,6 @@ msgstr "Favoris"
 msgid "Kind"
 msgstr "Type"
 
-msgid "Title"
-msgstr "Titre"
-
 msgid "Text"
 msgstr "Texte"
 
@@ -1979,19 +2582,6 @@ msgid ""
 msgstr ""
 "Markdown est pris en charge : **gras**, *italique*, listes, liens et `code`. "
 "Mentionnez un membre avec @prenom.nom."
-
-msgid "Separate tags with commas."
-msgstr "Séparez les étiquettes par des virgules."
-
-msgid "Separate tags with commas. Pick an existing tag or type a new one."
-msgstr ""
-"Séparez les étiquettes par des virgules. Choisissez une étiquette existante "
-"ou saisissez-en une nouvelle."
-
-msgid "Separate tags with commas. Only existing tags can be used."
-msgstr ""
-"Séparez les étiquettes par des virgules. Seules les étiquettes existantes "
-"peuvent être utilisées."
 
 msgid "Note to the author"
 msgstr "Note à l’auteur"
@@ -2022,6 +2612,9 @@ msgstr "Nom de la collection"
 
 msgid "Resolve and hide"
 msgstr "Traiter et masquer"
+
+msgid "Resolve and archive the document"
+msgstr "Traiter et archiver le document"
 
 msgid "Resolve"
 msgstr "Traiter"
@@ -2059,9 +2652,6 @@ msgstr "nom de l’auteur"
 msgid "kind"
 msgstr "type"
 
-msgid "title"
-msgstr "titre"
-
 msgid "body"
 msgstr "contenu"
 
@@ -2089,9 +2679,6 @@ msgstr "nombre de commentaires"
 msgid "reaction counts"
 msgstr "compteurs de réactions"
 
-msgid "version"
-msgstr "version"
-
 msgid "hidden at"
 msgstr "masqué le"
 
@@ -2106,9 +2693,6 @@ msgstr "statut avant masquage"
 
 msgid "review note"
 msgstr "note de validation"
-
-msgid "post"
-msgstr "publication"
 
 msgid "posts"
 msgstr "publications"
@@ -2188,9 +2772,6 @@ msgstr "Information obsolète"
 msgid "Spam"
 msgstr "Spam"
 
-msgid "Other"
-msgstr "Autre"
-
 msgid "Resolved"
 msgstr "Traité"
 
@@ -2252,17 +2833,14 @@ msgstr "Vous avez déjà une collection portant ce nom."
 msgid "You already have %(max)s collections: delete one first."
 msgstr "Vous avez déjà %(max)s collections : supprimez-en une d’abord."
 
-msgid "Choose a reason for your report."
-msgstr "Choisissez un motif pour votre signalement."
-
 msgid "You have already reported this content."
 msgstr "Vous avez déjà signalé ce contenu."
 
+msgid "Choose a reason for your report."
+msgstr "Choisissez un motif pour votre signalement."
+
 msgid "Give the post a title."
 msgstr "Donnez un titre à la publication."
-
-msgid "The title is too long."
-msgstr "Le titre est trop long."
 
 #, python-format
 msgid "The text is too long (at most %(limit)s characters)."
@@ -2313,9 +2891,6 @@ msgstr "Répondre"
 msgid "Your reply"
 msgstr "Votre réponse"
 
-msgid "Edit"
-msgstr "Modifier"
-
 msgid "Accept this answer"
 msgstr "Accepter cette réponse"
 
@@ -2336,6 +2911,9 @@ msgstr "Publier le commentaire"
 
 msgid "Join this community to comment and react."
 msgstr "Rejoignez cette communauté pour commenter et réagir."
+
+msgid "Send the report"
+msgstr "Envoyer le signalement"
 
 msgid "New post"
 msgstr "Nouvelle publication"
@@ -2398,9 +2976,6 @@ msgstr ""
 msgid "Unhide"
 msgstr "Rendre visible"
 
-msgid "Archive"
-msgstr "Archiver"
-
 msgid "Archive this post?"
 msgstr "Archiver cette publication ?"
 
@@ -2458,6 +3033,9 @@ msgstr "Supprimer cette collection"
 msgid "Its bookmarks are kept, outside any collection."
 msgstr "Ses favoris sont conservés, hors de toute collection."
 
+msgid "Document"
+msgstr "Document"
+
 msgid "Collection"
 msgstr "Collection"
 
@@ -2486,11 +3064,35 @@ msgstr "Cette publication est archivée et en lecture seule."
 msgid "Revisions"
 msgstr "Révisions"
 
+msgid "Linked documents"
+msgstr "Documents liés"
+
 msgid "Comments"
 msgstr "Commentaires"
 
 msgid "No comments yet."
 msgstr "Aucun commentaire pour l’instant."
+
+msgid "Report content"
+msgstr "Signaler un contenu"
+
+#, python-format
+msgid "Document “%(title)s” by %(owner)s"
+msgstr "Document « %(title)s » de %(owner)s"
+
+msgid ""
+"Moderators of the community will review your report. Your name is not shown "
+"to the author."
+msgstr ""
+"Les modérateurs de la communauté examineront votre signalement. Votre nom "
+"n’est pas montré à l’auteur."
+
+msgid ""
+"Choose “Outdated information” if the document needs a review: its managers "
+"will see it in their content to review."
+msgstr ""
+"Choisissez « Information obsolète » si le document doit être revu : ses "
+"gestionnaires le verront dans leurs contenus à valider."
 
 msgid "Edit conflict"
 msgstr "Conflit de modification"
@@ -2526,9 +3128,6 @@ msgstr "1 membre suggéré : utilisez les flèches, puis Entrée."
 msgid "__count__ members suggested: use the arrow keys, then Enter."
 msgstr "__count__ membres suggérés : utilisez les flèches, puis Entrée."
 
-msgid "Preview"
-msgstr "Aperçu"
-
 msgid "Use Preview to see how your text will look."
 msgstr "Utilisez « Aperçu » pour voir le rendu de votre texte."
 
@@ -2555,6 +3154,9 @@ msgstr "Parcourir les communautés"
 
 msgid "Moderation queues"
 msgstr "Files de modération"
+
+msgid "Document:"
+msgstr "Document :"
 
 #, python-format
 msgid "Comment on “%(title)s”"
@@ -2605,9 +3207,6 @@ msgstr ""
 "Les publications soumises à validation dans cette communauté apparaîtront "
 "ici."
 
-msgid "Report content"
-msgstr "Signaler un contenu"
-
 #, python-format
 msgid "Comment by %(author)s on “%(title)s”"
 msgstr "Commentaire de %(author)s sur « %(title)s »"
@@ -2615,16 +3214,6 @@ msgstr "Commentaire de %(author)s sur « %(title)s »"
 #, python-format
 msgid "Post “%(title)s” by %(author)s"
 msgstr "Publication « %(title)s » de %(author)s"
-
-msgid ""
-"Moderators of the community will review your report. Your name is not shown "
-"to the author."
-msgstr ""
-"Les modérateurs de la communauté examineront votre signalement. Votre nom "
-"n’est pas montré à l’auteur."
-
-msgid "Send the report"
-msgstr "Envoyer le signalement"
 
 #, python-format
 msgid "Revisions of “%(title)s”"
@@ -2670,9 +3259,6 @@ msgstr "Publier"
 msgid "Hidden automatically after several reports"
 msgstr "Masqué automatiquement après plusieurs signalements"
 
-msgid "All"
-msgstr "Tout"
-
 msgid "Discussions"
 msgstr "Discussions"
 
@@ -2711,6 +3297,15 @@ msgstr "Lancez la première conversation de cette communauté."
 
 msgid "Posts matching this filter will appear here."
 msgstr "Les publications correspondant à ce filtre apparaîtront ici."
+
+msgid "Bookmark added."
+msgstr "Favori ajouté."
+
+msgid "Bookmark removed."
+msgstr "Favori retiré."
+
+msgid "The bookmark has been moved."
+msgstr "Le favori a été déplacé."
 
 msgid "Draft saved."
 msgstr "Brouillon enregistré."
@@ -2766,12 +3361,6 @@ msgstr "Le commentaire est masqué."
 msgid "The comment is visible again."
 msgstr "Le commentaire est de nouveau visible."
 
-msgid "Bookmark added."
-msgstr "Favori ajouté."
-
-msgid "Bookmark removed."
-msgstr "Favori retiré."
-
 msgid "The collection has been created."
 msgstr "La collection a été créée."
 
@@ -2781,9 +3370,6 @@ msgstr "La collection a été renommée."
 msgid "The collection has been deleted."
 msgstr "La collection a été supprimée."
 
-msgid "The bookmark has been moved."
-msgstr "Le favori a été déplacé."
-
 msgid "Reports"
 msgstr "Signalements"
 
@@ -2792,6 +3378,9 @@ msgstr "En attente de validation"
 
 msgid "The content has been hidden and the reports resolved."
 msgstr "Le contenu a été masqué et les signalements traités."
+
+msgid "The document has been archived and the reports resolved."
+msgstr "Le document a été archivé et les signalements traités."
 
 msgid "The reports have been resolved."
 msgstr "Les signalements ont été traités."
