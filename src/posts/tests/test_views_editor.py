@@ -425,6 +425,16 @@ def test_reviewer_sees_review_buttons(client, community, author, moderator, make
     assert _action("review_decide", post) not in _detail_html(client, author, post)
 
 
+def test_read_only_community_offers_send_back_but_not_approve(
+    client, community, author, moderator, make_post
+):
+    post = make_post(community, author, status=S.PENDING_REVIEW)
+    Community.objects.filter(pk=community.pk).update(status=Community.Status.SUSPENDED)
+    html = _detail_html(client, moderator, post)
+    assert 'id="reject-post-modal"' in html
+    assert 'value="approve"' not in html
+
+
 def test_hidden_post_shows_unhide_to_moderator(client, community, author, moderator, make_post):
     post = make_post(community, author, status=S.HIDDEN, hidden_reason="Spam")
     html = _detail_html(client, moderator, post)

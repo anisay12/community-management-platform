@@ -49,12 +49,15 @@ def post_actions(user, post, moderator=None) -> dict:
     can_pin = status == S.PUBLISHED and policies.can_pin(user, community)
     accept = policies.can_accept_answer(user, post)
     publish = is_author and status == S.DRAFT and not community.is_read_only
+    review = moderator and status == S.PENDING_REVIEW and policies.can_review(user, community)
     return {
         "edit": (is_author or moderator) and policies.can_edit_post(user, post),
         "publish": publish,
         "publish_label": publish_label(user, community) if publish else "",
         "delete_draft": policies.can_delete_draft(user, post),
-        "review": moderator and status == S.PENDING_REVIEW and policies.can_review(user, community),
+        "review": review,
+        # Sending back works in any community status; approving publishes, so active only.
+        "approve": review and not community.is_read_only,
         "pin": can_pin and post.pinned_at is None,
         "unpin": can_pin and post.pinned_at is not None,
         "hide": moderator and status in (S.PUBLISHED, S.PENDING_REVIEW, S.ARCHIVED),

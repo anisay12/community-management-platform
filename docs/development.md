@@ -185,7 +185,7 @@ The `posts` app holds posts (`discussion`, `question`, `announcement`, `article`
 | Bookmark, report | anyone who reads the post (not one's own content for reports) |
 | Merge tags | functional administrators |
 
-Writes need an `active` community: suspended and archived communities answer `read_only`, except moderation (hide, unhide, review, reports), which works whatever the status. No content is deleted from the UI except one's own draft; published content is hidden or archived.
+Writes need an `active` community: suspended and archived communities answer `read_only`, except moderation (hide, unhide, reports, sending a pending post back to draft), which works whatever the status. Approving a pending post publishes it, so it needs an `active` community: in a suspended or archived community a moderator can send a pending post back but not approve it. No content is deleted from the UI except one's own draft; published content is hidden or archived.
 
 **Review.** When a community sets "posts require review", posts of members below moderator go to `pending_review`; moderators are notified (`review_request`) and approve (published, audited `post.review_approved`) or send the post back as a draft with a mandatory note (`post.review_rejected`). A moderator's edit of someone else's post keeps a revision, is audited `post.edited_by_moderator` and tells the author; articles and announcements also keep a revision when their author edits them once published. Edits carry the post `version`: a stale version answers 409 with the submitted text kept.
 
