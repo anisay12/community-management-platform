@@ -775,5 +775,5 @@ def test_empty_htmx_report_post_answers_a_form_error(member_client, post):
     """An empty POST binds the form: an error toast, not a server error."""
     response = member_client.post(_report("post", post), {}, headers=HTMX)
     assert response.status_code == 204
-    assert "HX-Trigger" in response or response.content
+    assert response["HX-Redirect"] == _report("post", post)
     assert not ContentReport.objects.exists()
