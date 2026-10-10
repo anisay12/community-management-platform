@@ -88,7 +88,7 @@
 - `posts/hiding.py` (Task 1): `mark_hidden(target, *, actor, reason, automatic=False)` and `mark_visible(target)` — the shared low-level status change + audit used by Tasks 2 and 3; `is_auto_hidden(target)` and `confirm_hidden(target, *, actor, reason)` (a moderator confirms an automatic hiding: `hidden_by`, reason, audit `*.hidden`).
 - `posts/mentions.py` (Task 1): `handle_for(user) -> str`, `extract_handles(text) -> set[str]`, `resolve_mentions(community, text) -> list[User]`, `sync_mentions(source, users) -> list[User]` (returns newly mentioned users).
 - `posts/ratelimit.py` (Task 1): `hit(user, bucket: str) -> None` (raises `DomainError("rate_limited")` with attribute `retry_after`).
-- `posts/rendering.py` (Task 1): `render_body(text) -> str` (= `core.markdown.render` + mention spans).
+- `posts/rendering.py` (Task 1): `render_body(text, resolved_handles=()) -> str` (= `core.markdown.render` + a mention span on each `@first.last` of `resolved_handles`; callers pass the handles of the members the mentions resolve to — `mentions.handles_of` — so unresolved mentions stay plain text).
 - `posts/tasks.py` (Task 1 stubs that return immediately; Task 3 implements): `recount_target(model_label, pk)`, `schedule_recount(obj)`, `verify_counters()`, `broadcast_post(post_id, category)`.
 - `taxonomy/services.py` (Task 7): `merge_tags(*, actor, source, target) -> Tag` (audit `tag.merged`).
 

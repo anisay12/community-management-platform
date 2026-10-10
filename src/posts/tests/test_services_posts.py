@@ -228,7 +228,8 @@ def test_mentions_are_stored_and_notified_on_publish(
         expert.pk
     ]
     assert Notification.objects.filter(recipient=expert, category="mention").count() == 1
-    assert 'class="mention"' in post.body_html
+    assert '<span class="mention">@expert.person</span>' in post.body_html
+    assert '<span class="mention">@nobody.here' not in post.body_html
 
 
 def test_mentions_in_a_draft_are_notified_only_when_published(
@@ -273,6 +274,9 @@ def test_mentions_are_resolved_again_at_publication(
     assert list(Mention.objects.filter(post=post).values_list("mentioned_user", flat=True)) == [
         newcomer.pk
     ]
+    post.refresh_from_db()
+    assert '<span class="mention">@new.comer</span>' in post.body_html
+    assert '<span class="mention">@expert.person' not in post.body_html
 
 
 def test_mention_notifications_on_approval_come_from_the_author(
@@ -551,9 +555,11 @@ def test_edit_updates_mentions_and_notifies_only_new_ones(
         post = _edit(post, member, body="Hi @expert.person and @owner.person")
     assert Notification.objects.filter(recipient=people["expert"], category="mention").count() == 1
     assert Notification.objects.filter(recipient=people["owner"], category="mention").count() == 1
+    assert '<span class="mention">@owner.person</span>' in post.body_html
     with django_capture_on_commit_callbacks(execute=True):
-        post = _edit(post, member, body="Nobody")
+        post = _edit(post, member, body="Nobody @nobody.here")
     assert not Mention.objects.filter(post=post).exists()
+    assert '<span class="mention">' not in post.body_html
 
 
 def test_edit_with_tags(member, people, community, make_post):

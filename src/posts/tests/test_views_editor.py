@@ -285,6 +285,22 @@ def test_htmx_preview_renders_body_fragment(client, community, author):
     assert client.get(url).status_code == 405
 
 
+def test_previews_wrap_only_resolved_mentions(client, community, author, make_post):
+    client.force_login(author)
+    body = "@ann.author and @no.body"
+    url = reverse("posts:preview", args=[community.slug])
+    post = make_post(community, author)
+    edit = {"title": "T", "body": body, "version": 1, "action": "preview"}
+    for response in (
+        client.post(url, {"body": body}, headers={"HX-Request": "true"}),
+        client.post(_create(community), _form(body=body, action="preview")),
+        client.post(_edit(post), edit),
+    ):
+        html = response.content.decode()
+        assert '<span class="mention">@ann.author</span>' in html
+        assert '<span class="mention">@no.body' not in html
+
+
 def test_no_js_preview_rerenders_editor(client, community, author):
     client.force_login(author)
     response = client.post(_create(community), _form(body="**bold**", action="preview"))

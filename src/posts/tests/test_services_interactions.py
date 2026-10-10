@@ -232,10 +232,13 @@ def test_mentions_notified_once_per_newly_mentioned_user(
 
     with django_capture_on_commit_callbacks(execute=True):
         services.update_comment(
-            actor=reader, comment=comment, body="Ping @mona.moderator and @ada.author"
+            actor=reader, comment=comment, body="Ping @ada.author and @nobody.here"
         )
     recipients = sorted(_notifications("mention").values_list("recipient", flat=True))
     assert recipients == sorted([moderator.pk, author.pk])
+    comment.refresh_from_db()
+    assert '<span class="mention">@ada.author</span>' in comment.body_html
+    assert '<span class="mention">@nobody.here' not in comment.body_html
 
 
 def test_update_comment_by_author(post, reader, make_comment):

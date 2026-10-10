@@ -32,7 +32,7 @@ from taxonomy.models import Tag
 
 from . import policies, selectors, services_posts
 from .forms import PostForm, ReasonForm, ReviewRejectForm, ShareForm
-from .mentions import NON_ASCII, folded, handle_for, name_key
+from .mentions import NON_ASCII, folded, handle_for, handles_of, name_key, resolve_mentions
 from .models import POST_BODY_MAX_LENGTH, Comment, Post
 from .rendering import render_body
 from .templatetags.post_actions import creatable_kinds, publish_label, share_targets
@@ -95,6 +95,11 @@ def _act(request, post, operation, success, *, redirect_to=None, error_to=None):
 # --- Editor -------------------------------------------------------------------------------
 
 
+def _preview(community, body: str) -> str:
+    """``body`` rendered as it will be saved, mentions resolved against ``community``."""
+    return render_body(body, handles_of(resolve_mentions(community, body)))
+
+
 def _editor_response(request, community, form, *, post=None, preview=None, status=200, **extra):
     form.fields["body"].widget.attrs.update(
         {
@@ -155,7 +160,7 @@ def create(request, slug):
         return _editor_response(request, community, form)
     if action == "preview":
         return _editor_response(
-            request, community, form, preview=render_body(form.cleaned_data["body"])
+            request, community, form, preview=_preview(community, form.cleaned_data["body"])
         )
     data = form.cleaned_data
     try:
@@ -222,7 +227,7 @@ def edit(request, slug, public_id):
     data = form.cleaned_data
     if action == "preview":
         return _editor_response(
-            request, community, form, post=post, preview=render_body(data["body"])
+            request, community, form, post=post, preview=_preview(community, data["body"])
         )
     publish = action == "publish" and post.status == Post.Status.DRAFT
     try:
@@ -258,9 +263,9 @@ def edit(request, slug, public_id):
 @require_POST
 def preview(request, slug):
     """The rendered Markdown of ``body`` (HTMX fragment for the editor's live region)."""
-    _readable_community(request, slug)
+    community = _readable_community(request, slug)
     body = request.POST.get("body", "")[:POST_BODY_MAX_LENGTH]
-    return render(request, "posts/_preview.html", {"preview": render_body(body)})
+    return render(request, "posts/_preview.html", {"preview": _preview(community, body)})
 
 
 @login_required

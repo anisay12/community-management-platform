@@ -70,16 +70,27 @@ def test_sync_mentions_on_a_comment(community, make_user, make_post, make_commen
     assert Mention.objects.get().comment == comment
 
 
-def test_render_body_wraps_mentions_outside_code_and_links():
-    html = render_body("Hi @alice.doe, see `@code.sample` and [@link.text](https://x.example)")
+def test_render_body_wraps_resolved_mentions_outside_code_and_links():
+    resolved = {"alice.doe", "code.sample", "link.text"}
+    html = render_body(
+        "Hi @alice.doe, see `@code.sample` and [@link.text](https://x.example)",
+        resolved_handles=resolved,
+    )
     assert '<span class="mention">@alice.doe</span>' in html
     assert "<code>@code.sample</code>" in html
     assert '<span class="mention">@link.text' not in html
-    assert render_body("") == ""
+    assert render_body("", resolved_handles=resolved) == ""
+
+
+def test_render_body_leaves_unresolved_mentions_as_plain_text():
+    html = render_body("@Alice.Doe and @nobody.here", resolved_handles={"alice.doe"})
+    assert '<span class="mention">@Alice.Doe</span>' in html
+    assert "@nobody.here" in html and '<span class="mention">@nobody.here' not in html
+    assert '<span class="mention">' not in render_body("@alice.doe")
 
 
 def test_render_body_stays_sanitised():
-    html = render_body("<script>alert(1)</script> @a.b")
+    html = render_body("<script>alert(1)</script> @a.b", resolved_handles={"a.b"})
     assert "<script>" not in html
     assert '<span class="mention">@a.b</span>' in html
 

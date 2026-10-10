@@ -22,6 +22,7 @@ from communities.views import community_page
 
 from . import policies, selectors
 from .models import Post
+from .mentions import handles_of, resolve_mentions
 from .rendering import render_body
 
 UNANSWERED = "unanswered=1"
@@ -148,8 +149,11 @@ def revisions(request, slug, public_id):
     if not policies.can_view_revisions(request.user, post):
         raise PermissionDenied
     entries = list(post.revisions.select_related("editor"))
+    # Mentions resolve as they would on a write today (one lookup for every revision).
+    mentioned = resolve_mentions(post.community, "\n".join(entry.body for entry in entries))
+    handles = handles_of(user for user in mentioned if policies.can_view_post(user, post))
     for revision in entries:
-        revision.body_html = render_body(revision.body)
+        revision.body_html = render_body(revision.body, handles)
     context = {
         "post": post,
         "community": post.community,

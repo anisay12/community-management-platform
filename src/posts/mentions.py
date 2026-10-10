@@ -29,6 +29,11 @@ def handle_for(user) -> str:
     return f"{_handle_part(user.first_name)}.{_handle_part(user.last_name)}"
 
 
+def handles_of(users) -> set[str]:
+    """The handles of ``users`` (for ``rendering.render_body``)."""
+    return {handle_for(user) for user in users}
+
+
 def _build_fold_table() -> tuple[str, str, str]:
     """``translate()`` arguments mirroring ``_handle_part`` per character for Latin letters.
 

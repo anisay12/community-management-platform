@@ -26,7 +26,7 @@ from taxonomy.services import get_or_create_tag, normalize_tag_key
 
 from . import policies, ratelimit
 from .hiding import mark_hidden, mark_visible
-from .mentions import resolve_mentions, sync_mentions
+from .mentions import handles_of, resolve_mentions, sync_mentions
 from .models import POST_BODY_MAX_LENGTH, Comment, Post, PostRevision
 from .privacy import author_display_for
 from .rendering import render_body
@@ -217,9 +217,17 @@ def _mentioned_users(post: Post) -> list:
     return users
 
 
-def _sync_post_mentions(post: Post, actor) -> list:
+def _render(post: Post) -> list:
+    """Render ``post.body`` into ``post.body_html`` (not saved), with spans on the mentions
+    that resolve now; returns the mentioned users (see ``_mentioned_users``)."""
+    mentioned = _mentioned_users(post)
+    post.body_html = render_body(post.body, handles_of(mentioned))
+    return mentioned
+
+
+def _sync_post_mentions(post: Post, actor, mentioned) -> list:
     """Store the mentions of ``post``; notify the newly mentioned users if it is published."""
-    new_users = sync_mentions(post, _mentioned_users(post))
+    new_users = sync_mentions(post, mentioned)
     if post.status == Post.Status.PUBLISHED:
         _notify_readers("mention", post, new_users, actor=actor)
     return new_users
@@ -233,16 +241,24 @@ def _go_live(post: Post) -> None:
     post.published_at = now
     post.last_activity_at = now
     post.review_note = ""
+    # Mentions stored with the draft may be stale (members left, others joined): resolve them
+    # again, and render the body again to match. The author mentions, even when a moderator
+    # approves the post.
+    mentioned = _render(post)
     post.save(
-        update_fields=["status", "published_at", "last_activity_at", "review_note", "updated_at"]
+        update_fields=[
+            "status",
+            "published_at",
+            "last_activity_at",
+            "review_note",
+            "body_html",
+            "updated_at",
+        ]
     )
     Community.objects.filter(pk=post.community_id).update(last_activity_at=now)
     category = "announcement" if post.kind in ANNOUNCEMENT_KINDS else "community_post"
     post_id = post.pk
     transaction.on_commit(lambda: broadcast_post.delay(post_id, category))
-    # Mentions stored with the draft may be stale (members left, others joined): resolve them
-    # again. The author mentions, even when a moderator approves the post.
-    mentioned = _mentioned_users(post)
     sync_mentions(post, mentioned)
     _notify_readers("mention", post, mentioned, actor=post.author)
 
@@ -276,6 +292,7 @@ def _ensure_can_create(actor, community, kind) -> None:
 def _create(*, actor, community, kind, title, body, tags, publish, shared_from=None) -> Post:
     title, body = _clean_content(title, body)
     tag_objects = _resolve_tags(actor, community, tags)
+    mentioned = resolve_mentions(community, body)
     ratelimit.hit(actor, "post")
     post = Post.objects.create(
         community=community,
@@ -284,13 +301,13 @@ def _create(*, actor, community, kind, title, body, tags, publish, shared_from=N
         kind=kind,
         title=title,
         body=body,
-        body_html=render_body(body),
+        body_html=render_body(body, handles_of(mentioned)),
         status=Post.Status.DRAFT,
         shared_from=shared_from,
     )
     post.tags.set(tag_objects)
     refresh_search_vector(post)
-    sync_mentions(post, resolve_mentions(community, body))
+    sync_mentions(post, mentioned)
     if publish:
         _submit(post, actor)
     return post
@@ -369,13 +386,13 @@ def update_post(*, actor, post, title, body, tags, version) -> Post:
     previous_title = post.title
     post.title = title
     post.body = body
-    post.body_html = render_body(body)
+    mentioned = _render(post)
     post.version += 1
     post.save(update_fields=["title", "body", "body_html", "version", "updated_at"])
     if tag_objects is not None:
         post.tags.set(tag_objects)
     refresh_search_vector(post)
-    _sync_post_mentions(post, actor)
+    _sync_post_mentions(post, actor, mentioned)
     if by_other:
         record(
             actor=actor,

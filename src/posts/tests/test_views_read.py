@@ -474,3 +474,16 @@ def test_revisions_for_moderators_only(client, community, author, member, make_p
     assert_single_h1(response)
     assert "First title" in html and "<em>body</em>" in html and "Ann Author" in html
     assert url in client.get(_detail(post)).content.decode()
+
+
+def test_revisions_wrap_only_resolved_mentions(client, community, author, make_post, make_user,
+                                               add_member):  # fmt: skip
+    post = make_post(community, author, kind=K.ARTICLE)
+    PostRevision.objects.create(post=post, editor=author, title="T", body="@ann.author @no.body")
+    moderator = make_user("mod@example.com")
+    add_member(community, moderator, CommunityRole.MODERATOR)
+    client.force_login(moderator)
+    url = reverse("posts:revisions", args=[community.slug, post.public_id])
+    html = client.get(url).content.decode()
+    assert '<span class="mention">@ann.author</span>' in html
+    assert "@no.body" in html and '<span class="mention">@no.body' not in html

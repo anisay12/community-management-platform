@@ -21,7 +21,7 @@ from notifications.services import notify
 
 from . import policies
 from .hiding import confirm_hidden, is_auto_hidden, mark_hidden, mark_visible
-from .mentions import resolve_mentions, sync_mentions
+from .mentions import handles_of, resolve_mentions, sync_mentions
 from .models import (
     COMMENT_BODY_MAX_LENGTH,
     REPORT_DETAILS_MAX_LENGTH,
@@ -124,15 +124,21 @@ def _touch(post: Post) -> None:
     post.last_activity_at = now
 
 
-def _notify_mentions(actor, comment: Comment) -> None:
-    post = comment.post
-    users = [
+def _mentioned_readers(post: Post, body: str) -> list:
+    """Members the mentions of ``body`` resolve to, among those who can read ``post``."""
+    return [
         user
-        for user in resolve_mentions(post.community, comment.body)
-        if user.pk != actor.pk and policies.can_view_post(user, post)
+        for user in resolve_mentions(post.community, body)
+        if policies.can_view_post(user, post)
     ]
+
+
+def _notify_mentions(actor, comment: Comment, mentioned) -> None:
+    """Store the mentions of ``comment`` (not the actor's own handle) and notify the newly
+    mentioned members."""
+    users = [user for user in mentioned if user.pk != actor.pk]
     new_users = sync_mentions(comment, users)
-    notify("mention", new_users, actor=actor, target=comment, community=post.community)
+    notify("mention", new_users, actor=actor, target=comment, community=comment.post.community)
 
 
 def _moderators(community):
@@ -174,6 +180,7 @@ def add_comment(*, actor, post, body, parent=None):
             if parent.status != Comment.Status.VISIBLE:
                 raise _invalid_state()
     body = _clean_body(body)
+    mentioned = _mentioned_readers(post, body)
     hit(actor, "comment")
     membership = membership_of(actor, post.community)
     comment = Comment.objects.create(
@@ -182,7 +189,7 @@ def add_comment(*, actor, post, body, parent=None):
         author_display=author_display_for(actor),
         parent=parent,
         body=body,
-        body_html=render_body(body),
+        body_html=render_body(body, handles_of(mentioned)),
         is_expert_answer=role_at_least(membership.role, CommunityRole.EXPERT),
     )
     _touch(post)
@@ -190,7 +197,7 @@ def add_comment(*, actor, post, body, parent=None):
     # community) hears about the reply.
     if answered is not None and policies.can_view_comment(answered, comment):
         notify("reply", [answered], actor=actor, target=comment, community=post.community)
-    _notify_mentions(actor, comment)
+    _notify_mentions(actor, comment, mentioned)
     schedule_recount(post)
     return comment
 
@@ -213,10 +220,11 @@ def update_comment(*, actor, comment, body):
     if not (moderating or policies.can_edit_comment(actor, comment)):
         raise _forbidden()
     body = _clean_body(body)
+    mentioned = _mentioned_readers(post, body)
     comment.body = body
-    comment.body_html = render_body(body)
+    comment.body_html = render_body(body, handles_of(mentioned))
     comment.save(update_fields=["body", "body_html", "updated_at"])
-    _notify_mentions(actor, comment)
+    _notify_mentions(actor, comment, mentioned)
     if not _is_author(actor, comment):
         record(
             actor=actor,
