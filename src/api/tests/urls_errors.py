@@ -1,7 +1,7 @@
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import BadRequest, PermissionDenied, SuspiciousOperation
 from django.http import Http404
 from django.urls import include, path
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 from rest_framework.views import APIView
 
 from core.errors import DomainError
@@ -34,6 +34,20 @@ urlpatterns = [
         "api/t/invalid/",
         _raising(lambda: serializers.ValidationError({"title": ["This field is required."]})),
     ),
+    path(
+        "api/t/nested/",
+        _raising(lambda: serializers.ValidationError({"author": {"email": ["Bad email."]}})),
+    ),
+    path(
+        "api/t/listed/",
+        _raising(
+            lambda: serializers.ValidationError({"items": [{}, {"title": ["Required."]}]}),
+        ),
+    ),
+    path("api/t/toplist/", _raising(lambda: serializers.ValidationError(["Nope."]))),
+    path("api/t/badrequest/", _raising(lambda: BadRequest("internal detail"))),
+    path("api/t/suspicious/", _raising(lambda: SuspiciousOperation("internal detail"))),
+    path("api/t/throttled/", _raising(exceptions.Throttled)),
     path("api/t/boom/", _raising(lambda: RuntimeError("secret internals"))),
     path("", include("config.urls")),
 ]

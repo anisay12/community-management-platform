@@ -1,11 +1,15 @@
 """One JSON error shape for the API, and the HTTP status of every ``DomainError`` code.
 
-Body: ``{"code", "detail", "fields"?, "request_id"}``. A new ``DomainError`` code must be
+Body: ``{"code", "detail", "fields"?, "request_id"}``; ``fields`` maps dotted field paths
+(``author.email``, ``items.1.title``) to lists of messages. Django's own 400-class
+exceptions (``BadRequest``, ``SuspiciousOperation``) stay 400 (code ``bad_request``).
+Every 429 carries ``Retry-After``. A new ``DomainError`` code must be
 added to one of the sets below: ``tests/test_errors.py`` fails otherwise.
 """
 
 import structlog
 from django.conf import settings
+from django.core.exceptions import BadRequest, SuspiciousOperation
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.signals import got_request_exception
 from django.http import Http404
@@ -39,6 +43,7 @@ CONFLICT_CODES = frozenset(
         "already_member",
         "already_reported",
         "edit_conflict",
+        "email_taken",
         "expired",
         "idempotency_key_reused",
         "invalid_state",
@@ -61,16 +66,23 @@ BAD_REQUEST_CODES = frozenset(
         "extension_refused",
         "file_empty",
         "file_too_large",
+        "first_name_required",
+        "first_name_too_long",
         "idempotency_key_required",
         "image_too_large",
         "invalid",
         "invalid_choice",
         "invalid_date",
+        "invalid_email",
         "invalid_image",
         "invalid_link",
         "invalid_reason",
         "invalid_status",
         "invalid_type",
+        "last_name_required",
+        "last_name_too_long",
+        "manager_requires_unit",
+        "manager_self",
         "name_required",
         "name_too_long",
         "reason_required",
@@ -80,6 +92,7 @@ BAD_REQUEST_CODES = frozenset(
         "title_too_long",
         "too_many_collections",
         "type_mismatch",
+        "unknown_manager",
         "unknown_role",
         "version_label_too_long",
     }
@@ -107,13 +120,24 @@ def _body(code: str, detail, request, fields=None) -> dict:
     return body
 
 
-def _fields(detail) -> dict:
+def _flatten(detail, prefix: str, out: dict) -> None:
     if isinstance(detail, dict):
-        return {
-            name: [str(item) for item in (errors if isinstance(errors, list) else [errors])]
-            for name, errors in detail.items()
-        }
-    return {"non_field_errors": [str(item) for item in detail]}
+        for name, value in detail.items():
+            _flatten(value, f"{prefix}.{name}" if prefix else str(name), out)
+    elif isinstance(detail, (list, tuple)):
+        if all(not isinstance(item, (dict, list, tuple)) for item in detail):
+            out.setdefault(prefix or "non_field_errors", []).extend(str(i) for i in detail)
+        else:
+            for index, item in enumerate(detail):
+                _flatten(item, f"{prefix}.{index}" if prefix else str(index), out)
+    else:
+        out.setdefault(prefix or "non_field_errors", []).append(str(detail))
+
+
+def _fields(detail) -> dict:
+    out: dict = {}
+    _flatten(detail, "", out)
+    return out
 
 
 def exception_handler(exc, context):
@@ -123,8 +147,13 @@ def exception_handler(exc, context):
         status = status_for(exc.code)
         response = Response(_body(exc.code, exc.message, request), status=status)
         if status == 429:
-            response["Retry-After"] = str(getattr(exc, "retry_after", 3600))
+            response["Retry-After"] = str(int(getattr(exc, "retry_after", 3600)))
         return response
+    if isinstance(exc, (BadRequest, SuspiciousOperation)):
+        set_rollback()  # Django answers these with a 400: keep it, but as JSON
+        return Response(
+            _body("bad_request", _("The request could not be processed."), request), status=400
+        )
     if isinstance(exc, Http404):
         exc = exceptions.NotFound()  # never echo the message: it may name the model
     elif isinstance(exc, DjangoPermissionDenied):
@@ -142,6 +171,8 @@ def exception_handler(exc, context):
                 code = RATE_LIMITED
             detail = exc.detail if isinstance(exc.detail, str) else exc.default_detail
             response.data = _body(code, detail, request)
+            if isinstance(exc, exceptions.Throttled) and "Retry-After" not in response:
+                response["Retry-After"] = "3600"
         return response
     if settings.DEBUG:
         return None  # DRF re-raises: the developer gets Django's traceback page

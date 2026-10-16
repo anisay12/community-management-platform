@@ -30,6 +30,9 @@ def logged(api_client, active_user):
         ("/api/t/403/", 403, "permission_denied"),
         ("/api/t/invalid/", 400, "invalid"),
         ("/api/t/boom/", 500, "server_error"),
+        ("/api/t/badrequest/", 400, "bad_request"),
+        ("/api/t/suspicious/", 400, "bad_request"),
+        ("/api/t/throttled/", 429, "rate_limited"),
     ],
 )
 def test_error_shape_and_status(logged, path, status, code):
@@ -82,11 +85,58 @@ def test_server_error_reaches_error_collectors(logged):
     assert received
 
 
-def test_server_error_reraises_in_debug(logged, settings):
+def test_server_error_reraises_in_debug(settings):
+    from rest_framework.test import APIRequestFactory
+
+    context = {"request": APIRequestFactory().get("/api/t/boom/"), "view": None}
     settings.DEBUG = True
-    logged.raise_request_exception = True
-    with pytest.raises(RuntimeError):
-        logged.get("/api/t/boom/")
+    assert exceptions.exception_handler(RuntimeError("x"), context) is None
+    settings.DEBUG = False
+    response = exceptions.exception_handler(RuntimeError("x"), context)
+    assert response.status_code == 500
+
+
+def test_nested_serializer_errors_are_flattened(logged):
+    assert logged.get("/api/t/nested/").json()["fields"] == {"author.email": ["Bad email."]}
+    assert logged.get("/api/t/listed/").json()["fields"] == {"items.1.title": ["Required."]}
+    assert logged.get("/api/t/toplist/").json()["fields"] == {"non_field_errors": ["Nope."]}
+
+
+@pytest.mark.parametrize("path", ["/api/t/badrequest/", "/api/t/suspicious/"])
+def test_django_400s_stay_400_and_are_not_unhandled(logged, path):
+    from django.core.signals import got_request_exception
+
+    received = []
+
+    def receiver(sender, **kwargs):
+        received.append(1)
+
+    got_request_exception.connect(receiver)
+    try:
+        response = logged.get(path)
+    finally:
+        got_request_exception.disconnect(receiver)
+    assert response.status_code == 400
+    assert response.json()["code"] == "bad_request"
+    assert "internal detail" not in response.content.decode()
+    assert not received
+
+
+def test_throttled_without_wait_has_retry_after(logged):
+    assert logged.get("/api/t/throttled/")["Retry-After"] == "3600"
+
+
+def test_code_sets_are_disjoint():
+    sets = [
+        exceptions.FORBIDDEN_CODES,
+        exceptions.CONFLICT_CODES,
+        exceptions.UNAVAILABLE_CODES,
+        exceptions.BAD_REQUEST_CODES,
+        {exceptions.RATE_LIMITED},
+    ]
+    for i, a in enumerate(sets):
+        for b in sets[i + 1 :]:
+            assert not (a & b), a & b
 
 
 def test_error_detail_is_translated(logged, active_user):
@@ -96,28 +146,84 @@ def test_error_detail_is_translated(logged, active_user):
     assert response.json()["detail"] != "Not found."
 
 
-def _domain_error_codes() -> set[str]:
-    codes = set()
+DYNAMIC_DOMAIN_ERROR_SITES = {"accounts/services.py:create_user"}
+
+
+def _scan_domain_errors() -> tuple[set[str], set[str]]:
+    codes, dynamic = set(), set()
     for file in SRC.rglob("*.py"):
         if "tests" in file.parts or "migrations" in file.parts:
             continue
-        for node in ast.walk(ast.parse(file.read_text(encoding="utf-8"))):
-            if not (isinstance(node, ast.Call) and node.args):
+        tree = ast.parse(file.read_text(encoding="utf-8"))
+        parents = {
+            child: parent for parent in ast.walk(tree) for child in ast.iter_child_nodes(parent)
+        }
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
                 continue
-            name = getattr(node.func, "id", getattr(node.func, "attr", None))
-            first = node.args[0]
-            if name == "DomainError" and isinstance(first, ast.Constant):
+            if getattr(node.func, "id", getattr(node.func, "attr", None)) != "DomainError":
+                continue
+            first = node.args[0] if node.args else None
+            if isinstance(first, ast.Constant):
                 codes.add(first.value)
-    return codes
+                continue
+            scope = node
+            while scope in parents and not isinstance(
+                scope, (ast.FunctionDef, ast.AsyncFunctionDef)
+            ):
+                scope = parents[scope]
+            name = getattr(scope, "name", "<module>")
+            dynamic.add(f"{file.relative_to(SRC).as_posix()}:{name}")
+    return codes, dynamic
 
 
-def test_every_domain_error_code_is_classified():
-    classified = (
+def _domain_error_codes() -> set[str]:
+    return _scan_domain_errors()[0]
+
+
+def _classified() -> set[str]:
+    return (
         exceptions.FORBIDDEN_CODES
         | exceptions.CONFLICT_CODES
         | exceptions.BAD_REQUEST_CODES
         | exceptions.UNAVAILABLE_CODES
         | {exceptions.RATE_LIMITED}
     )
-    missing = _domain_error_codes() - classified
+
+
+def test_dynamic_domain_error_sites_are_known():
+    assert _scan_domain_errors()[1] == DYNAMIC_DOMAIN_ERROR_SITES
+
+
+def test_new_user_validation_codes_are_classified(make_user):
+    from accounts.services import validate_new_user_fields
+
+    make_user("taken@example.com")
+    long = "x" * 151
+    problems = (
+        validate_new_user_fields(email="not-an-email")
+        + validate_new_user_fields(email="taken@example.com")
+        + validate_new_user_fields(email="a@example.com", first_name=" ", last_name=" ")
+        + validate_new_user_fields(email="a@example.com", first_name=long, last_name=long)
+        + validate_new_user_fields(email="a@example.com", manager_email="a@example.com")
+        + validate_new_user_fields(email="a@example.com", manager_email="ghost@example.com")
+    )
+    codes = {code for code, _message in problems}
+    assert codes == {
+        "invalid_email",
+        "email_taken",
+        "first_name_required",
+        "last_name_required",
+        "first_name_too_long",
+        "last_name_too_long",
+        "manager_self",
+        "manager_requires_unit",
+        "unknown_manager",
+    }
+    assert codes <= _classified()
+    assert exceptions.status_for("email_taken") == 409
+
+
+def test_every_domain_error_code_is_classified():
+    missing = _domain_error_codes() - _classified()
     assert not missing, f"classify these DomainError codes in api/exceptions.py: {missing}"
