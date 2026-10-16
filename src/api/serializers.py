@@ -45,3 +45,8 @@ class MeSerializer(UserSummarySerializer):
     def get_timezone(self, user) -> str:
         profile = getattr(user, "profile", None)
         return profile.timezone if profile is not None else ""
+
+
+class TagSerializer(serializers.Serializer):
+    name = serializers.CharField(read_only=True)
+    slug = serializers.SlugField(read_only=True)

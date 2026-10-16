@@ -371,6 +371,19 @@ REST_FRAMEWORK = {
     },
 }
 
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Talan Communities API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "SERVE_PERMISSIONS": ["api.permissions.IsActiveVerifiedUser"],
+    "SERVE_AUTHENTICATION": ["api.authentication.SessionAuthentication"],
+    # Self-hosted Swagger UI (no CDN); the split view serves its JS as a file (no inline script).
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+}
+
 # Profile photos (L5): upload limit, pixel cap against decompression bombs, and the browser
 # cache lifetime of the private avatar URL (``accounts.views_profile.avatar``).
 AVATAR_MAX_UPLOAD_BYTES = env.int("AVATAR_MAX_UPLOAD_BYTES", default=2 * 1024 * 1024)
