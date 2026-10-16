@@ -4,12 +4,16 @@ The stored result is ``{status, kind, public_id, fingerprint}``. A replay with t
 and the same request returns the original status (the view re-reads and serializes the
 object's current state); the same key with a different request answers 409. Scopes are the
 UI views' scope strings, so one key can never run a write twice through either door.
+
+Known limit: if the write succeeded but storing its result in the cache then fails, the client
+gets a 500 although the write happened; a retry with the same key then answers 409
+``submission_in_progress`` until the in-flight claim expires.
 """
 
 import hashlib
 import json
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 
 from django.utils.translation import gettext as _
@@ -55,14 +59,23 @@ def _key(request, required: bool) -> str | None:
 
 
 def fingerprint(scope: str, data, files) -> str:
-    """SHA-256 of the scope, the non-file fields and each file's name and size."""
-    if hasattr(data, "getlist"):
-        fields = {name: data.getlist(name) for name in sorted(data) if name not in files}
+    """SHA-256 of the scope, the body and each uploaded file's field, name and size.
+
+    A mapping body is hashed field by field (form fields keep every value); any other JSON
+    body (list, number, string) is hashed whole.
+    """
+    if isinstance(data, Mapping):
+        if hasattr(data, "getlist"):
+            body = {name: data.getlist(name) for name in sorted(data) if name not in files}
+        else:
+            body = {name: data[name] for name in sorted(data) if name not in files}
     else:
-        fields = {name: data[name] for name in sorted(data) if name not in files}
-    file_parts = sorted((name, upload.name, upload.size) for name, upload in files.items())
+        body = data
+    file_parts = sorted(
+        (field, upload.name, upload.size) for field, uploads in files.lists() for upload in uploads
+    )
     payload = json.dumps(
-        {"scope": scope, "fields": fields, "files": file_parts}, sort_keys=True, default=str
+        {"scope": scope, "fields": body, "files": file_parts}, sort_keys=True, default=str
     )
     return hashlib.sha256(payload.encode()).hexdigest()
 
@@ -73,7 +86,7 @@ def run_idempotent(
     key = _key(request, required)
     if key is None:
         return operation()
-    print_ = fingerprint(scope, request.data, request.FILES)
+    request_fingerprint = fingerprint(scope, request.data, request.FILES)
 
     started = False
 
@@ -85,7 +98,7 @@ def run_idempotent(
             "status": outcome.status,
             "kind": outcome.kind,
             "public_id": outcome.public_id,
-            "fingerprint": print_,
+            "fingerprint": request_fingerprint,
         }
 
     try:
@@ -100,7 +113,7 @@ def run_idempotent(
             "idempotency_unavailable",
             _("This action is temporarily unavailable. Please try again in a moment."),
         ) from error
-    if not isinstance(result, dict) or result.get("fingerprint") != print_:
+    if not isinstance(result, dict) or result.get("fingerprint") != request_fingerprint:
         raise _reused()
     return Outcome(result["status"], result["kind"], result["public_id"], replayed)
 
