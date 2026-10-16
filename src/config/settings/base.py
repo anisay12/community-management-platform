@@ -362,6 +362,13 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "api.exceptions.exception_handler",
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "UNAUTHENTICATED_USER": "django.contrib.auth.models.AnonymousUser",
+    "DEFAULT_PAGINATION_CLASS": "api.pagination.PagePagination",
+    "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": ["api.throttling.ReadThrottle", "api.throttling.WriteThrottle"],
+    "DEFAULT_THROTTLE_RATES": {
+        "api_read": env("API_THROTTLE_READ", default="3600/hour"),
+        "api_write": env("API_THROTTLE_WRITE", default="1000/hour"),
+    },
 }
 
 # Profile photos (L5): upload limit, pixel cap against decompression bombs, and the browser
