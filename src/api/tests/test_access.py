@@ -44,6 +44,7 @@ def test_privileged_user_without_mfa_gets_403_not_redirect(api_client, functiona
     response = api_client.get(ME)
     assert response.status_code == 403
     assert not response.has_header("Location")
+    assert response.json()["code"] == "mfa_required"
 
 
 def test_privileged_user_with_verified_mfa_reads_me(client, functional_admin, verified_login):
