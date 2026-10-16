@@ -4,7 +4,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Talan Communities\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-10 16:39+0200\n"
+"POT-Creation-Date: 2026-10-16 15:00+0200\n"
 "PO-Revision-Date: 2026-10-09 12:00+0000\n"
 "Last-Translator: Talan Communities\n"
 "Language-Team: French\n"
@@ -906,6 +906,34 @@ msgstr "Votre photo a été supprimée."
 
 msgid "Your preferences have been saved."
 msgstr "Vos préférences ont été enregistrées."
+
+msgid "API"
+msgstr "API"
+
+msgid "The request could not be processed."
+msgstr "La requête n’a pas pu être traitée."
+
+msgid "The submitted data is not valid."
+msgstr "Les données envoyées ne sont pas valides."
+
+msgid "An unexpected error occurred."
+msgstr "Une erreur inattendue s’est produite."
+
+msgid "This Idempotency-Key was already used for a different request."
+msgstr "Cette clé Idempotency-Key a déjà été utilisée pour une autre requête."
+
+msgid "This request needs an Idempotency-Key header (a UUID)."
+msgstr "Cette requête nécessite un en-tête Idempotency-Key (un UUID)."
+
+msgid "The Idempotency-Key header must be a UUID."
+msgstr "L’en-tête Idempotency-Key doit être un UUID."
+
+msgid "This action is temporarily unavailable. Please try again in a moment."
+msgstr ""
+"Cette action est momentanément indisponible. Réessayez dans un instant."
+
+msgid "Verify your second factor in the application first."
+msgstr "Vérifiez d’abord votre second facteur dans l’application."
 
 msgid "Audit log"
 msgstr "Journal d'audit"

@@ -13,6 +13,7 @@ lint:
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run python manage.py makemigrations --check --dry-run --settings=config.settings.test
+	uv run python manage.py spectacular --validate --fail-on-warn --file /dev/null --settings=config.settings.test
 
 messages:
 	cd src && uv run python ../manage.py makemessages -l fr --no-location --no-obsolete --ignore=.venv --settings=config.settings.test

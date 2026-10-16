@@ -291,6 +291,20 @@ upload). With `DEBUG`, `DOCUMENT_DEV_STREAMING` also makes Django stream avatars
   (managers, with the reason) and "Latest scan errors" (functional and technical admins,
   metadata only; linked only when the admin may open the document).
 
+## REST API
+
+`/api/v1/` is a Django REST framework API for the same data as the web interface. It uses session authentication only, on the same origin: no CORS, and it never accepts credentials (no token, no basic authentication, no `Authorization` header). The schema is served at `/api/schema/` and the interactive documentation at `/api/docs/` (self-hosted scripts, login required). `make lint` validates the schema with `--fail-on-warn`.
+
+**Access.** The default permission `api.permissions.IsActiveVerifiedUser` answers JSON errors. An anonymous or inactive account gets 401 `not_authenticated` (DRF treats inactive accounts as anonymous). A privileged role without a verified second factor gets 403 `mfa_required`.
+
+**Errors.** Every error has the body `{"code", "detail", "fields"?, "request_id"}`, built in `api/exceptions.py`. That module maps each `DomainError` code to a status; a new code must be classified there. `api/tests/test_errors.py` checks it: it scans the literal codes raised in the services and an allowlist of dynamic raise sites, and fails on an unclassified code. `detail` is translated.
+
+**Pagination and throttling.** Lists are numbered pages of 20 (maximum 50, `page_size`). `API_THROTTLE_READ` and `API_THROTTLE_WRITE` set the per-user rates; they only protect the API, the business limits stay in the services. If the cache is down, throttles fail open and log.
+
+**Idempotency.** Join, upload and new version require an `Idempotency-Key` header (a UUID). A replay of the same request returns the stored result with `Idempotent-Replayed: true`; the same key with a different request body or file answers 409 `idempotency_key_reused`. Unlike throttles, idempotency fails closed: if the cache is unavailable before the operation starts, the answer is 503 `idempotency_unavailable`.
+
+**Adding an endpoint.** Put it in `<app>/api/{serializers,views,urls}.py` and include the urls from `api/urls.py`. Views use selectors (never `.objects.`) and services; serializers validate and shape data but never save. Add the tests next to the app, including the parity with the web interface.
+
 ## Scheduled jobs
 
 The `beat` service (Celery beat) runs these tasks (time zone `Europe/Paris`):
