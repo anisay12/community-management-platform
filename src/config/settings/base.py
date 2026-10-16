@@ -34,6 +34,9 @@ INSTALLED_APPS = [
     "django_otp.plugins.otp_static",
     # Always installed; its URLs and backend are only enabled in the SSO modes.
     "mozilla_django_oidc",
+    "rest_framework",
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
     "core",
     "taxonomy",
     "organizations",
@@ -43,6 +46,7 @@ INSTALLED_APPS = [
     "notifications",
     "posts",
     "documents",
+    "api",
 ]
 
 MIDDLEWARE = [
@@ -343,6 +347,21 @@ POSTS_RATE_LIMITS = {**POSTS_RATE_LIMITS, "document": DOCUMENT_UPLOAD_RATE_LIMIT
 # Development only: with DEBUG, Django streams document files itself instead of answering
 # X-Accel-Redirect. Set to false to try the Nginx path locally (never used without DEBUG).
 DOCUMENT_DEV_STREAMING = env.bool("DOCUMENT_DEV_STREAMING", default=True)
+
+# REST API (spec § 15, .internal/specs/2026-10-16-api-foundation-design.md): session only,
+# same origin, no CORS. Never add another authentication class without an ADR.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ["api.authentication.SessionAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": ["api.permissions.IsActiveVerifiedUser"],
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
+    ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "UNAUTHENTICATED_USER": "django.contrib.auth.models.AnonymousUser",
+}
 
 # Profile photos (L5): upload limit, pixel cap against decompression bombs, and the browser
 # cache lifetime of the private avatar URL (``accounts.views_profile.avatar``).

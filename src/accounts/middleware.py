@@ -4,6 +4,7 @@ from urllib.parse import quote
 from django.conf import settings
 from django.http import Http404, HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
+from rest_framework.views import APIView
 
 from .policies import has_confirmed_device, requires_mfa
 
@@ -19,6 +20,17 @@ ALLOWED_URL_NAMES = frozenset(
         "metrics",
     }
 )
+
+
+def _is_api_view(request: HttpRequest, view_func) -> bool:
+    """A DRF view under ``/api/``: its default permission enforces MFA with a JSON 403.
+
+    A plain Django view mounted under ``/api/`` is not exempted (it keeps the redirect).
+    """
+    if not request.path_info.startswith("/api/"):
+        return False
+    view_class = getattr(view_func, "cls", None)
+    return isinstance(view_class, type) and issubclass(view_class, APIView)
 
 
 class MFARequiredMiddleware:
@@ -39,6 +51,8 @@ class MFARequiredMiddleware:
         if user is None or not getattr(user, "is_authenticated", False) or user.is_verified():
             return None
         if not requires_mfa(user):
+            return None
+        if _is_api_view(request, view_func):
             return None
         # Static files are normally served before this middleware; harmless safety net.
         if request.path_info.startswith(settings.STATIC_URL):

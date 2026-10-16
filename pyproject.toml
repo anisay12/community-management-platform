@@ -11,6 +11,8 @@ dependencies = [
     "django-otp==1.7.3",
     "django-prometheus>=2.3",
     "django-storages[s3]>=1.14",
+    "djangorestframework>=3.16",
+    "drf-spectacular[sidecar]>=0.28",
     "gunicorn>=23",
     "markdown-it-py>=4.2.0",
     "mozilla-django-oidc>=5.0.2",
