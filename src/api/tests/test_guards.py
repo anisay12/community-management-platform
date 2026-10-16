@@ -35,7 +35,9 @@ def test_every_api_route_is_a_guarded_drf_view(route, view):
     assert isinstance(view_class, type) and issubclass(view_class, APIView), route
     assert any(issubclass(p, IsActiveVerifiedUser) for p in view_class.permission_classes), route
     assert view_class.authentication_classes, route
-    assert all(issubclass(a, SessionAuthentication) for a in view_class.authentication_classes)
+    assert all(issubclass(a, SessionAuthentication) for a in view_class.authentication_classes), (
+        route
+    )
 
 
 def test_no_cors_header(api_client, active_user):

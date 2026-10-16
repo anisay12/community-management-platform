@@ -27,3 +27,18 @@ def test_at_most_eight(logged):
     for index in range(12):
         Tag.objects.create(name=f"tag{index:02d}", slug=f"tag{index:02d}")
     assert len(logged.get("/api/v1/tags/?q=tag").json()) == 8
+
+
+def test_query_is_case_insensitive(logged):
+    for name in ["Python", "PyTorch", "Rust"]:
+        Tag.objects.create(name=name, slug=name.lower())
+    upper = logged.get("/api/v1/tags/?q=PY").json()
+    assert upper == logged.get("/api/v1/tags/?q=py").json()
+    assert [tag["name"] for tag in upper] == ["Python", "PyTorch"]
+
+
+def test_query_ignores_accents(logged):
+    Tag.objects.create(name="Éclair", slug="eclair")
+    for query in ["ec", "éc"]:
+        names = [tag["name"] for tag in logged.get(f"/api/v1/tags/?q={query}").json()]
+        assert names == ["Éclair"], query

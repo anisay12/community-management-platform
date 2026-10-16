@@ -19,8 +19,12 @@ def test_schema_for_employees(api_client, active_user):
 
 def test_docs_have_no_inline_script_nor_cdn(client, active_user):
     client.force_login(active_user)
-    html = client.get("/api/docs/").content.decode()
-    assert not re.search(r"<script(?![^>]*\bsrc=)[^>]*>\s*\S", html)
+    response = client.get("/api/docs/")
+    assert response.status_code == 200
+    html = response.content.decode()
+    assert "?script=" in html
+    assert "drf_spectacular_sidecar" in html
+    assert not re.search(r"<script(?![^>]*(?<![\w-])src=)[^>]*>\s*\S", html)
     assert "cdn." not in html and "unpkg" not in html
 
 
