@@ -227,3 +227,33 @@ def test_new_user_validation_codes_are_classified(make_user):
 def test_every_domain_error_code_is_classified():
     missing = _domain_error_codes() - _classified()
     assert not missing, f"classify these DomainError codes in api/exceptions.py: {missing}"
+
+
+def _security_records(caplog):
+    return [r for r in caplog.records if r.name.startswith("django.security.")]
+
+
+def test_suspicious_operation_keeps_django_security_log(logged, caplog):
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+    response = logged.get("/api/t/suspicious/")
+    assert response.status_code == 400
+    assert "internal detail" not in response.content.decode()
+    records = [
+        r for r in _security_records(caplog) if r.name == "django.security.SuspiciousOperation"
+    ]
+    assert len(records) == 1
+    record = records[0]
+    assert record.levelno == logging.ERROR
+    assert record.exc_info[1].args == ("internal detail",)
+    assert record.status_code == 400
+    assert record.request.path == "/api/t/suspicious/"
+
+
+def test_plain_bad_request_has_no_security_log(logged, caplog):
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+    assert logged.get("/api/t/badrequest/").status_code == 400
+    assert _security_records(caplog) == []

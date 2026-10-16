@@ -7,12 +7,15 @@ Every 429 carries ``Retry-After``. A new ``DomainError`` code must be
 added to one of the sets below: ``tests/test_errors.py`` fails otherwise.
 """
 
+import logging
+
 import structlog
 from django.conf import settings
 from django.core.exceptions import BadRequest, SuspiciousOperation
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.core.signals import got_request_exception
 from django.http import Http404
+from django.utils.log import log_response
 from django.utils.translation import gettext as _
 from rest_framework import exceptions
 from rest_framework.response import Response
@@ -151,9 +154,20 @@ def exception_handler(exc, context):
         return response
     if isinstance(exc, (BadRequest, SuspiciousOperation)):
         set_rollback()  # Django answers these with a 400: keep it, but as JSON
-        return Response(
+        response = Response(
             _body("bad_request", _("The request could not be processed."), request), status=400
         )
+        if isinstance(exc, SuspiciousOperation):
+            # Parity with django.core.handlers.exception.response_for_exception.
+            log_response(
+                str(exc),
+                exception=exc,
+                request=request,
+                response=response,
+                level="error",
+                logger=logging.getLogger(f"django.security.{exc.__class__.__name__}"),
+            )
+        return response
     if isinstance(exc, Http404):
         exc = exceptions.NotFound()  # never echo the message: it may name the model
     elif isinstance(exc, DjangoPermissionDenied):
